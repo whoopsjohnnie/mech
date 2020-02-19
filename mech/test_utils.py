@@ -1102,6 +1102,81 @@ def test_init_box_cannot_find_valid_box(mock_locate):
         mech.utils.init_box(name='first')
 
 
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_cannot_extract_box(mock_locate, mock_add_box, mock_makedirs):
+    """Test init_box."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    mock_locate.return_value = None
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot extract box"):
+        with patch('subprocess.Popen', a_mock):
+            mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+
+
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_when_no_vmx_after_extraction(mock_locate, mock_add_box,
+                                               mock_makedirs, mock_tarfile_open):
+    """Test init_box."""
+    mock_subprocess_popen = MagicMock()
+    mock_tarfile_open = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    mock_subprocess_popen.returncode = 0
+    mock_locate.return_value = False
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot locate a VMX"):
+        with patch('subprocess.Popen', mock_subprocess_popen):
+            mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+            mock_locate.assert_called()
+            mock_add_box.assert_called()
+            mock_makedirs.assert_called()
+            mock_tarfile_open.assert_called()
+
+
+@patch('mech.utils.update_vmx', return_value='/tmp/first/some.vmx')
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
+                          mock_tarfile_open, mock_update_vmx):
+    """Test init_box."""
+    mock_subprocess_popen = MagicMock()
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    mock_subprocess_popen.returncode = 0
+    # pytest tip: If you need to mock the same function multiple times,
+    # put it into a list like the next line. Then mech.utils.locate() is
+    # called the first time, it returns False. Subsequent two calls
+    # return True. Mind blown.
+    mock_locate.side_effect = [False, True, True]
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with patch('subprocess.Popen', mock_subprocess_popen):
+        mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+        mock_locate.assert_called()
+        mock_add_box.assert_called()
+        mock_makedirs.assert_called()
+        mock_update_vmx.assert_called()
+
+
 def test_add_mechfile_with_empty_mechfile():
     """Test add_mechfile."""
     mech.utils.add_mechfile(mechfile_entry={})
