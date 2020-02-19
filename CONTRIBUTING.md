@@ -18,7 +18,8 @@ cd mech
 sudo apt-get install virtualenv
 
 # Create a virtualenv
-virtualenv -p python3 venv
+# Note: python should be 3.7+
+virtualenv -p python3.7 venv
 
 # Activate the python virtual environment
 source venv/bin/activate
@@ -30,7 +31,7 @@ source venv/bin/activate
 python setup.py install
 
 # if doing development
-pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twinepip install twine
+pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine
 
 # also optional
 pip install autopep8
