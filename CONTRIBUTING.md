@@ -1,4 +1,4 @@
-# Contributing to mech 
+# Contributing to mech
 
 Anyone can open a pull request to help expand/enhance the functionality are essential to mech's growth.
 
@@ -28,7 +28,8 @@ source venv/bin/activate
 # may need to run "direnv allow"
 
 # install mech from this code
-python setup.py install
+# python setup.py install
+pip install -e .
 
 # if doing development
 pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine

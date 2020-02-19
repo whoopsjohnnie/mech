@@ -614,6 +614,7 @@ def add_auth(instance):
         pub_key = instance.auth.get('pub_key', None)
         if username and pub_key:
             pub_key_path = os.path.expanduser(pub_key)
+            LOGGER.debug("pub_key_path:%s pub_key:%s", pub_key_path, pub_key)
             with open(pub_key_path, 'r') as the_file:
                 pub_key_contents = the_file.read().strip()
             if pub_key_contents:
@@ -634,7 +635,7 @@ def add_auth(instance):
                        'sudo chown {username}:{username} /home/{username}/.ssh/authorized_keys'
                        ).format(username=username, pub_key_contents=pub_key_contents,
                                 password=password)
-                LOGGER.debug('cmd:', cmd)
+                LOGGER.debug('cmd:%s', cmd)
                 results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
                 LOGGER.debug('results:%s', results)
                 if results is None:
@@ -751,7 +752,7 @@ def del_user(instance, username):
                                                                             instance.name)))
 
     cmd = 'sudo userdel -fr vagrant'
-    LOGGER.debug('cmd:', cmd)
+    LOGGER.debug('cmd:%s', cmd)
 
     if instance.use_psk:
         ssh(instance, cmd)
