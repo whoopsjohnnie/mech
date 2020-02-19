@@ -1071,6 +1071,22 @@ def test_darwin_executable_when_not_installed(mock_os_path_exists):
     assert expected == got
 
 
+@patch('os.path.exists')
+def test_get_fallback_executable_when_exe(mock_os_path_exists):
+    """Find vmrun.exe in PATH."""
+    # deal with a different file returns a different mocked value
+    def side_effect(filename):
+        if filename == '/tmp/vmrun.exe':
+            return True
+        else:
+            return False
+    mock_os_path_exists.side_effect = side_effect
+    expected = '/tmp/vmrun.exe'
+    with patch.dict('os.environ', {'PATH': '/tmp:/tmp2'}):
+        got = mech.utils.get_fallback_executable()
+    assert expected == got
+
+
 def test_catalog_to_mechfile_when_empty_catalog():
     """Test catalog_to_mechfile."""
     catalog = {}
@@ -1109,3 +1125,37 @@ def test_get_info_for_auth(mock_path_expanduser, mock_getlogin):
     expected = {'auth': {'username': 'bob', 'pub_key': '/home/bob/id_rsa.pub', 'mech_use': False}}
     got = mech.utils.get_info_for_auth()
     assert got == expected
+
+
+@patch('sys.platform', return_value='atari')
+def test_get_provider(mock_sys_platform):
+    """Test get_provider simulating an Atari 800XL."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    with patch('subprocess.Popen', a_mock):
+        provider = mech.utils.get_provider('/tmp/vmrun')
+        assert provider == 'ws'
+
+
+@patch('sys.platform', return_value='nt')
+def test_get_provider_simulate_win(mock_sys_platform):
+    """Test get_provider simulating windows."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    with patch('subprocess.Popen', a_mock):
+        provider = mech.utils.get_provider('/tmp/vmrun')
+        assert provider == 'ws'
