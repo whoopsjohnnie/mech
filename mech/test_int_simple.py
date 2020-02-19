@@ -3,6 +3,7 @@
 """Mech integration tests: simple ones (including smoke)"""
 import re
 import subprocess
+import platform
 
 import pytest
 
@@ -288,15 +289,25 @@ def test_int_smoke(helpers):
     assert results.returncode == 0
     assert re.search(expected, stdout)
 
-    # test "mech port"
-    command = "mech port"
-    expected = "Total port forwardings: 0"
-    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-    stdout = results.stdout.decode('utf-8')
-    stderr = results.stderr.decode('utf-8')
-    assert stderr == ''
-    assert results.returncode == 0
-    assert re.search(expected, stdout, re.MULTILINE)
+    if platform.system() == "Linux":
+        # test "mech port"
+        command = "mech port"
+        results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+        stdout = results.stdout.decode('utf-8')
+        stderr = results.stderr.decode('utf-8')
+        assert stdout == ''
+        assert stderr.strip() == 'This command is not supported on this OS.'
+        assert results.returncode == 1
+    else:
+        # test "mech port"
+        command = "mech port"
+        expected = "Total port forwardings: 0"
+        results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+        stdout = results.stdout.decode('utf-8')
+        stderr = results.stderr.decode('utf-8')
+        assert stderr == ''
+        assert results.returncode == 0
+        assert re.search(expected, stdout, re.MULTILINE)
 
     # test "mech box list" (and alias)
     commands = ["mech box list", "mech box ls"]
@@ -369,3 +380,6 @@ def test_int_smoke(helpers):
     assert stderr == ''
     assert results.returncode == 0
     assert re.search(expected, stdout)
+
+    # clean up at the end
+    helpers.cleanup_dir_and_vms_from_dir(test_dir)

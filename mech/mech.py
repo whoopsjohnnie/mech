@@ -27,6 +27,7 @@
 from __future__ import print_function, absolute_import
 
 import os
+import platform
 import sys
 import logging
 import textwrap
@@ -897,6 +898,9 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+
+        if platform.system() == 'Linux':
+            sys.exit('This command is not supported on this OS.')
 
         if instance_name:
             # single instance

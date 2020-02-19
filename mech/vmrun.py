@@ -276,7 +276,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
     #                          Host port
 
     def list_host_networks(self, quiet=False):
-        '''List all networks in the host'''
+        '''List all networks in the host.
+           Note: Not available on linux.
+        '''
         return self.vmrun('listHostNetworks', quiet=quiet)
 
     def list_port_forwardings(self, host_network, quiet=False):
