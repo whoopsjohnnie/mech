@@ -133,15 +133,16 @@ class MechInstance():
                 'vmx:{vmx}{sep}user:{user}{sep}'
                 'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
                 '{sep}config:{config}{sep}shared_folders:{shared_folders}'
-                '{sep}auth:{auth}'.format(name=self.name, created=self.created,
-                                          box=self.box, box_version=self.box_version,
-                                          url=self.url, box_file=self.box_file,
-                                          provision=self.provision, vmx=self.vmx,
-                                          user=self.user, password=self.password,
-                                          enable_ip_lookup=self.enable_ip_lookup,
-                                          config=self.config,
-                                          shared_folders=self.shared_folders,
-                                          auth=self.auth, sep=sep))
+                '{sep}auth:{auth}{sep}use_psk:{use_psk}'.
+                format(name=self.name, created=self.created,
+                       box=self.box, box_version=self.box_version,
+                       url=self.url, box_file=self.box_file,
+                       provision=self.provision, vmx=self.vmx,
+                       user=self.user, password=self.password,
+                       enable_ip_lookup=self.enable_ip_lookup,
+                       config=self.config,
+                       shared_folders=self.shared_folders,
+                       auth=self.auth, use_psk=self.use_psk, sep=sep))
 
     def config_ssh(self):
         """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""

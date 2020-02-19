@@ -593,8 +593,14 @@ def add_auth(instance):
     if not instance:
         sys.exit(colored.red("Need to provide an instance to add_auth()."))
 
-    if instance.vmx is None or instance.user is None or instance.password is None:
-        sys.exit(colored.red("Need to provide vmx/user/password to add_auth()."))
+    if instance.vmx is None:
+        sys.exit(colored.red("Need to provide vmx add_auth()."))
+
+    if instance.user is None or instance.user == '':
+        sys.exit(colored.red("Need to provide user to add_auth()."))
+
+    if instance.password is None or instance.password == '':
+        sys.exit(colored.red("Need to provide password to add_auth()."))
 
     print(colored.green('Adding auth to instance:{}'.format(instance.name)))
 
@@ -737,6 +743,9 @@ def del_user(instance, username):
     if instance.user is None:
         sys.exit(colored.red("A user is required."))
 
+    if username is None or username == '':
+        sys.exit(colored.red("A username to delete is required."))
+
     print(colored.green('Removing username ({}) from instance:{}...'.format(username,
                                                                             instance.name)))
 
@@ -747,16 +756,16 @@ def del_user(instance, username):
         ssh(instance, cmd)
     else:
         vmrun = VMrun(instance.vmx, user=instance.user,
-                      password=instance.password, use_psk=instance.use_psk)
+                      password=instance.password)
         # cannot run if vmware tools are not installed
         if not vmrun.installed_tools():
-            sys.exit(colored.red("Cannot add del_user if VMware Tools are not installed."))
+            sys.exit(colored.red("Cannot delete user if VMware Tools are not installed."))
         results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
         LOGGER.debug('results:%s', results)
         if results is None:
-            print(colored.red("Failed running del_user()."))
+            print(colored.red("Failed deleting user."))
         else:
-            print(colored.green("Success running del_user()."))
+            print(colored.green("Successfully deleted user ({}).".format(username)))
 
 
 def provision(instance, show=False):

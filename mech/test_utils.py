@@ -29,6 +29,54 @@ def test_mech_dir(mock_os_getcwd):
     assert mechdir == '/tmp/.mech'
 
 
+@patch('os.makedirs')
+def test_makedirs(mock_os_makedirs):
+    """Test makedirs()."""
+    mock_os_makedirs.return_value = True
+    mech.utils.makedirs('/tmp/1234')
+    mock_os_makedirs.assert_called()
+
+
+def test_confirm_yes():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'Y'
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_yes_by_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = ''
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_no_by_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = ''
+    with patch('mech.utils.raw_input', a_mock):
+        assert not mech.utils.confirm("Is this silly?", 'n')
+
+
+def test_confirm_no():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'n'
+    with patch('mech.utils.raw_input', a_mock):
+        assert not mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_nonstandard_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'y'
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?", 'q')
+
+
 @patch('json.loads')
 @patch('os.path.isfile')
 @patch('os.getcwd')
@@ -181,6 +229,189 @@ def test_save_mechfile_two(helpers):
         assert mech.utils.save_mechfile(two_dict)
     a_mock.assert_called_once_with(filename, 'w+')
     assert two_json == helpers.get_mock_data_written(a_mock)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth(mock_locate, mock_installed_tools,
+                  mock_run_script_in_guest, capfd,
+                  mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    pub_key = 'some fake pub key'
+    a_mock = mock_open(read_data=pub_key)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Added auth', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_script_fails(mock_locate, mock_installed_tools,
+                               mock_run_script_in_guest, capfd,
+                               mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    pub_key = 'some fake pub key'
+    a_mock = mock_open(read_data=pub_key)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Did not add auth', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_could_not_read_pub_key(mock_locate, mock_installed_tools,
+                                         mock_run_script_in_guest, capfd,
+                                         mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    a_mock = mock_open(read_data=None)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Could not read contents', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_no_username_in_auth(mock_locate, mock_installed_tools,
+                                      mock_run_script_in_guest, capfd,
+                                      mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    # remove username
+    del inst.auth['username']
+    print('inst:{}'.format(inst))
+    mech.utils.add_auth(inst)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Adding auth', out, re.MULTILINE)
+    assert re.search(r'Warning: Need a username', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_no_auth(mock_locate, mock_installed_tools,
+                          mock_run_script_in_guest, capfd,
+                          mechfile_one_entry):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    mech.utils.add_auth(inst)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Adding auth', out, re.MULTILINE)
+    assert re.search(r'No auth to add', out, re.MULTILINE)
+
+
+def test_add_auth_no_instance():
+    """Test add_auth when no instance."""
+    with raises(SystemExit, match=r"Need to provide an instance to add_auth"):
+        mech.utils.add_auth(None)
+
+
+def test_add_auth_no_vmx(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = ''
+    inst.password = 'vagrant'
+    inst.vmx = None
+    with raises(SystemExit, match=r"Need to provide vmx"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_blank_user(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = ''
+    inst.password = 'vagrant'
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide user"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_password_is_none(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = None
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide password"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_blank_passwod(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = ''
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide password"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_user_is_none(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = None
+    inst.password = 'vagrant'
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide user"):
+        mech.utils.add_auth(inst)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
+                                  capfd,
+                                  mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = False
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    with raises(SystemExit, match=r"Cannot add auth"):
+        mech.utils.add_auth(inst)
 
 
 def test_tar_cmd():
@@ -466,6 +697,97 @@ def test_build_mechfile_entry_file_location_external_bad_location():
         mech.utils.build_mechfile_entry(location='bento')
 
 
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user(mock_locate, mock_installed_tools,
+                  mock_run_script_in_guest, capfd,
+                  mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = False
+    mech.utils.del_user(inst, 'bart')
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Successfully deleted user', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user_fails_in_script(mock_locate, mock_installed_tools,
+                                  mock_run_script_in_guest, capfd,
+                                  mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = False
+    mech.utils.del_user(inst, 'bart')
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Failed deleting', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user_vm_tools_not_installed(mock_locate, mock_installed_tools,
+                                         mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = None
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = None
+    with raises(SystemExit, match=r"Cannot delete user if"):
+        mech.utils.del_user(inst, 'bart')
+
+
+def test_deL_user_no_instance():
+    """Test del_user."""
+    with raises(SystemExit, match=r"Need to provide an instance"):
+        mech.utils.del_user(None, 'bart')
+
+
+def test_deL_user_vm_not_created():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = None
+    with raises(SystemExit, match=r"VM must be created"):
+        mech.utils.del_user(mock_inst, 'bart')
+
+
+def test_deL_user_no_username_to_use_for_auth():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = None
+    with raises(SystemExit, match=r"A user is required"):
+        mech.utils.del_user(mock_inst, 'bart')
+
+
+def test_deL_user_no_user_provided():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = 'bob'
+    with raises(SystemExit, match=r"A username to delete is required"):
+        mech.utils.del_user(mock_inst, None)
+
+
+@patch('mech.utils.ssh', return_value='')
+def test_deL_user_using_psk(mock_ssh):
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = 'bob'
+    mock_inst.use_psk = True
+    mech.utils.del_user(mock_inst, 'homer')
+
+
 def test_provision_no_instance():
     """Test provisioning."""
     with raises(SystemExit, match=r"Need to provide an instance to provision"):
@@ -502,6 +824,27 @@ def test_provision_file_no_provisioning(mock_installed_tools, mock_provision_fil
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Nothing to provision', out, re.MULTILINE)
+
+
+@patch('mech.utils.scp', return_value='')
+def test_provision_file_using_psk(mock_scp):
+    """Test provision_file"""
+    mock_vmrun = MagicMock()
+    mock_inst = MagicMock()
+    mock_inst.use_psk = True
+    mech.utils.provision_file(mock_vmrun, mock_inst, 'somefile', 'somedest')
+    mock_scp.assert_called()
+
+
+@patch('mech.utils.ssh')
+def test_create_tempfile_in_guest(mock_ssh):
+    """Test create_tempfile_in_guest"""
+    expected = '/tmp/foo123'
+    mock_ssh.return_value = None, expected, None
+    mock_inst = MagicMock()
+    got = mech.utils.create_tempfile_in_guest(mock_inst)
+    mock_ssh.assert_called()
+    assert got == expected
 
 
 @patch('mech.vmrun.VMrun.copy_file_from_host_to_guest')
@@ -728,6 +1071,22 @@ def test_darwin_executable_when_not_installed(mock_os_path_exists):
     assert expected == got
 
 
+@patch('os.path.exists')
+def test_get_fallback_executable_when_exe(mock_os_path_exists):
+    """Find vmrun.exe in PATH."""
+    # deal with a different file returns a different mocked value
+    def side_effect(filename):
+        if filename == '/tmp/vmrun.exe':
+            return True
+        else:
+            return False
+    mock_os_path_exists.side_effect = side_effect
+    expected = '/tmp/vmrun.exe'
+    with patch.dict('os.environ', {'PATH': '/tmp:/tmp2'}):
+        got = mech.utils.get_fallback_executable()
+    assert expected == got
+
+
 def test_catalog_to_mechfile_when_empty_catalog():
     """Test catalog_to_mechfile."""
     catalog = {}
@@ -741,6 +1100,81 @@ def test_init_box_cannot_find_valid_box(mock_locate):
     mock_locate.return_value = None
     with raises(SystemExit):
         mech.utils.init_box(name='first')
+
+
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_cannot_extract_box(mock_locate, mock_add_box, mock_makedirs):
+    """Test init_box."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    mock_locate.return_value = None
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot extract box"):
+        with patch('subprocess.Popen', a_mock):
+            mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+
+
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_when_no_vmx_after_extraction(mock_locate, mock_add_box,
+                                               mock_makedirs, mock_tarfile_open):
+    """Test init_box."""
+    mock_subprocess_popen = MagicMock()
+    mock_tarfile_open = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    mock_subprocess_popen.returncode = 0
+    mock_locate.return_value = False
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot locate a VMX"):
+        with patch('subprocess.Popen', mock_subprocess_popen):
+            mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+            mock_locate.assert_called()
+            mock_add_box.assert_called()
+            mock_makedirs.assert_called()
+            mock_tarfile_open.assert_called()
+
+
+@patch('mech.utils.update_vmx', return_value='/tmp/first/some.vmx')
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
+                          mock_tarfile_open, mock_update_vmx):
+    """Test init_box."""
+    mock_subprocess_popen = MagicMock()
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'someoutput', None
+    mock_subprocess_popen.returncode = 0
+    # pytest tip: If you need to mock the same function multiple times,
+    # put it into a list like the next line. Then mech.utils.locate() is
+    # called the first time, it returns False. Subsequent two calls
+    # return True. Mind blown.
+    mock_locate.side_effect = [False, True, True]
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with patch('subprocess.Popen', mock_subprocess_popen):
+        mech.utils.init_box(name='first', box='bento/ubuntu', box_version='1.23')
+        mock_locate.assert_called()
+        mock_add_box.assert_called()
+        mock_makedirs.assert_called()
+        mock_update_vmx.assert_called()
 
 
 def test_add_mechfile_with_empty_mechfile():
@@ -766,3 +1200,37 @@ def test_get_info_for_auth(mock_path_expanduser, mock_getlogin):
     expected = {'auth': {'username': 'bob', 'pub_key': '/home/bob/id_rsa.pub', 'mech_use': False}}
     got = mech.utils.get_info_for_auth()
     assert got == expected
+
+
+@patch('sys.platform', return_value='atari')
+def test_get_provider(mock_sys_platform):
+    """Test get_provider simulating an Atari 800XL."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    with patch('subprocess.Popen', a_mock):
+        provider = mech.utils.get_provider('/tmp/vmrun')
+        assert provider == 'ws'
+
+
+@patch('sys.platform', return_value='nt')
+def test_get_provider_simulate_win(mock_sys_platform):
+    """Test get_provider simulating windows."""
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    with patch('subprocess.Popen', a_mock):
+        provider = mech.utils.get_provider('/tmp/vmrun')
+        assert provider == 'ws'
