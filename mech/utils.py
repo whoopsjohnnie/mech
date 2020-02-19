@@ -613,7 +613,8 @@ def add_auth(instance):
         username = instance.auth.get('username', None)
         pub_key = instance.auth.get('pub_key', None)
         if username and pub_key:
-            with open(pub_key, 'r') as the_file:
+            pub_key_path = os.path.expanduser(pub_key)
+            with open(pub_key_path, 'r') as the_file:
                 pub_key_contents = the_file.read().strip()
             if pub_key_contents:
                 # set the password to some random string
