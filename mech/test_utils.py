@@ -183,6 +183,189 @@ def test_save_mechfile_two(helpers):
     assert two_json == helpers.get_mock_data_written(a_mock)
 
 
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth(mock_locate, mock_installed_tools,
+                  mock_run_script_in_guest, capfd,
+                  mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    pub_key = 'some fake pub key'
+    a_mock = mock_open(read_data=pub_key)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Added auth', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_script_fails(mock_locate, mock_installed_tools,
+                               mock_run_script_in_guest, capfd,
+                               mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    pub_key = 'some fake pub key'
+    a_mock = mock_open(read_data=pub_key)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Did not add auth', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_could_not_read_pub_key(mock_locate, mock_installed_tools,
+                                         mock_run_script_in_guest, capfd,
+                                         mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    a_mock = mock_open(read_data=None)
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.add_auth(inst)
+        a_mock.assert_called()
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_installed_tools.assert_called()
+        assert re.search(r'Adding auth', out, re.MULTILINE)
+        assert re.search(r'Could not read contents', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_no_username_in_auth(mock_locate, mock_installed_tools,
+                                      mock_run_script_in_guest, capfd,
+                                      mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    # remove username
+    del inst.auth['username']
+    print('inst:{}'.format(inst))
+    mech.utils.add_auth(inst)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Adding auth', out, re.MULTILINE)
+    assert re.search(r'Warning: Need a username', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_no_auth(mock_locate, mock_installed_tools,
+                          mock_run_script_in_guest, capfd,
+                          mechfile_one_entry):
+    """Test add_auth."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    print('inst:{}'.format(inst))
+    mech.utils.add_auth(inst)
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Adding auth', out, re.MULTILINE)
+    assert re.search(r'No auth to add', out, re.MULTILINE)
+
+
+def test_add_auth_no_instance():
+    """Test add_auth when no instance."""
+    with raises(SystemExit, match=r"Need to provide an instance to add_auth"):
+        mech.utils.add_auth(None)
+
+
+def test_add_auth_no_vmx(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = ''
+    inst.password = 'vagrant'
+    inst.vmx = None
+    with raises(SystemExit, match=r"Need to provide vmx"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_blank_user(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = ''
+    inst.password = 'vagrant'
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide user"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_password_is_none(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = None
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide password"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_blank_passwod(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = ''
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide password"):
+        mech.utils.add_auth(inst)
+
+
+def test_add_auth_user_is_none(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = None
+    inst.password = 'vagrant'
+    inst.vmx = '/tmp/first/some.vmx'
+    with raises(SystemExit, match=r"Need to provide user"):
+        mech.utils.add_auth(inst)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
+                                  capfd,
+                                  mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    mock_installed_tools.return_value = False
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.user = 'vagrant'
+    inst.password = 'vagrant'
+    with raises(SystemExit, match=r"Cannot add auth"):
+        mech.utils.add_auth(inst)
+
+
 def test_tar_cmd():
     """Test tar cmd.
        Note: not really a unit test per se, as it calls out.

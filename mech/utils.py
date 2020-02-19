@@ -593,8 +593,14 @@ def add_auth(instance):
     if not instance:
         sys.exit(colored.red("Need to provide an instance to add_auth()."))
 
-    if instance.vmx is None or instance.user is None or instance.password is None:
-        sys.exit(colored.red("Need to provide vmx/user/password to add_auth()."))
+    if instance.vmx is None:
+        sys.exit(colored.red("Need to provide vmx add_auth()."))
+
+    if instance.user is None or instance.user == '':
+        sys.exit(colored.red("Need to provide user to add_auth()."))
+
+    if instance.password is None or instance.password == '':
+        sys.exit(colored.red("Need to provide password to add_auth()."))
 
     print(colored.green('Adding auth to instance:{}'.format(instance.name)))
 

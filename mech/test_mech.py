@@ -953,12 +953,14 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
         a_mech.up(arguments)
 
 
+@patch('mech.utils.del_user', return_value='')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value='')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started(mock_locate, mock_load_mechfile,
-                                 mock_vmrun_start, mock_vmrun_get_ip, capfd,
+                                 mock_vmrun_start, mock_vmrun_get_ip,
+                                 mock_del_user, capfd,
                                  mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
@@ -972,7 +974,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
         '--memsize': None,
         '--numvcpus': None,
         '--no-nat': None,
-        '--remove-vagrant': None,
+        '--remove-vagrant': True,
         '<instance>': None,
     }
     a_mech.up(arguments)
@@ -980,6 +982,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
     mock_load_mechfile.assert_called()
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
+    mock_del_user.assert_called()
     out, _ = capfd.readouterr()
     assert re.search(r'was already started on', out, re.MULTILINE)
 

@@ -39,6 +39,23 @@ def mechfile_one_entry_with_auth():
 
 
 @pytest.fixture
+def mechfile_one_entry_with_auth_and_mech_use():
+    """Return one mechfile entry with auth that has mech_use."""
+    return {
+        'first': {
+            'name': 'first',
+            'box': 'bento/ubuntu-18.04',
+            'box_version': '201912.04.0',
+            'auth': {
+                'username': 'bob',
+                'mech_use': 'true',
+                'pub_key': 'some_pub_key_data'
+            }
+        }
+    }
+
+
+@pytest.fixture
 def mechfile_two_entries():
     """Return two mechfile entries."""
     return {

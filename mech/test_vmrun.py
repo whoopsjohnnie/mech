@@ -24,8 +24,9 @@ def test_vmrun_vmrun(mock_popen):
 def test_vmrun_start():
     """Test start method."""
     vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/tmp/vmrun',
-                             provider='ws', test_mode=True)
-    expected = ['/tmp/vmrun', '-T', 'ws', 'start', '/tmp/first/some.vmx', 'nogui']
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    expected = ['/tmp/vmrun', '-T', 'ws', '-gu', 'admin', '-gp', '1234',
+                'start', '/tmp/first/some.vmx', 'nogui']
     got = vmrun.start()
     assert got == expected
 
@@ -194,6 +195,16 @@ def test_vmrun_run_program_in_guest():
     expected = ['/tmp/vmrun', '-T', 'ws', 'runProgramInGuest', '/tmp/first/some.vmx',
                 'program_path', 'one_cmd']
     got = vmrun.run_program_in_guest('program_path', ['one_cmd'])
+    assert got == expected
+
+
+def test_vmrun_run_program_in_guest_no_args():
+    """Test run_program_in_guest method."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/tmp/vmrun',
+                             provider='ws', test_mode=True)
+    expected = ['/tmp/vmrun', '-T', 'ws', 'runProgramInGuest', '/tmp/first/some.vmx',
+                'program_path']
+    got = vmrun.run_program_in_guest('program_path')
     assert got == expected
 
 
@@ -376,6 +387,16 @@ def test_vmrun_connect_named_device():
     expected = ['/tmp/vmrun', '-T', 'ws', 'connectNamedDevice', '/tmp/first/some.vmx',
                 'a_device_name']
     got = vmrun.connect_named_device('a_device_name')
+    assert got == expected
+
+
+def test_vmrun_disconnect_named_device():
+    """Test disconnect_named_device method."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/tmp/vmrun',
+                             provider='ws', test_mode=True)
+    expected = ['/tmp/vmrun', '-T', 'ws', 'disconnectNamedDevice', '/tmp/first/some.vmx',
+                'a_device_name']
+    got = vmrun.disconnect_named_device('a_device_name')
     assert got == expected
 
 
