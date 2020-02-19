@@ -29,6 +29,54 @@ def test_mech_dir(mock_os_getcwd):
     assert mechdir == '/tmp/.mech'
 
 
+@patch('os.makedirs')
+def test_makedirs(mock_os_makedirs):
+    """Test makedirs()."""
+    mock_os_makedirs.return_value = True
+    mech.utils.makedirs('/tmp/1234')
+    mock_os_makedirs.assert_called()
+
+
+def test_confirm_yes():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'Y'
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_yes_by_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = ''
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_no_by_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = ''
+    with patch('mech.utils.raw_input', a_mock):
+        assert not mech.utils.confirm("Is this silly?", 'n')
+
+
+def test_confirm_no():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'n'
+    with patch('mech.utils.raw_input', a_mock):
+        assert not mech.utils.confirm("Is this silly?")
+
+
+def test_confirm_nonstandard_default():
+    """Test confirm."""
+    a_mock = MagicMock()
+    a_mock.return_value = 'y'
+    with patch('mech.utils.raw_input', a_mock):
+        assert mech.utils.confirm("Is this silly?", 'q')
+
+
 @patch('json.loads')
 @patch('os.path.isfile')
 @patch('os.getcwd')
