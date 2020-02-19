@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+"""Setup mech"""
 
 try:
     from setuptools import setup
@@ -11,20 +12,21 @@ from mech import __version__
 
 
 def read(fname):
+    """Read in a file."""
     try:
-        with open(os.path.join(os.path.dirname(__file__), fname), "r") as fp:
-            return fp.read().strip()
+        with open(os.path.join(os.path.dirname(__file__), fname), "r") as a_file:
+            return a_file.read().strip()
     except IOError:
         return ''
 
 
 setup(
-    name="mech",
+    name="mikemech",
     version=__version__,
-    author="Kevin Chung, Germán Méndez Bravo",
-    author_email="kchung@nyu.edu, german.mb@gmail.com",
-    url="https://mechboxes.github.io/mech/",
-    download_url="https://github.com/mechboxes/mech/tarball/master",
+    author="Kevin Chung, Germán Méndez Bravo, Mike Kinney",
+    author_email="kchung@nyu.edu, german.mb@gmail.com, mike.kinney@gmail.com",
+    url="https://mechboxes.github.io/mkinney/",
+    download_url="https://github.com/mkinney/mech/tarball/master",
     license="MIT",
     description="Tool for command line virtual machines",
     long_description=read("README.md"),
