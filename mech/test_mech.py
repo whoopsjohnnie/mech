@@ -4,7 +4,7 @@
 import os
 import re
 
-from unittest.mock import patch, mock_open
+from unittest.mock import patch, mock_open, MagicMock
 from pytest import raises
 
 import mech.command
@@ -1256,51 +1256,83 @@ def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-a
         assert re.search(r'  Port 22', out, re.MULTILINE)
 
 
-HOST_NETWORKS = """Total host networks: 3
-INDEX  NAME         TYPE         DHCP         SUBNET           MASK
-0      vmnet0       bridged      false        empty            empty
-1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0
-8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
-@patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
-@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
+@patch('platform.system')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_port_with_nat(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                            mock_list_port_forwardings, capfd,
-                            mechfile_one_entry):
+def test_mech_port_with_nat_from_linux(mock_locate, mock_load_mechfile,
+                                       mock_platform_system,
+                                       mechfile_one_entry):
     """Test 'mech port' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
+    a_mock = MagicMock()
+    a_mock.return_value = 'Linux'
+    mock_platform_system.side_effect = a_mock
+    with raises(SystemExit, match=r"This command is not supported on this OS."):
+        a_mech.port(port_arguments)
+
+
+HOST_NETWORKS = """Total host networks: 3
+INDEX  NAME         TYPE         DHCP         SUBNET           MASK
+0      vmnet0       bridged      false        empty            empty
+1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0
+8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
+@patch('platform.system')
+@patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
+@patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_port_with_nat_from_mac(mock_locate, mock_load_mechfile, mock_list_host_networks,
+                                     mock_list_port_forwardings, mock_platform_system, capfd,
+                                     mechfile_one_entry):
+    """Test 'mech port' with nat networking."""
+    mock_load_mechfile.return_value = mechfile_one_entry
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    port_arguments = {}
+    port_arguments = {'<instance>': None}
+    a_mock = MagicMock()
+    a_mock.return_value = 'Darwin'
+    mock_platform_system.side_effect = a_mock
     a_mech.port(port_arguments)
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
     mock_list_port_forwardings.assert_called()
+    mock_platform_system.assert_called()
     assert re.search(r'Total port forwardings: 0', out, re.MULTILINE)
 
 
+@patch('platform.system')
 @patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_port_with_nat_and_instance(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                                         mock_list_port_forwardings, capfd, mechfile_one_entry):
+def test_mech_port_with_nat_and_instance_from_mac(mock_locate, mock_load_mechfile,
+                                                  mock_list_host_networks,
+                                                  mock_list_port_forwardings,
+                                                  mock_platform_system, capfd,
+                                                  mechfile_one_entry):
     """Test 'mech port first' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': 'first'}
+    a_mock = MagicMock()
+    a_mock.return_value = 'Darwin'
+    mock_platform_system.side_effect = a_mock
     a_mech.port(port_arguments)
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
     mock_list_port_forwardings.assert_called()
+    mock_platform_system.assert_called()
     assert re.search(r'Total port forwardings: 0', out, re.MULTILINE)
 
 
@@ -1309,24 +1341,32 @@ INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0
 8      vmnet8       nat          true         192.168.3.0      255.255.255.0"""
+@patch('platform.system')
 @patch('mech.vmrun.VMrun.list_port_forwardings', return_value='Total port forwardings: 0')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_port_with_nat_two_hosts(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                                      mock_list_port_forwardings, capfd, mechfile_two_entries):
+def test_mech_port_with_nat_two_hosts_from_mac(mock_locate, mock_load_mechfile,
+                                               mock_list_host_networks,
+                                               mock_list_port_forwardings,
+                                               mock_platform_system, capfd,
+                                               mechfile_two_entries):
     """Test 'mech port' with nat networking and two instances."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
+    a_mock = MagicMock()
+    a_mock.return_value = 'Darwin'
+    mock_platform_system.side_effect = a_mock
     a_mech.port(port_arguments)
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
     mock_list_port_forwardings.assert_called()
+    mock_platform_system.assert_called()
     assert re.search(r'Total port forwardings: 0', out, re.MULTILINE)
 
 
@@ -1334,22 +1374,29 @@ HOST_NETWORKS_WITHOUT_NAT = """Total host networks: 2
 INDEX  NAME         TYPE         DHCP         SUBNET           MASK
 0      vmnet0       bridged      false        empty            empty
 1      vmnet1       hostOnly     true         172.16.11.0      255.255.255.0"""
+@patch('platform.system')
 @patch('mech.vmrun.VMrun.list_host_networks', return_value=HOST_NETWORKS_WITHOUT_NAT)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_port_without_nat(mock_locate, mock_load_mechfile, mock_list_host_networks,
-                               capfd, mechfile_one_entry):
+def test_mech_port_without_nat_from_mac(mock_locate, mock_load_mechfile,
+                                        mock_list_host_networks,
+                                        mock_platform_system, capfd,
+                                        mechfile_one_entry):
     """Test 'mech port' without nat."""
     mock_load_mechfile.return_value = mechfile_one_entry
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
+    a_mock = MagicMock()
+    a_mock.return_value = 'Darwin'
+    mock_platform_system.side_effect = a_mock
     a_mech.port(port_arguments)
     _, err = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
+    mock_platform_system.assert_called()
     assert re.search(r'Cannot find a nat network', err, re.MULTILINE)
 
 
