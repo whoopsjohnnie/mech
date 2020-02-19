@@ -1,7 +1,7 @@
 # mech
 
-![Python package](https://github.com/mkinney/mech/workflows/Python%20package/badge.svg?branch=multi-pr)
-[![codecov](https://codecov.io/gh/mkinney/mech/branch/multi-pr/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
+![Python package](https://github.com/mkinney/mech/workflows/Python%20package/badge.svg)
+[![codecov](https://codecov.io/gh/mkinney/mech/branch/master/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
 
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMmare Fusion but was too cheap to buy the Vagrant plugin.
@@ -80,16 +80,11 @@ See the `mech up -h` page for more information.
 
 # Install
 
-`pip install -U mech`
+`pip install -U mikemech`
 
 or for the latest:
 
-`pip install -U git+https://github.com/mechboxes/mech.git`
-
-There are some open PRs that have yet to be merged. Until they are, you may consider
-installing from:
-
-`pip install -U git+https://github.com/mkinney/mech.git@multi-pr#egg=mech`
+`pip install -U git+https://github.com/mkinney/mech.git`
 
 # Shared Folders
 

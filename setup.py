@@ -21,12 +21,12 @@ def read(fname):
 
 
 setup(
-    name="mech",
+    name="mikemech",
     version=__version__,
-    author="Kevin Chung, Germán Méndez Bravo",
-    author_email="kchung@nyu.edu, german.mb@gmail.com",
-    url="https://mechboxes.github.io/mech/",
-    download_url="https://github.com/mechboxes/mech/tarball/master",
+    author="Kevin Chung, Germán Méndez Bravo, Mike Kinney",
+    author_email="kchung@nyu.edu, german.mb@gmail.com, mike.kinney@gmail.com",
+    url="https://mechboxes.github.io/mkinney/",
+    download_url="https://github.com/mkinney/mech/tarball/master",
     license="MIT",
     description="Tool for command line virtual machines",
     long_description=read("README.md"),

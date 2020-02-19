@@ -30,7 +30,7 @@ source venv/bin/activate
 python setup.py install
 
 # if doing development
-pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout
+pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twinepip install twine
 
 # also optional
 pip install autopep8

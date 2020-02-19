@@ -24,5 +24,5 @@
 #
 """Initialize mech with version info."""
 
-__version__ = '0.7.7'
+__version__ = '0.8.1'
 VERSION = "{} v{}".format(__name__, __version__)
