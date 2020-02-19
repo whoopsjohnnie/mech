@@ -649,6 +649,97 @@ def test_build_mechfile_entry_file_location_external_bad_location():
         mech.utils.build_mechfile_entry(location='bento')
 
 
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user(mock_locate, mock_installed_tools,
+                  mock_run_script_in_guest, capfd,
+                  mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = False
+    mech.utils.del_user(inst, 'bart')
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Successfully deleted user', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.run_script_in_guest', return_value=None)
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user_fails_in_script(mock_locate, mock_installed_tools,
+                                  mock_run_script_in_guest, capfd,
+                                  mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = "running"
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = False
+    mech.utils.del_user(inst, 'bart')
+    out, _ = capfd.readouterr()
+    mock_locate.assert_called()
+    mock_installed_tools.assert_called()
+    assert re.search(r'Failed deleting', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.installed_tools')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_deL_user_vm_tools_not_installed(mock_locate, mock_installed_tools,
+                                         mechfile_one_entry):
+    """Test del_user."""
+    mock_installed_tools.return_value = None
+    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst.user = 'vagrant'
+    inst.use_psk = None
+    with raises(SystemExit, match=r"Cannot delete user if"):
+        mech.utils.del_user(inst, 'bart')
+
+
+def test_deL_user_no_instance():
+    """Test del_user."""
+    with raises(SystemExit, match=r"Need to provide an instance"):
+        mech.utils.del_user(None, 'bart')
+
+
+def test_deL_user_vm_not_created():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = None
+    with raises(SystemExit, match=r"VM must be created"):
+        mech.utils.del_user(mock_inst, 'bart')
+
+
+def test_deL_user_no_username_to_use_for_auth():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = None
+    with raises(SystemExit, match=r"A user is required"):
+        mech.utils.del_user(mock_inst, 'bart')
+
+
+def test_deL_user_no_user_provided():
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = 'bob'
+    with raises(SystemExit, match=r"A username to delete is required"):
+        mech.utils.del_user(mock_inst, None)
+
+
+@patch('mech.utils.ssh', return_value='')
+def test_deL_user_using_psk(mock_ssh):
+    """Test del_user."""
+    mock_inst = MagicMock()
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.user = 'bob'
+    mock_inst.use_psk = True
+    mech.utils.del_user(mock_inst, 'homer')
+
+
 def test_provision_no_instance():
     """Test provisioning."""
     with raises(SystemExit, match=r"Need to provide an instance to provision"):
@@ -685,6 +776,27 @@ def test_provision_file_no_provisioning(mock_installed_tools, mock_provision_fil
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     assert re.search(r'Nothing to provision', out, re.MULTILINE)
+
+
+@patch('mech.utils.scp', return_value='')
+def test_provision_file_using_psk(mock_scp):
+    """Test provision_file"""
+    mock_vmrun = MagicMock()
+    mock_inst = MagicMock()
+    mock_inst.use_psk = True
+    mech.utils.provision_file(mock_vmrun, mock_inst, 'somefile', 'somedest')
+    mock_scp.assert_called()
+
+
+@patch('mech.utils.ssh')
+def test_create_tempfile_in_guest(mock_ssh):
+    """Test create_tempfile_in_guest"""
+    expected = '/tmp/foo123'
+    mock_ssh.return_value = None, expected, None
+    mock_inst = MagicMock()
+    got = mech.utils.create_tempfile_in_guest(mock_inst)
+    mock_ssh.assert_called()
+    assert got == expected
 
 
 @patch('mech.vmrun.VMrun.copy_file_from_host_to_guest')
