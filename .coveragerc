@@ -1,2 +1,2 @@
 [run]
-omit = mech/test*
+omit = mech/*test*
