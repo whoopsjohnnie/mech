@@ -889,7 +889,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
         tmp_path = vmrun.create_tempfile_in_guest()
     LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
                  inline, script_path, args, tmp_path)
-    if tmp_path is None:
+    if tmp_path is None or tmp_path == '':
         print(colored.red("Warning: Could not create tempfile in guest."))
         return
 
