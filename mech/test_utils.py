@@ -232,23 +232,29 @@ def test_save_mechfile_two(helpers):
     assert two_json == helpers.get_mock_data_written(a_mock)
 
 
+@patch('os.getlogin')
 @patch('mech.utils.save_mechfile_entry')
 @patch('mech.utils.build_mechfile_entry')
-def test_init_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry):
+def test_init_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry,
+                                          mock_os_getlogin):
     """Test init_mechfile."""
     mock_build_mechfile_entry.return_value = {}
     mock_save_mechfile_entry.return_value = True
+    mock_os_getlogin.return_value = 'bob'
     assert mech.utils.init_mechfile(add_me=True)
     mock_build_mechfile_entry.assert_called()
     mock_save_mechfile_entry.assert_called()
 
 
+@patch('os.getlogin')
 @patch('mech.utils.save_mechfile_entry')
 @patch('mech.utils.build_mechfile_entry')
-def test_add_to_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry):
+def test_add_to_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry,
+                                            mock_os_getlogin):
     """Test add_to_mechfile."""
     mock_build_mechfile_entry.return_value = {}
     mock_save_mechfile_entry.return_value = True
+    mock_os_getlogin.return_value = 'bob'
     assert mech.utils.add_to_mechfile(add_me=True)
     mock_build_mechfile_entry.assert_called()
     mock_save_mechfile_entry.assert_called()
