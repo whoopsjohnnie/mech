@@ -520,7 +520,6 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
     else:
         tar = tarfile.open(filename, 'r')
         files = tar.getnames()
-        print('files:{}'.format(files))
         valid_tar = False
         for i in files:
             if i.endswith('vmx'):
