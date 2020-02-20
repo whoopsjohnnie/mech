@@ -231,6 +231,28 @@ def test_save_mechfile_two(helpers):
     assert two_json == helpers.get_mock_data_written(a_mock)
 
 
+@patch('mech.utils.save_mechfile_entry')
+@patch('mech.utils.build_mechfile_entry')
+def test_init_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry):
+    """Test init_mechfile."""
+    mock_build_mechfile_entry.return_value = {}
+    mock_save_mechfile_entry.return_value = True
+    assert mech.utils.init_mechfile(add_me=True)
+    mock_build_mechfile_entry.assert_called()
+    mock_save_mechfile_entry.assert_called()
+
+
+@patch('mech.utils.save_mechfile_entry')
+@patch('mech.utils.build_mechfile_entry')
+def test_add_to_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry):
+    """Test add_to_mechfile."""
+    mock_build_mechfile_entry.return_value = {}
+    mock_save_mechfile_entry.return_value = True
+    assert mech.utils.add_to_mechfile(add_me=True)
+    mock_build_mechfile_entry.assert_called()
+    mock_save_mechfile_entry.assert_called()
+
+
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
 @patch('mech.vmrun.VMrun.installed_tools')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
