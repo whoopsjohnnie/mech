@@ -3,6 +3,7 @@
 """Test mech utils."""
 import os
 import re
+import sys
 
 from unittest.mock import patch, mock_open, MagicMock
 from collections import OrderedDict
@@ -436,8 +437,7 @@ def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
         mech.utils.add_auth(inst)
 
 
-@patch('sys.platform', return_value='darwin')
-def test_tar_cmd(mock_sys_platform):
+def test_tar_cmd():
     """Test tar cmd.
     """
     a_mock = MagicMock()
@@ -450,8 +450,11 @@ def test_tar_cmd(mock_sys_platform):
     another_mock.returncode = 0
     a_mock.return_value = another_mock
     a_mock.returncode = 0
-    with patch('subprocess.Popen', a_mock):
+    if sys.platform.startswith('darwin'):
         expected = ["tar", "--wildcards", "--force-local", "--fast-read"]
+    else:
+        expected = ["tar", "--force-local"]
+    with patch('subprocess.Popen', a_mock):
         got = mech.utils.tar_cmd(wildcards=True, fast_read=True, force_local=True)
         assert expected == got
 
