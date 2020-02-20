@@ -23,6 +23,17 @@ def mechfile_one_entry():
 
 
 @pytest.fixture
+def mechfile_one_entry_with_file():
+    """Return one mechfile entry."""
+    return {
+        'name': 'first',
+        'box': 'bento/ubuntu-18.04',
+        'box_version': '201912.04.0',
+        'file': '/tmp/somefile.box'
+    }
+
+
+@pytest.fixture
 def mechfile_one_entry_with_auth():
     """Return one mechfile entry with auth."""
     return {

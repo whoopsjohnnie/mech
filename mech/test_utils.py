@@ -418,7 +418,20 @@ def test_tar_cmd():
     """Test tar cmd.
        Note: not really a unit test per se, as it calls out.
     """
-    assert ["tar"] == mech.utils.tar_cmd()
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'blah blah --wildcards blah --force-local boo --fast-read', None
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    with patch('subprocess.Popen', a_mock):
+        expected = ["tar", "--wildcards", "--force-local", "--fast-read"]
+        got = mech.utils.tar_cmd(wildcards=True, fast_read=True, force_local=True)
+        assert expected == got
 
 
 def test_tar_cmd_when_tar_not_found():
@@ -1180,6 +1193,13 @@ def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
 def test_add_mechfile_with_empty_mechfile():
     """Test add_mechfile."""
     mech.utils.add_mechfile(mechfile_entry={})
+
+
+@patch('mech.utils.add_box_file', return_value='')
+def test_add_mechfile_with_boxfile(mock_add_box_file, mechfile_one_entry_with_file):
+    """Test add_mechfile."""
+    mech.utils.add_mechfile(mechfile_entry=mechfile_one_entry_with_file)
+    mock_add_box_file.assert_called()
 
 
 @patch('requests.get')
