@@ -1190,6 +1190,59 @@ def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
         mock_update_vmx.assert_called()
 
 
+@patch('mech.utils.mech_dir')
+@patch('mech.utils.copyfile')
+@patch('mech.utils.makedirs')
+@patch('mech.utils.tar_cmd')
+def test_add_box_file(mock_tar_cmd, mock_makedirs, mock_copyfile, mock_mech_dir):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['aaa', 'some.vmx']
+    mock_tar_cmd.return_value = None
+    mock_mech_dir.return_value = '/tmp'
+    with patch('tarfile.open', mock_tarfile_open, create=True):
+        box, box_version = mech.utils.add_box_file(box='bento/ubuntu',
+                                                   box_version='1.23',
+                                                   filename='/tmp/foo.box')
+        mock_tarfile_open.assert_called()
+        mock_tar_cmd.assert_called()
+        mock_makedirs.assert_called()
+        mock_copyfile.assert_called()
+        assert box == '/tmp/boxes/bento/ubuntu/1.23/foo.box'
+        assert box_version == '1.23'
+
+
+@patch('mech.utils.tar_cmd')
+def test_add_box_file_do_not_save(mock_tar_cmd):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['aaa', 'some.vmx']
+    mock_tar_cmd.return_value = None
+    with patch('tarfile.open', mock_tarfile_open, create=True):
+        box, box_version = mech.utils.add_box_file(box='bento/ubuntu',
+                                                   box_version='1.23',
+                                                   filename='/tmp/foo.box',
+                                                   save=False)
+        mock_tarfile_open.assert_called()
+        mock_tar_cmd.assert_called()
+        assert box == '/tmp/foo.box'
+        assert box_version == '1.23'
+
+
+@patch('mech.utils.tar_cmd')
+def test_add_box_file_that_has_leading_slashes(mock_tar_cmd):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['/aaa', '/some.vmx']
+    mock_tar_cmd.return_value = None
+    with raises(SystemExit, match=r"This box is comprised of filenames starting with"):
+        with patch('tarfile.open', mock_tarfile_open, create=True):
+            mech.utils.add_box_file(box='bento/ubuntu', box_version='1.23', filename='/tmp/foo.box')
+
+
 def test_add_mechfile_with_empty_mechfile():
     """Test add_mechfile."""
     mech.utils.add_mechfile(mechfile_entry={})
