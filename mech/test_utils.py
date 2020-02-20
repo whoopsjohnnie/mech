@@ -444,7 +444,7 @@ def test_tar_cmd():
     another_mock = MagicMock()
     yet_another_mock = MagicMock()
     yet_another_mock.returncode = 0
-    yet_another_mock.return_value = 'blah blah --wildcards blah --force-local boo --fast-read', None
+    yet_another_mock.return_value = 'blah blah --wildcards blah --force-local boo --fast-read blah blah', None
     another_mock.communicate = yet_another_mock
     another_mock.communicate.returncode = 0
     another_mock.returncode = 0
