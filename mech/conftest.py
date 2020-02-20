@@ -135,6 +135,29 @@ def catalog():
 
 
 @pytest.fixture
+def shell_provision_config():
+    return [
+        {
+            "type": "shell",
+            "path": "file1.sh",
+            "args": [
+                "a=1",
+                "b=true",
+            ],
+        },
+        {
+            "type": "shell",
+            "inline": "echo hello from inline"
+        },
+        {
+            "type": "shell",
+            "inline": "echo hello2 from inline",
+            "args": []
+        }
+    ]
+
+
+@pytest.fixture
 def catalog_as_json():
     """Return a catalog as json."""
     return json.loads(CATALOG)

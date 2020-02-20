@@ -4,12 +4,14 @@
 import os
 import re
 import sys
+import requests
 
 from unittest.mock import patch, mock_open, MagicMock
 from collections import OrderedDict
 from pytest import raises
 
 import mech.utils
+import mech.mech_instance
 
 
 @patch('os.getcwd')
@@ -268,7 +270,7 @@ def test_add_auth(mock_locate, mock_installed_tools,
                   mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     print('inst:{}'.format(inst))
@@ -292,7 +294,7 @@ def test_add_auth_script_fails(mock_locate, mock_installed_tools,
                                mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     print('inst:{}'.format(inst))
@@ -316,7 +318,7 @@ def test_add_auth_could_not_read_pub_key(mock_locate, mock_installed_tools,
                                          mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     print('inst:{}'.format(inst))
@@ -339,7 +341,7 @@ def test_add_auth_no_username_in_auth(mock_locate, mock_installed_tools,
                                       mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     # remove username
@@ -361,7 +363,7 @@ def test_add_auth_no_auth(mock_locate, mock_installed_tools,
                           mechfile_one_entry):
     """Test add_auth."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     print('inst:{}'.format(inst))
@@ -381,7 +383,7 @@ def test_add_auth_no_instance():
 
 def test_add_auth_no_vmx(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = ''
     inst.password = 'vagrant'
     inst.vmx = None
@@ -391,7 +393,7 @@ def test_add_auth_no_vmx(mechfile_one_entry_with_auth_and_mech_use):
 
 def test_add_auth_blank_user(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = ''
     inst.password = 'vagrant'
     inst.vmx = '/tmp/first/some.vmx'
@@ -401,7 +403,7 @@ def test_add_auth_blank_user(mechfile_one_entry_with_auth_and_mech_use):
 
 def test_add_auth_password_is_none(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = None
     inst.vmx = '/tmp/first/some.vmx'
@@ -411,7 +413,7 @@ def test_add_auth_password_is_none(mechfile_one_entry_with_auth_and_mech_use):
 
 def test_add_auth_blank_passwod(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = ''
     inst.vmx = '/tmp/first/some.vmx'
@@ -421,7 +423,7 @@ def test_add_auth_blank_passwod(mechfile_one_entry_with_auth_and_mech_use):
 
 def test_add_auth_user_is_none(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = None
     inst.password = 'vagrant'
     inst.vmx = '/tmp/first/some.vmx'
@@ -436,7 +438,7 @@ def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
                                   mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     mock_installed_tools.return_value = False
-    inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     inst.user = 'vagrant'
     inst.password = 'vagrant'
     with raises(SystemExit, match=r"Cannot add auth"):
@@ -749,7 +751,7 @@ def test_deL_user(mock_locate, mock_installed_tools,
                   mechfile_one_entry):
     """Test del_user."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
     inst.user = 'vagrant'
     inst.use_psk = False
     mech.utils.del_user(inst, 'bart')
@@ -767,7 +769,7 @@ def test_deL_user_fails_in_script(mock_locate, mock_installed_tools,
                                   mechfile_one_entry):
     """Test del_user."""
     mock_installed_tools.return_value = "running"
-    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
     inst.user = 'vagrant'
     inst.use_psk = False
     mech.utils.del_user(inst, 'bart')
@@ -783,7 +785,7 @@ def test_deL_user_vm_tools_not_installed(mock_locate, mock_installed_tools,
                                          mechfile_one_entry):
     """Test del_user."""
     mock_installed_tools.return_value = None
-    inst = mech.mech.MechInstance('first', mechfile_one_entry)
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
     inst.user = 'vagrant'
     inst.use_psk = None
     with raises(SystemExit, match=r"Cannot delete user if"):
@@ -965,25 +967,13 @@ def test_provision_file_show(mock_installed_tools, capfd):
 @patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
 @patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
 @patch('mech.vmrun.VMrun.installed_tools', return_value="running")
-def test_provision_shell(mock_installed_tools, mock_copy_file,
-                         mock_create_tempfile, mock_isfile,
-                         mock_run_script_in_guest, mock_run_program_in_guest,
-                         mock_delete_file_in_guest, capfd):
+def test_provision_which_has_shell(mock_installed_tools, mock_copy_file,
+                                   mock_create_tempfile, mock_isfile,
+                                   mock_run_script_in_guest, mock_run_program_in_guest,
+                                   mock_delete_file_in_guest, capfd,
+                                   shell_provision_config):
     """Test provisioning."""
-    config = [
-        {
-            "type": "shell",
-            "path": "file1.sh",
-            "args": [
-                "a=1",
-                "b=true",
-            ],
-        },
-        {
-            "type": "shell",
-            "inline": "echo hello from inline"
-        },
-    ]
+    config = shell_provision_config
     mock_inst = MagicMock()
     mock_inst.name = 'first'
     mock_inst.vmx = '/tmp/first/some.vmx'
@@ -1005,7 +995,7 @@ def test_provision_shell(mock_installed_tools, mock_copy_file,
 
 
 @patch('mech.vmrun.VMrun.installed_tools', return_value="running")
-def test_provision_shell_show_only(mock_installed_tools, capfd):
+def test_provision_which_has_shell_show_only(mock_installed_tools, capfd):
     """Test provisioning."""
     config = [
         {
@@ -1029,8 +1019,8 @@ def test_provision_shell_show_only(mock_installed_tools, capfd):
 
 @patch('mech.utils.provision_shell', return_value=None)
 @patch('mech.vmrun.VMrun.installed_tools', return_value="running")
-def test_provision_shell_with_issue(mock_installed_tools, mock_provision_shell,
-                                    capfd):
+def test_provision_that_has_shell_with_issue(mock_installed_tools, mock_provision_shell,
+                                             capfd):
     """Test provisioning."""
     config = [
         {
@@ -1069,6 +1059,395 @@ def test_provision_with_unknown_type(mock_installed_tools, capfd):
     out, _ = capfd.readouterr()
     mock_installed_tools.assert_called()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_program_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_script_in_guest')
+@patch('os.path.isfile', return_value=True)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+def test_provision_shell(mock_copy_file,
+                         mock_create_tempfile, mock_isfile,
+                         mock_run_script_in_guest, mock_run_program_in_guest,
+                         mock_delete_file_in_guest, capfd,
+                         mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_run_script_in_guest.return_value = [True, True]
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_run_script_in_guest.assert_called()
+    mock_run_program_in_guest.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_script_in_guest')
+@patch('os.path.isfile', return_value=True)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+def test_provision_shell_make_executable_fails(mock_copy_file,
+                                               mock_create_tempfile, mock_isfile,
+                                               mock_run_script_in_guest,
+                                               mock_delete_file_in_guest, capfd,
+                                               mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_run_script_in_guest.return_value = None
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_run_script_in_guest.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Warning: Could not configure script', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_program_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.run_script_in_guest')
+@patch('os.path.isfile', return_value=False)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+def test_provision_shell_from_http(mock_copy_file,
+                                   mock_create_tempfile, mock_isfile,
+                                   mock_run_script_in_guest, mock_run_program_in_guest,
+                                   mock_delete_file_in_guest, mock_requests_get, capfd,
+                                   mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_run_script_in_guest.return_value = [True, True]
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'echo hello'
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_run_script_in_guest.assert_called()
+    mock_run_program_in_guest.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+    assert re.search(r'Configuring script to run', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=False)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=None)
+def test_provision_shell_from_http_copy_fails(mock_copy_file,
+                                              mock_create_tempfile, mock_isfile,
+                                              mock_delete_file_in_guest, mock_requests_get, capfd,
+                                              mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'echo hello'
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+    assert re.search(r'Configuring script to run', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=False)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_fails_with_http_error(mock_create_tempfile, mock_isfile,
+                                                         mock_delete_file_in_guest,
+                                                         mock_requests_get, capfd,
+                                                         mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_requests_get.side_effect = requests.HTTPError
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=False)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_fails_with_connection_error(mock_create_tempfile,
+                                                               mock_isfile,
+                                                               mock_delete_file_in_guest,
+                                                               mock_requests_get, capfd,
+                                                               mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_requests_get.side_effect = requests.ConnectionError
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=True)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=None)
+def test_provision_shell_could_not_copy(mock_copy_file,
+                                        mock_create_tempfile, mock_isfile,
+                                        mock_delete_file_in_guest, capfd,
+                                        mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_copy_file.assert_called()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Warning: Could not copy file to guest', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('os.path.isfile', return_value=False)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+def test_provision_shell_cannot_open_script_file(mock_copy_file,
+                                                 mock_create_tempfile, mock_isfile,
+                                                 mock_delete_file_in_guest, capfd,
+                                                 mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'Cannot open file', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.delete_file_in_guest', return_value=True)
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value='/tmp/foo')
+@patch('mech.vmrun.VMrun.copy_file_from_host_to_guest', return_value=True)
+def test_provision_shell_cannot_find_script_file(mock_copy_file,
+                                                 mock_create_tempfile,
+                                                 mock_delete_file_in_guest, capfd,
+                                                 mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path=None, args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_delete_file_in_guest.assert_called()
+    assert re.search(r'No script to execute', out, re.MULTILINE)
+
+
+@patch('mech.vmrun.VMrun.create_tempfile_in_guest', return_value=None)
+def test_provision_shell_cannot_create_temp_file(mock_create_tempfile,
+                                                 capfd, mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile=mechfile_one_entry)
+    inst.use_psk = False
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path=None, args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    assert re.search(r'Warning: Could not create tempfile in guest', out, re.MULTILINE)
+
+
+@patch('mech.utils.ssh', return_value=[True, True, True])
+@patch('mech.utils.scp', return_value=True)
+@patch('os.path.isfile', return_value=True)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_use_psk(mock_create_tempfile, mock_isfile,
+                                 mock_scp, mock_ssh, capfd,
+                                 mechfile_one_entry_with_auth_and_mech_use):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry_with_auth_and_mech_use)
+    inst.use_psk = True
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_scp.assert_called()
+    mock_ssh.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('mech.utils.ssh', return_value=None)
+@patch('mech.utils.scp', return_value=True)
+@patch('os.path.isfile', return_value=True)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_use_psk_make_executable_fails(mock_create_tempfile, mock_isfile,
+                                                       mock_scp, mock_ssh, capfd,
+                                                       mechfile_one_entry_with_auth_and_mech_use):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry_with_auth_and_mech_use)
+    inst.use_psk = True
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_scp.assert_called()
+    mock_ssh.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Warning: Could not configure script', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.utils.ssh', return_value=[True, True, True])
+@patch('mech.utils.scp', return_value=True)
+@patch('os.path.isfile', return_value=False)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_use_psk(mock_create_tempfile, mock_isfile,
+                                           mock_scp, mock_ssh, mock_requests_get,
+                                           capfd,
+                                           mechfile_one_entry_with_auth_and_mech_use):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry_with_auth_and_mech_use)
+    inst.use_psk = True
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'echo hello'
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_scp.assert_called()
+    mock_ssh.assert_called()
+    mock_requests_get.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Configuring environment', out, re.MULTILINE)
+    assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('mech.utils.ssh', return_value=[True, True, True])
+@patch('mech.utils.scp', return_value=None)
+@patch('os.path.isfile', return_value=True)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_use_psk_cannot_copy_file(mock_create_tempfile, mock_isfile,
+                                                  mock_scp, mock_ssh,
+                                                  capfd,
+                                                  mechfile_one_entry_with_auth_and_mech_use):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry_with_auth_and_mech_use)
+    inst.use_psk = True
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    vmrun = mech.vmrun.VMrun(some_vmx,
+                             executable='/tmp/vmrun', provider='ws')
+    mech.utils.provision_shell(vmrun, inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_ssh.assert_called()
+    mock_scp.assert_called()
+    assert re.search(r'Configuring script', out, re.MULTILINE)
+    assert re.search(r'Warning: Could not copy file to guest', out, re.MULTILINE)
 
 
 @patch('os.environ')
