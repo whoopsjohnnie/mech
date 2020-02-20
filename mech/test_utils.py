@@ -436,15 +436,15 @@ def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
         mech.utils.add_auth(inst)
 
 
-def test_tar_cmd():
+@patch('sys.platform', return_value='darwin')
+def test_tar_cmd(mock_sys_platform):
     """Test tar cmd.
-       Note: not really a unit test per se, as it calls out.
     """
     a_mock = MagicMock()
     another_mock = MagicMock()
     yet_another_mock = MagicMock()
     yet_another_mock.returncode = 0
-    yet_another_mock.return_value = 'blah blah --wildcards blah --force-local boo --fast-read blah blah', None
+    yet_another_mock.return_value = 'blah blah blah --force-local boo --fast-read blah', None
     another_mock.communicate = yet_another_mock
     another_mock.communicate.returncode = 0
     another_mock.returncode = 0
