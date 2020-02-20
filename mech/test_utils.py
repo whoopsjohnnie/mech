@@ -457,7 +457,7 @@ def test_tar_cmd():
     a_mock.return_value = another_mock
     a_mock.returncode = 0
     if sys.platform.startswith('darwin'):
-        expected = ["tar", "--wildcards", "--force-local", "--fast-read"]
+        expected = ["tar", "--force-local", "--fast-read"]
     else:
         expected = ["tar", "--force-local"]
     with patch('subprocess.Popen', a_mock):
