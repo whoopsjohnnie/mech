@@ -212,6 +212,31 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
     assert re.search(r'Deleted', out, re.MULTILINE)
 
 
+@patch('os.path.exists', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_destroy_prompted_and_answered_no(mock_locate, mock_load_mechfile,
+                                               mock_path_exists,
+                                               capfd, mechfile_two_entries):
+    """Test 'mech destroy' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<instance>': 'first',
+        '--force': False,
+    }
+    a_mock = MagicMock()
+    a_mock.return_value = 'N'
+    with patch('mech.utils.raw_input', a_mock):
+        a_mech.destroy(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_path_exists.assert_called()
+        assert re.search(r'Delete aborted', out, re.MULTILINE)
+
+
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_destroy_not_created(mock_locate, mock_load_mechfile,
@@ -1148,6 +1173,43 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
     mock_vmrun_start.assert_called()
     mock_vmrun_get_ip.assert_called()
     mock_provision.assert_called()
+    out, _ = capfd.readouterr()
+    assert re.search(r'started', out, re.MULTILINE)
+
+
+@patch('mech.utils.init_box')
+@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.vmrun.VMrun.start', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_up_without_provisioning_without_shared_not_created(mock_locate,
+                                                                 mock_load_mechfile,
+                                                                 mock_vmrun_start,
+                                                                 mock_vmrun_get_ip,
+                                                                 mock_init_box, capfd,
+                                                                 mechfile_one_entry):
+    """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry
+    global_arguments = {'--debug': False}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '--gui': False,
+        '--disable-shared-folders': True,
+        '--disable-provisioning': True,
+        '--no-cache': None,
+        '--memsize': None,
+        '--numvcpus': None,
+        '--no-nat': None,
+        '--remove-vagrant': None,
+        '<instance>': None,
+    }
+    mock_init_box.return_value = '/tmp/some.vmx'
+    a_mech.up(arguments)
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_vmrun_start.assert_called()
+    mock_vmrun_get_ip.assert_called()
+    mock_init_box.assert_called()
     out, _ = capfd.readouterr()
     assert re.search(r'started', out, re.MULTILINE)
 
