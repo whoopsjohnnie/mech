@@ -3,6 +3,7 @@
 """Test mech utils."""
 import os
 import re
+import sys
 
 from unittest.mock import patch, mock_open, MagicMock
 from collections import OrderedDict
@@ -231,6 +232,34 @@ def test_save_mechfile_two(helpers):
     assert two_json == helpers.get_mock_data_written(a_mock)
 
 
+@patch('os.getlogin')
+@patch('mech.utils.save_mechfile_entry')
+@patch('mech.utils.build_mechfile_entry')
+def test_init_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry,
+                                          mock_os_getlogin):
+    """Test init_mechfile."""
+    mock_build_mechfile_entry.return_value = {}
+    mock_save_mechfile_entry.return_value = True
+    mock_os_getlogin.return_value = 'bob'
+    assert mech.utils.init_mechfile(add_me=True)
+    mock_build_mechfile_entry.assert_called()
+    mock_save_mechfile_entry.assert_called()
+
+
+@patch('os.getlogin')
+@patch('mech.utils.save_mechfile_entry')
+@patch('mech.utils.build_mechfile_entry')
+def test_add_to_mechfile_with_add_me_option(mock_build_mechfile_entry, mock_save_mechfile_entry,
+                                            mock_os_getlogin):
+    """Test add_to_mechfile."""
+    mock_build_mechfile_entry.return_value = {}
+    mock_save_mechfile_entry.return_value = True
+    mock_os_getlogin.return_value = 'bob'
+    assert mech.utils.add_to_mechfile(add_me=True)
+    mock_build_mechfile_entry.assert_called()
+    mock_save_mechfile_entry.assert_called()
+
+
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
 @patch('mech.vmrun.VMrun.installed_tools')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
@@ -416,9 +445,24 @@ def test_add_auth_cannot_add_auth(mock_locate, mock_installed_tools,
 
 def test_tar_cmd():
     """Test tar cmd.
-       Note: not really a unit test per se, as it calls out.
     """
-    assert ["tar"] == mech.utils.tar_cmd()
+    a_mock = MagicMock()
+    another_mock = MagicMock()
+    yet_another_mock = MagicMock()
+    yet_another_mock.returncode = 0
+    yet_another_mock.return_value = 'blah blah blah --force-local boo --fast-read blah', None
+    another_mock.communicate = yet_another_mock
+    another_mock.communicate.returncode = 0
+    another_mock.returncode = 0
+    a_mock.return_value = another_mock
+    a_mock.returncode = 0
+    if sys.platform.startswith('darwin'):
+        expected = ["tar", "--wildcards", "--force-local", "--fast-read"]
+    else:
+        expected = ["tar", "--force-local"]
+    with patch('subprocess.Popen', a_mock):
+        got = mech.utils.tar_cmd(wildcards=True, fast_read=True, force_local=True)
+        assert expected == got
 
 
 def test_tar_cmd_when_tar_not_found():
@@ -1177,9 +1221,69 @@ def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
         mock_update_vmx.assert_called()
 
 
+@patch('mech.utils.mech_dir')
+@patch('mech.utils.copyfile')
+@patch('mech.utils.makedirs')
+@patch('mech.utils.tar_cmd')
+def test_add_box_file(mock_tar_cmd, mock_makedirs, mock_copyfile, mock_mech_dir):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['aaa', 'some.vmx']
+    mock_tar_cmd.return_value = None
+    mock_mech_dir.return_value = '/tmp'
+    with patch('tarfile.open', mock_tarfile_open, create=True):
+        box, box_version = mech.utils.add_box_file(box='bento/ubuntu',
+                                                   box_version='1.23',
+                                                   filename='/tmp/foo.box')
+        mock_tarfile_open.assert_called()
+        mock_tar_cmd.assert_called()
+        mock_makedirs.assert_called()
+        mock_copyfile.assert_called()
+        assert box == '/tmp/boxes/bento/ubuntu/1.23/foo.box'
+        assert box_version == '1.23'
+
+
+@patch('mech.utils.tar_cmd')
+def test_add_box_file_do_not_save(mock_tar_cmd):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['aaa', 'some.vmx']
+    mock_tar_cmd.return_value = None
+    with patch('tarfile.open', mock_tarfile_open, create=True):
+        box, box_version = mech.utils.add_box_file(box='bento/ubuntu',
+                                                   box_version='1.23',
+                                                   filename='/tmp/foo.box',
+                                                   save=False)
+        mock_tarfile_open.assert_called()
+        mock_tar_cmd.assert_called()
+        assert box == '/tmp/foo.box'
+        assert box_version == '1.23'
+
+
+@patch('mech.utils.tar_cmd')
+def test_add_box_file_that_has_leading_slashes(mock_tar_cmd):
+    """Test add_box_file."""
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_tarfile_open.return_value.getnames.return_value = ['/aaa', '/some.vmx']
+    mock_tar_cmd.return_value = None
+    with raises(SystemExit, match=r"This box is comprised of filenames starting with"):
+        with patch('tarfile.open', mock_tarfile_open, create=True):
+            mech.utils.add_box_file(box='bento/ubuntu', box_version='1.23', filename='/tmp/foo.box')
+
+
 def test_add_mechfile_with_empty_mechfile():
     """Test add_mechfile."""
     mech.utils.add_mechfile(mechfile_entry={})
+
+
+@patch('mech.utils.add_box_file', return_value='')
+def test_add_mechfile_with_boxfile(mock_add_box_file, mechfile_one_entry_with_file):
+    """Test add_mechfile."""
+    mech.utils.add_mechfile(mechfile_entry=mechfile_one_entry_with_file)
+    mock_add_box_file.assert_called()
 
 
 @patch('requests.get')

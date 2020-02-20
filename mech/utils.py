@@ -262,11 +262,9 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
                 # to the end of the function
                 catalog = json.loads(the_file.read())
                 LOGGER.debug('catalog:%s', catalog)
-        except (json.decoder.JSONDecodeError, ValueError) as e:
+        except (json.decoder.JSONDecodeError, ValueError):
             # this means the location/file is probably a .box file
             # or the json is invalid
-            LOGGER.debug('mechfile_entry:%s', mechfile_entry)
-            LOGGER.debug(e)
             return mechfile_entry
         except IOError:
             # cannot open file
@@ -320,6 +318,7 @@ def tar_cmd(*args, **kwargs):
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+        # run the 'tar --help' command to see what capabilities are available
         proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE,
                                 stderr=subprocess.PIPE, startupinfo=startupinfo)
     except OSError:
@@ -328,6 +327,8 @@ def tar_cmd(*args, **kwargs):
         return None
     stdoutdata, _ = map(b2s, proc.communicate())
     tar = ['tar']
+    # if the tar_cmd has the option enabled *and* the capability was in the 'tar --help'
+    # then append that option to the tar command (which is a list of strings)
     if kwargs.get('wildcards') and re.search(r'--wildcards\b', stdoutdata):
         tar.append('--wildcards')
     if kwargs.get('force_local') and re.search(r'--force-local\b', stdoutdata):
