@@ -1604,12 +1604,11 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd,
     assert re.search(r'not created', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.check_tools_state', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate')
 @patch('os.getcwd')
 def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfile,
-                                     mock_check_tools_state, mechfile_one_entry):
+                                     mechfile_one_entry):
     """Test 'mech ssh-config' when vm is created but not started."""
     mock_locate.return_value = '/tmp/first/some.vmx'
     mock_load_mechfile.return_value = mechfile_one_entry
@@ -1619,8 +1618,9 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
     arguments = {
         '<instance>': 'first',
     }
-    with raises(SystemExit, match=r".*not yet ready for SSH.*"):
-        a_mech.ssh_config(arguments)
+    with patch.object(mech.mech_instance.MechInstance, 'get_ip', return_value=None):
+        with raises(SystemExit, match=r".*not yet ready for SSH.*"):
+            a_mech.ssh_config(arguments)
 
 
 @patch('os.chmod')
