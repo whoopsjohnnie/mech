@@ -415,7 +415,6 @@ class Mech(MechCommand):
             if inst.created:
                 vmrun = VMrun(inst.vmx)
 
-                lookup = inst.enable_ip_lookup
                 ip_address = inst.get_ip()
                 state = vmrun.check_tools_state(quiet=True)
 
