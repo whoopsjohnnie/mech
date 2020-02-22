@@ -78,11 +78,9 @@ def test_mech_list_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
     assert re.search(r'second\s+notcreated', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
-                              mock_get_guest_ip_address,
                               capfd,
                               mechfile_two_entries):
     """Test 'mech list' powered on."""
@@ -90,50 +88,52 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
-    a_mech.list(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_guest_ip_address.assert_called()
-    assert re.search(r'192.168.', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value="192.168.1.145") as mock_get_ip:
+        a_mech.list(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'192.168.', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=False)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_list_powered_on_cannot_get_ip(mock_locate, mock_load_mechfile,
-                                            mock_get_ip, capfd,
-                                            mechfile_two_entries):
+                                            capfd, mechfile_two_entries):
     """Test 'mech list' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
-    a_mech.list(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'running', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=False) as mock_get_ip:
+        a_mech.list(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'running', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_list_powered_off(mock_locate, mock_load_mechfile,
-                               mock_get_ip, capfd,
-                               mechfile_two_entries):
+                               capfd, mechfile_two_entries):
     """Test 'mech list' powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
-    a_mech.list(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'poweroff', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.list(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'poweroff', out, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
@@ -154,66 +154,69 @@ def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd
 
 
 @patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_status_powered_on(mock_locate, mock_load_mechfile,
-                                mock_get_ip, mock_check_tools_state, capfd,
+                                mock_check_tools_state, capfd,
                                 mechfile_two_entries):
     """Test 'mech status' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first'}
-    a_mech.status(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    mock_check_tools_state.assert_called()
-    assert re.search(r'VM is ready', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.100') as mock_get_ip:
+        a_mech.status(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        mock_check_tools_state.assert_called()
+        assert re.search(r'VM is ready', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_status_powered_off(mock_locate, mock_load_mechfile,
-                                 mock_get_ip, mock_check_tools_state,
+                                 mock_check_tools_state,
                                  capfd, mechfile_two_entries):
     """Test 'mech status' powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first'}
-    a_mech.status(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    mock_check_tools_state.assert_called()
-    assert re.search(r'VM is powered off', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.status(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        mock_check_tools_state.assert_called()
+        assert re.search(r'VM is powered off', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.check_tools_state', return_value=False)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=False)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_status_could_not_get_ip(mock_locate, mock_load_mechfile,
-                                      mock_get_ip, mock_check_tools_state, capfd,
+                                      mock_check_tools_state, capfd,
                                       mechfile_two_entries):
     """Test 'mech status' powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first'}
-    a_mech.status(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    mock_check_tools_state.assert_called()
-    assert re.search(r'VM is on.*no IP to connect', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=False) as mock_get_ip:
+        a_mech.status(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        mock_check_tools_state.assert_called()
+        assert re.search(r'VM is on.*no IP to connect', out, re.MULTILINE)
 
 
 @patch('mech.utils.get_provider', return_value=None)
@@ -360,11 +363,10 @@ def test_mech_down_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r' not created', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.145")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ip(mock_locate, mock_load_mechfile,
-                 mock_get_ip, capfd, mechfile_two_entries):
+                 capfd, mechfile_two_entries):
     """Test 'mech ip' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -372,19 +374,21 @@ def test_mech_ip(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.ip(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'192.168', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value="192.168.1.145") as mock_get_ip:
+        a_mech.ip(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'192.168', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ip_unknown(mock_locate, mock_load_mechfile,
-                         mock_get_ip, capfd, mechfile_two_entries):
+                         capfd, mechfile_two_entries):
     """Test 'mech ip' but cannot get ip address."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -392,12 +396,14 @@ def test_mech_ip_unknown(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.ip(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'Unknown', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.ip(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'Unknown', out, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
@@ -802,12 +808,11 @@ def test_mech_upgrade_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r' not created', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.reset', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_reload(mock_locate, mock_load_mechfile,
-                     mock_vmrun_reset, mock_get_ip,
+                     mock_vmrun_reset,
                      capfd, mechfile_two_entries):
     """Test 'mech reload' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -816,21 +821,22 @@ def test_mech_reload(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.reload(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_reset.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.reload(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_reset.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'started', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.reset', return_value=False)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_reload_already_started(mock_locate, mock_load_mechfile,
-                                     mock_vmrun_reset, mock_get_ip,
+                                     mock_vmrun_reset,
                                      capfd, mechfile_two_entries):
     """Test 'mech reload' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -839,21 +845,22 @@ def test_mech_reload_already_started(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.reload(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_reset.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.reload(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_reset.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'started', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.vmrun.VMrun.reset', return_value=False)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_reload_on_unknown(mock_locate, mock_load_mechfile,
-                                mock_vmrun_reset, mock_get_ip,
+                                mock_vmrun_reset,
                                 capfd, mechfile_two_entries):
     """Test 'mech reload' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -862,21 +869,22 @@ def test_mech_reload_on_unknown(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.reload(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_reset.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'started on an unknown IP', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.reload(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_reset.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'started on an unknown IP', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.vmrun.VMrun.reset', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_reload_on_unknown2(mock_locate, mock_load_mechfile,
-                                 mock_vmrun_reset, mock_get_ip,
+                                 mock_vmrun_reset,
                                  capfd, mechfile_two_entries):
     """Test 'mech reload' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -885,13 +893,15 @@ def test_mech_reload_on_unknown2(mock_locate, mock_load_mechfile,
     arguments = {
         '<instance>': 'first',
     }
-    a_mech.reload(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_reset.assert_called()
-    mock_get_ip.assert_called()
-    assert re.search(r'started on an unknown IP', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.reload(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_reset.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'started on an unknown IP', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.reset', return_value=None)
@@ -934,12 +944,11 @@ def test_mech_reload_not_created(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.vmrun.VMrun.disable_shared_folders', return_value=True)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.unpause', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume(mock_locate, mock_load_mechfile,
-                     mock_vmrun_unpause, mock_vmrun_get_ip,
+                     mock_vmrun_unpause,
                      mock_vmrun_disable_shared_folders, capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -950,23 +959,24 @@ def test_mech_resume(mock_locate, mock_load_mechfile,
         '--disable-shared-folders': True,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_disable_shared_folders.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'resumed', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_disable_shared_folders.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'resumed', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.disable_shared_folders', return_value=True)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.vmrun.VMrun.unpause', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_unknown_ip(mock_locate, mock_load_mechfile,
-                                mock_vmrun_unpause, mock_vmrun_get_ip,
+                                mock_vmrun_unpause,
                                 mock_vmrun_disable_shared_folders, capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -977,14 +987,16 @@ def test_mech_resume_unknown_ip(mock_locate, mock_load_mechfile,
         '--disable-shared-folders': True,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_disable_shared_folders.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'resumed', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_disable_shared_folders.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'resumed', out, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
@@ -1035,12 +1047,11 @@ def test_mech_resume_unpause_unsuccessful_start_fails(mock_locate, mock_load_mec
 
 @patch('mech.vmrun.VMrun.add_shared_folder', return_value=True)
 @patch('mech.vmrun.VMrun.enable_shared_folders', return_value=True)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.unpause', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_shared_folders(mock_locate, mock_load_mechfile,
-                                    mock_vmrun_unpause, mock_vmrun_get_ip,
+                                    mock_vmrun_unpause,
                                     mock_enable_shared_folders, mock_add_shared_folder,
                                     capfd, mechfile_two_entries):
     """Test 'mech resume'."""
@@ -1052,28 +1063,29 @@ def test_mech_resume_shared_folders(mock_locate, mock_load_mechfile,
         '--disable-shared-folders': False,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_enable_shared_folders.assert_called()
-    mock_add_shared_folder.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'Sharing folders', out, re.MULTILINE)
-    assert re.search(r'resumed', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_enable_shared_folders.assert_called()
+        mock_add_shared_folder.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'Sharing folders', out, re.MULTILINE)
+        assert re.search(r'resumed', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.add_shared_folder', return_value=True)
 @patch('mech.vmrun.VMrun.enable_shared_folders', return_value=True)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.1.101')
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.vmrun.VMrun.unpause', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_unpause_fails_starts_successfully_with_shared_folders(
         mock_locate, mock_load_mechfile, mock_vmrun_unpause, mock_vmrun_start,
-        mock_vmrun_get_ip, mock_enable_shared_folders, mock_add_shared_folder,
+        mock_enable_shared_folders, mock_add_shared_folder,
         capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -1084,27 +1096,28 @@ def test_mech_resume_unpause_fails_starts_successfully_with_shared_folders(
         '--disable-shared-folders': False,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_enable_shared_folders.assert_called()
-    mock_add_shared_folder.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'Sharing folders', out, re.MULTILINE)
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_enable_shared_folders.assert_called()
+        mock_add_shared_folder.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'Sharing folders', out, re.MULTILINE)
+        assert re.search(r'started', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.vmrun.VMrun.unpause', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_unpause_fails_starts_successfully_unknown_ip(
         mock_locate, mock_load_mechfile, mock_vmrun_unpause, mock_vmrun_start,
-        mock_vmrun_get_ip, capfd, mechfile_two_entries):
+        capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -1114,24 +1127,25 @@ def test_mech_resume_unpause_fails_starts_successfully_unknown_ip(
         '--disable-shared-folders': True,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'started on an unknown', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'started on an unknown', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.2.100')
 @patch('mech.vmrun.VMrun.start', return_value=False)
 @patch('mech.vmrun.VMrun.unpause', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_unpause_fails_starts_successfully_foo(
         mock_locate, mock_load_mechfile, mock_vmrun_unpause, mock_vmrun_start,
-        mock_vmrun_get_ip, capfd, mechfile_two_entries):
+        capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -1141,24 +1155,25 @@ def test_mech_resume_unpause_fails_starts_successfully_foo(
         '--disable-shared-folders': True,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'already was started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.101') as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'already was started', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=None)
 @patch('mech.vmrun.VMrun.start', return_value=False)
 @patch('mech.vmrun.VMrun.unpause', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_resume_unpause_fails_starts_successfully_already_started(
         mock_locate, mock_load_mechfile, mock_vmrun_unpause, mock_vmrun_start,
-        mock_vmrun_get_ip, capfd, mechfile_two_entries):
+        capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
@@ -1168,14 +1183,16 @@ def test_mech_resume_unpause_fails_starts_successfully_already_started(
         '--disable-shared-folders': True,
         '--force': True,
     }
-    a_mech.resume(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_unpause.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    assert re.search(r'already was started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=None) as mock_get_ip:
+        a_mech.resume(arguments)
+        out, _ = capfd.readouterr()
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_unpause.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        assert re.search(r'already was started', out, re.MULTILINE)
 
 
 MECHFILE_BAD_ENTRY = {
@@ -1234,12 +1251,11 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
 
 
 @patch('mech.utils.del_user', return_value='')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value='')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started(mock_locate, mock_load_mechfile,
-                                 mock_vmrun_start, mock_vmrun_get_ip,
+                                 mock_vmrun_start,
                                  mock_del_user, capfd,
                                  mechfile_one_entry):
     """Test 'mech up'."""
@@ -1257,14 +1273,16 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
         '--remove-vagrant': True,
         '<instance>': None,
     }
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    mock_del_user.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'was already started on', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value="192.168.1.145") as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        mock_del_user.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'was already started on', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
@@ -1308,12 +1326,11 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         assert re.search(r'Added auth', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='')
 @patch('mech.vmrun.VMrun.start', return_value='')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mechfile,
-                                                      mock_vmrun_start, mock_vmrun_get_ip,
+                                                      mock_vmrun_start,
                                                       capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
@@ -1330,21 +1347,22 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
         '--remove-vagrant': None,
         '<instance>': None,
     }
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'started on an unknown', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='') as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'started on an unknown', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value=False)
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechfile,
-                                                    mock_vmrun_start, mock_vmrun_get_ip, capfd,
+                                                    mock_vmrun_start, capfd,
                                                     mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
@@ -1361,13 +1379,15 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
         '--remove-vagrant': None,
         '<instance>': None,
     }
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'started on an unknown', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=False) as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'started on an unknown', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.start', return_value=None)
@@ -1400,12 +1420,11 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.utils.provision')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
-                                   mock_vmrun_start, mock_vmrun_get_ip,
+                                   mock_vmrun_start,
                                    mock_provision, capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
@@ -1422,25 +1441,25 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
         '--remove-vagrant': None,
         '<instance>': None,
     }
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    mock_provision.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.100') as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        mock_provision.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'started', out, re.MULTILINE)
 
 
 @patch('mech.utils.init_box')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_up_without_provisioning_without_shared_not_created(mock_locate,
                                                                  mock_load_mechfile,
                                                                  mock_vmrun_start,
-                                                                 mock_vmrun_get_ip,
                                                                  mock_init_box, capfd,
                                                                  mechfile_one_entry):
     """Test 'mech up'."""
@@ -1459,23 +1478,24 @@ def test_mech_up_without_provisioning_without_shared_not_created(mock_locate,
         '<instance>': None,
     }
     mock_init_box.return_value = '/tmp/some.vmx'
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    mock_init_box.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.100') as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        mock_init_box.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'started', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.enable_shared_folders')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.vmrun.VMrun.start', return_value=True)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile,
-                                    mock_vmrun_start, mock_vmrun_get_ip,
+                                    mock_vmrun_start,
                                     mock_vmrun_enable_shared_folders,
                                     capfd, mechfile_one_entry):
     """Test 'mech up'."""
@@ -1493,14 +1513,16 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile,
         '--remove-vagrant': None,
         '<instance>': None,
     }
-    a_mech.up(arguments)
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_vmrun_start.assert_called()
-    mock_vmrun_get_ip.assert_called()
-    mock_vmrun_enable_shared_folders.assert_called()
-    out, _ = capfd.readouterr()
-    assert re.search(r'started', out, re.MULTILINE)
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value='192.168.1.100') as mock_get_ip:
+        a_mech.up(arguments)
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_vmrun_start.assert_called()
+        mock_get_ip.assert_called()
+        mock_vmrun_enable_shared_folders.assert_called()
+        out, _ = capfd.readouterr()
+        assert re.search(r'started', out, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
