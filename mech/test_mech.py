@@ -1624,14 +1624,13 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
 
 
 @patch('os.chmod')
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value='192.168.2.120')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 @patch('os.getcwd')
 def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-arguments
                          mock_load_mechfile, mock_get_guest_ip_address,
-                         mock_installed_tools, mock_chmod, capfd, mechfile_one_entry):
+                         mock_chmod, capfd, mechfile_one_entry):
     """Test 'mech ssh-config'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
@@ -1648,7 +1647,6 @@ def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-a
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_get_guest_ip_address.assert_called()
-        mock_installed_tools.assert_called()
         mock_file.assert_called()
         mock_chmod.assert_called()
         assert re.search(r'Host first', out, re.MULTILINE)
@@ -1995,13 +1993,12 @@ def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
 
 @patch('subprocess.run', return_value=True)
 @patch('os.chmod', return_value=True)
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_scp_host_to_guest(mock_locate,
                                 mock_load_mechfile, mock_get_ip,
-                                mock_installed_tools, mock_chmod,
+                                mock_chmod,
                                 mock_subprocess_run,
                                 mechfile_two_entries):
     """Test 'mech scp'."""
@@ -2020,7 +2017,6 @@ def test_mech_scp_host_to_guest(mock_locate,
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_subprocess_run.assert_called()
-        mock_installed_tools.assert_called()
         mock_get_ip.assert_called()
         mock_chmod.assert_called()
         a_mock.assert_called_once_with(filename, 'w')
@@ -2028,13 +2024,12 @@ def test_mech_scp_host_to_guest(mock_locate,
 
 @patch('subprocess.run', return_value=True)
 @patch('os.chmod', return_value=True)
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_scp_guest_to_host(mock_locate,
                                 mock_load_mechfile, mock_get_ip,
-                                mock_installed_tools, mock_chmod,
+                                mock_chmod,
                                 mock_subprocess_run,
                                 mechfile_two_entries):
     """Test 'mech scp'."""
@@ -2054,7 +2049,6 @@ def test_mech_scp_guest_to_host(mock_locate,
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_subprocess_run.assert_called()
-        mock_installed_tools.assert_called()
         mock_get_ip.assert_called()
         mock_chmod.assert_called()
         a_mock.assert_called_once_with(filename, 'w')
