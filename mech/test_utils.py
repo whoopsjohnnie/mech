@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import requests
+import subprocess
 
 from unittest.mock import patch, mock_open, MagicMock
 from collections import OrderedDict
@@ -973,11 +974,10 @@ def test_provision_which_has_shell(mock_installed_tools, mock_copy_file,
                                    mock_delete_file_in_guest, capfd,
                                    shell_provision_config):
     """Test provisioning."""
-    config = shell_provision_config
     mock_inst = MagicMock()
     mock_inst.name = 'first'
     mock_inst.vmx = '/tmp/first/some.vmx'
-    mock_inst.provision = config
+    mock_inst.provision = shell_provision_config
     mock_inst.use_psk = False
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
@@ -1455,6 +1455,156 @@ def test_get_fallback_executable_no_path_in_environ(mock_os_environ):
     """Weird case where PATH is is not in the environment."""
     mock_os_environ.return_value = ''
     assert mech.utils.get_fallback_executable() is None
+
+
+@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
+@patch('mech.utils.run_pyinfra_script', return_value=(0, 'pyinfra output', ''))
+@patch('os.path.isfile', return_value=True)
+def test_provision_pyinfra(mock_os_path_is_file, mock_run_pyinfra_script,
+                           mock_check_tools_state, capfd, pyinfra_provision_config):
+    """Test provision_pyinfra."""
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = pyinfra_provision_config
+    mock_inst.username = 'vagrant'
+    mock_inst.password = 'vagrant'
+    mock_inst.use_psk = False
+    mock_inst.get_ip.return_value = '192.168.0.100'
+    mech.utils.provision(instance=mock_inst, show=None)
+    out, _ = capfd.readouterr()
+    mock_os_path_is_file.assert_called()
+    mock_run_pyinfra_script.assert_called()
+    mock_check_tools_state.assert_called()
+
+
+@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
+@patch('mech.utils.run_pyinfra_script', return_value=(0, 'pyinfra output', ''))
+@patch('requests.get')
+@patch('os.path.isfile', return_value=False)
+def test_provision_pyinfra_http(mock_os_path_is_file, mock_requests_get, mock_run_pyinfra_script,
+                                mock_check_tools_state, capfd, pyinfra_provision_http_config):
+    """Test provision_pyinfra."""
+    mock_inst = MagicMock()
+    mock_inst.name = 'first'
+    mock_inst.vmx = '/tmp/first/some.vmx'
+    mock_inst.provision = pyinfra_provision_http_config
+    mock_inst.username = 'vagrant'
+    mock_inst.password = 'vagrant'
+    mock_inst.use_psk = False
+    mock_inst.get_ip.return_value = '192.168.0.100'
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'exec -- echo hello'
+    mech.utils.provision(instance=mock_inst, show=None)
+    out, _ = capfd.readouterr()
+    mock_os_path_is_file.assert_called()
+    mock_requests_get.assert_called()
+    mock_run_pyinfra_script.assert_called()
+    mock_check_tools_state.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+
+
+def test_run_pyinfra_script_no_host():
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host=None, username=None) is None
+
+
+def test_run_pyinfra_script_no_username():
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username=None) is None
+
+
+def test_run_pyinfra_script_script_is_none():
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username='vagrant') is None
+
+
+def test_run_pyinfra_script_script_no_script():
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username='vagrant', script_path='') is None
+
+
+@patch('os.path.exists', return_value=False)
+def test_run_pyinfra_script_script_not_found(mock_path_exists):
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username='vagrant',
+                                         script_path='/tmp/file1.py') is None
+    mock_path_exists.assert_called()
+
+
+@patch('os.path.exists', return_value=True)
+def test_run_pyinfra_script_script_does_not_end_in_py(mock_path_exists):
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username='vagrant',
+                                         script_path='/tmp/file1') is None
+    mock_path_exists.assert_called()
+
+
+@patch('mech.utils.pyinfra_installed', return_value=False)
+@patch('os.path.exists', return_value=True)
+def test_run_pyinfra_script_pyinfra_not_installed(mock_path_exists, mock_pyinfra_installed):
+    """Test pyinfra_script"""
+    assert mech.utils.run_pyinfra_script(host='foo', username='vagrant',
+                                         script_path='/tmp/file1.py') is None
+    mock_path_exists.assert_called()
+    mock_pyinfra_installed.assert_called()
+
+
+@patch('mech.utils.pyinfra_installed', return_value=True)
+@patch('os.path.exists', return_value=True)
+def test_run_pyinfra_script_pyinfra_success(mock_path_exists, mock_pyinfra_installed):
+    """Test pyinfra_script"""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=0,
+                                                               stdout=b'',
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        return_code, stdout, stderr = mech.utils.run_pyinfra_script(host='foo', username='vagrant',
+                                                                    script_path='/tmp/file1.py')
+        assert return_code == 0
+        assert stdout == ''
+        assert stderr == ''
+        mock_path_exists.assert_called()
+        mock_pyinfra_installed.assert_called()
+        mock_subprocess.assert_called()
+
+
+@patch('mech.utils.pyinfra_installed', return_value=True)
+@patch('os.path.exists', return_value=True)
+def test_run_pyinfra_script_pyinfra_failed(mock_path_exists, mock_pyinfra_installed):
+    """Test pyinfra_script"""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=1,
+                                                               stdout=b'some output',
+                                                               stderr=b'some error')
+    with patch('subprocess.run', mock_subprocess):
+        return_code, stdout, stderr = mech.utils.run_pyinfra_script(host='foo', username='vagrant',
+                                                                    script_path='/tmp/file1.py')
+        assert return_code == 1
+        assert stdout == 'some output'
+        assert stderr == 'some error'
+        mock_path_exists.assert_called()
+        mock_pyinfra_installed.assert_called()
+        mock_subprocess.assert_called()
+
+
+def test_pyinfra_installed():
+    """Test pyinfra_installed"""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='', returncode=0)
+    with patch('subprocess.run', mock_subprocess):
+        assert mech.utils.pyinfra_installed()
+
+
+def test_pyinfra_not_installed():
+    """Test pyinfra_installed"""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='', returncode=127)
+    with patch('subprocess.run', mock_subprocess):
+        assert not mech.utils.pyinfra_installed()
 
 
 @patch('os.path.exists')

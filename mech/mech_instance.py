@@ -93,6 +93,8 @@ class MechInstance():
         self.provision = mechfile[name].get('provision', None)
         self.enable_ip_lookup = False
         self.config = {}
+        self.ip = None
+        self.tools_state = None
         self.auth = mechfile[name].get('auth', None)
         self.shared_folders = mechfile[name].get('shared_folders', [])
         self.user = DEFAULT_USER
@@ -124,6 +126,29 @@ class MechInstance():
                 self.password = None
                 self.use_psk = True
 
+    def get_ip(self):
+        """ Get the ip address."""
+        if self.ip:
+            return self.ip
+        else:
+            if self.vmx:
+                vmrun = VMrun(self.vmx)
+                if vmrun.installed_tools() == "running":
+                    ip_address = vmrun.get_guest_ip_address(wait=False,
+                                                            lookup=self.enable_ip_lookup)
+                    self.ip = ip_address
+                    return self.ip
+
+    def get_tools_state(self):
+        """ Get the tools state."""
+        if self.tools_state:
+            return self.tools_state
+        else:
+            if self.vmx:
+                vmrun = VMrun(self.vmx)
+                self.tools_state = vmrun.installed_tools()
+                return self.tools_state
+
     def __repr__(self):
         """Return a representation of a Mech instance."""
         sep = '\n'
@@ -146,11 +171,7 @@ class MechInstance():
 
     def config_ssh(self):
         """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""
-        vmrun = VMrun(self.vmx)
-        lookup = self.enable_ip_lookup
-        ip_address = vmrun.get_guest_ip_address(wait=False,
-                                                lookup=lookup) if vmrun.installed_tools() else None
-        if not ip_address:
+        if not self.get_ip():
             sys.exit(colored.red(textwrap.fill(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
@@ -191,6 +212,6 @@ class MechInstance():
                 key = key[0].upper() + key[1:]
             self.config[key] = value
         self.config.update({
-            "HostName": ip_address,
+            "HostName": self.ip,
         })
         return self.config

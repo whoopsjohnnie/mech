@@ -816,6 +816,19 @@ class Mech(MechCommand):
 
         Usage: mech provision [options] [<instance>]
 
+        Notes:
+          - There are a few provision types: 'file', 'shell', and 'pyinfra'.
+          - 'shell' can be inline.
+          - 'shell' and 'pyinfra' can have a remote endpoint ('http', 'https',
+            'ftp') for the script.
+            (ex: 'http://example.com/somefile.sh' or ex: 'ftp://foo.com/install.sh')
+          - 'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
+            See https://pyinfra.readthedocs.io/en/latest/ for more info.
+          - Provisioning is run when the instance is started. This option
+            is if you want to re-run the provisioning.
+          - An example of provisioning could be installing puppet (or your config tool
+            of choice).
+
         Options:
             -h, --help                       Print this help
             -s, --show-only                  Show the provisioning info (do not run)

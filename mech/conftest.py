@@ -158,6 +158,38 @@ def shell_provision_config():
 
 
 @pytest.fixture
+def pyinfra_provision_config():
+    return [
+        {
+            "type": "pyinfra",
+            "path": "file1.py",
+            "args": [
+                "sudo=True",
+                "b=1",
+            ],
+        },
+        {
+            "type": "pyinfra",
+            "path": "file2.py",
+        }
+    ]
+
+
+@pytest.fixture
+def pyinfra_provision_http_config():
+    return [
+        {
+            "type": "pyinfra",
+            "path": "https://github.com/Fizzadar/pyinfra/blob/"
+            "master/examples/docker_ce.py",
+            "args": [
+                "sudo=True"
+            ],
+        }
+    ]
+
+
+@pytest.fixture
 def catalog_as_json():
     """Return a catalog as json."""
     return json.loads(CATALOG)

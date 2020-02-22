@@ -10,6 +10,7 @@ from pytest import raises
 import mech.command
 import mech.mech
 import mech.vmrun
+import mech.mech_instance
 
 
 @patch('mech.utils.load_mechfile')
@@ -81,7 +82,8 @@ def test_mech_list_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
-                              mock_get_ip, capfd,
+                              mock_get_guest_ip_address,
+                              capfd,
                               mechfile_two_entries):
     """Test 'mech list' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
@@ -92,7 +94,7 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_get_ip.assert_called()
+    mock_get_guest_ip_address.assert_called()
     assert re.search(r'192.168.', out, re.MULTILINE)
 
 

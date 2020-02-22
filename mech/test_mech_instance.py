@@ -24,6 +24,7 @@ def test_mech_instance(mock_locate, mock_get_ip_address, mock_installed_tools,
     """Test mech instance class."""
     inst = mech.mech.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
     mock_locate.assert_called()
+    print('inst.ip:{}'.format(inst.ip))
     inst.config_ssh()
     mock_installed_tools.assert_called()
     mock_get_ip_address.assert_called()
