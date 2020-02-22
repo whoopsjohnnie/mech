@@ -126,7 +126,7 @@ class MechInstance():
                 self.password = None
                 self.use_psk = True
 
-    def get_ip(self, wait=False):
+    def get_ip(self, wait=False, quiet=True):
         """ Get the ip address."""
         if self.ip:
             return self.ip
@@ -134,7 +134,8 @@ class MechInstance():
             if self.vmx:
                 vmrun = VMrun(self.vmx)
                 ip_address = vmrun.get_guest_ip_address(wait=wait,
-                                                        lookup=self.enable_ip_lookup)
+                                                        lookup=self.enable_ip_lookup,
+                                                        quiet=quiet)
                 self.ip = ip_address
                 return self.ip
 
