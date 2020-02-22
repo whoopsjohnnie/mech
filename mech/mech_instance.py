@@ -126,18 +126,17 @@ class MechInstance():
                 self.password = None
                 self.use_psk = True
 
-    def get_ip(self):
+    def get_ip(self, wait=False):
         """ Get the ip address."""
         if self.ip:
             return self.ip
         else:
             if self.vmx:
                 vmrun = VMrun(self.vmx)
-                if vmrun.installed_tools() == "running":
-                    ip_address = vmrun.get_guest_ip_address(wait=False,
-                                                            lookup=self.enable_ip_lookup)
-                    self.ip = ip_address
-                    return self.ip
+                ip_address = vmrun.get_guest_ip_address(wait=wait,
+                                                        lookup=self.enable_ip_lookup)
+                self.ip = ip_address
+                return self.ip
 
     def get_tools_state(self):
         """ Get the tools state."""

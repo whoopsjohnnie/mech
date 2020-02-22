@@ -324,7 +324,7 @@ class Mech(MechCommand):
                 print(colored.red("VM not started"))
             else:
                 print(colored.blue("Getting IP address..."))
-                ip_address = inst.get_ip()
+                ip_address = inst.get_ip(wait=True)
                 if not disable_shared_folders:
                     utils.share_folders(vmrun, inst)
                 if ip_address:
@@ -617,7 +617,7 @@ class Mech(MechCommand):
 
                 if vmrun.unpause(quiet=True) is not None:
                     print(colored.blue("Getting IP address..."))
-                    ip_address = inst.get_ip()
+                    ip_address = inst.get_ip(wait=True)
                     if not disable_shared_folders:
                         utils.share_folders(vmrun, inst)
                     else:
@@ -636,7 +636,7 @@ class Mech(MechCommand):
                         print(colored.red("VM not started"))
                     else:
                         print(colored.blue("Getting IP address..."))
-                        ip_address = inst.get_ip()
+                        ip_address = inst.get_ip(wait=True)
                         if not disable_shared_folders:
                             utils.share_folders(vmrun, inst)
                         if ip_address:
@@ -875,7 +875,7 @@ class Mech(MechCommand):
                     print(colored.red("VM not restarted"))
                 else:
                     print(colored.blue("Getting IP address..."))
-                    ip_address = inst.get_ip()
+                    ip_address = inst.get_ip(wait=True)
                     if ip_address:
                         if started:
                             print(colored.green("VM ({}) started "
