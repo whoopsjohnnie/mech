@@ -15,7 +15,7 @@ git clone git@github.com:mkinney/mech.git
 cd mech
 
 # If virtualenv is not installed:
-sudo apt-get install virtualenv
+sudo apt-get install virtualenv direnv python3.7
 
 # Create a virtualenv
 # Note: python should be 3.7+
@@ -32,7 +32,7 @@ source venv/bin/activate
 pip install -e .
 
 # if doing development
-pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine
+pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra
 
 # also optional
 pip install autopep8

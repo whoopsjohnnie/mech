@@ -806,7 +806,7 @@ def provision(instance, show=False):
                 source = pro.get('source')
                 destination = pro.get('destination')
                 if show:
-                    print(colored.green("instance:{} provision_type:{} source:{} "
+                    print(colored.green(" instance.name:{} provision_type:{} source:{} "
                                         "destination:{}".format(instance.name, provision_type,
                                                                 source, destination)))
                 else:
@@ -825,13 +825,31 @@ def provision(instance, show=False):
                 if not isinstance(args, list):
                     args = [args]
                 if show:
-                    print(colored.green(" instance:{} provision_type:{} inline:{} path:{} "
+                    print(colored.green(" instance.name:{} provision_type:{} inline:{} path:{} "
                                         "args:{}".format(instance.name, provision_type,
                                                          inline, path, args)))
                 else:
                     if provision_shell(vmrun, instance, inline, path, args) is None:
                         print(colored.red("Not Provisioned"))
                         return
+                provisioned += 1
+
+            elif provision_type == 'pyinfra':
+                path = pro.get('path')
+
+                args = pro.get('args')
+                if not isinstance(args, list):
+                    args = [args]
+                if show:
+                    print(colored.green(" instance.name:{} provision_type:{} path:{} "
+                                        "args:{}".format(instance.name, provision_type,
+                                                         path, args)))
+                else:
+                    return_code, stdout, stderr = provision_pyinfra(instance, path, args)
+                    if return_code is None:
+                        print(colored.red("Not Provisioned"))
+                        return
+                    LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
                 provisioned += 1
 
             else:
@@ -964,6 +982,133 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
             return ssh(instance, 'rm -f "{}"'.format(tmp_path))
         else:
             vmrun.delete_file_in_guest(tmp_path, quiet=True)
+
+
+def provision_pyinfra(instance, script_path, args=None):
+    """Provision using pyinfra.
+
+    Args:
+        instance (MechInstance): instance of the MechInstance class
+        script_path (str): path to the script to run, must end with .py
+        args (list of str): arguments to the script
+
+    Return:
+        return_code(int): return code of the process (0=success)
+        stdout(str): standard output
+        stderr(str): standard error
+
+
+    """
+    if args is None:
+        args = []
+
+    LOGGER.debug('script_path:%s args:%s', instance, script_path, args)
+
+    if script_path and os.path.isfile(script_path):
+        return run_pyinfra_script(instance.get_ip(), instance.user,
+                                  password=instance.password,
+                                  script_path=script_path, args=args)
+    else:
+        if script_path:
+            if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                print(colored.blue("Downloading {}...".format(script_path)))
+                try:
+                    response = requests.get(script_path)
+                    response.raise_for_status()
+                    pyinfra_remote_contents = response.text
+                except requests.HTTPError:
+                    return
+                except requests.ConnectionError:
+                    return
+            else:
+                print(colored.red("Cannot open {}".format(script_path)))
+                return
+
+        LOGGER.debug('pyinfra_remote_contents:%s', pyinfra_remote_contents)
+        the_file = tempfile.NamedTemporaryFile(delete=False, suffix='.py')
+        try:
+            the_file.write(str.encode(pyinfra_remote_contents))
+            the_file.close()
+            return run_pyinfra_script(host=instance.get_ip(), username=instance.user,
+                                      password=instance.password,
+                                      script_path=the_file.name, args=args)
+        finally:
+            os.unlink(the_file.name)
+
+
+def pyinfra_installed():
+    """Return True if the utility 'pyinfra' is installed, otherwise return False.
+    """
+    results = subprocess.run("pyinfra --version", shell=True, capture_output=True)
+    return results.returncode == 0
+
+
+def run_pyinfra_script(host, username, password=None, script_path=None, args=None):
+    """Run a pyinfra script on host.
+
+       Parameters
+         - host(string): hostname to run the pyinfra script against, can be either
+                       a hostname or ip address
+         - username(string): username to use for the authentication to the host
+         - password(string): password to use for the authentication to the host,
+                             if no password, assume pre-shared key
+         - script_path(string): the path of of the pyinfra script
+         - args(kwargs): arguments to pass to running the script
+
+       Returns:
+         - return_code(int): return code from the run example: 0=success
+         - stdout(string): output from the run
+         - stderr(string): errors from the run
+
+    """
+    LOGGER.debug("host:%s username:%s script_path:%s args:%s",
+                 host, username, script_path, args)
+    if args is None:
+        args = []
+
+    if host is None or host == '':
+        print(colored.red("Warning: A host is required for pyinfra provisioning."))
+        return
+
+    if username is None or username == '':
+        print(colored.red("Warning: A username is required for pyinfra provisioning."))
+        return
+
+    if script_path is None or script_path == '':
+        print(colored.red("Warning: A script is required for pyinfra provisioning."))
+        return
+
+    if not os.path.exists(script_path):
+        print(colored.red("Warning: Could not find the pyinfra script ({}).".format(script_path)))
+        return
+
+    if not script_path.endswith('.py'):
+        print(colored.red("Warning: A pyinfra provisioning script must end with .py."))
+        return
+
+    is_pyinfra_installed = pyinfra_installed()
+    if not is_pyinfra_installed:
+        print(colored.red("Warning: pyinfra must be installed."))
+        return
+
+    # hide password (howerver, it is probably just 'vagrant')
+    password_to_print = "***using psk***"
+    if password is not None:
+        password_to_print = "***hidden***"
+    print(colored.green("Going to run ({}) using args({}) on host:{} "
+                        "authenticating with username:{} password:{}"
+                        .format(script_path, args, host, username, password_to_print)))
+
+    user_auth = '--user "{}"'.format(username)
+    if password is not None:
+        user_auth += ' --password "{}"'.format(username, password)
+    command = "pyinfra {host} {user_auth} {script}".format(host=host, user_auth=user_auth,
+                                                           script=script_path)
+    LOGGER.debug('About to run this pyinfra command:%s', command)
+    results = subprocess.run(command, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    return results.returncode, stdout, stderr
 
 
 def config_ssh_string(config_ssh):

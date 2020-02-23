@@ -2,7 +2,7 @@
 
 set -e
 
-echo "Commit before running this."
+echo "Change mech/__init__.py version, update the CHANGELOG.md file and commit those changes before running this script."
 
 VERSION=`python setup.py --version`
 

@@ -324,8 +324,7 @@ class Mech(MechCommand):
                 print(colored.red("VM not started"))
             else:
                 print(colored.blue("Getting IP address..."))
-                lookup = inst.enable_ip_lookup
-                ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+                ip_address = inst.get_ip(wait=True)
                 if not disable_shared_folders:
                     utils.share_folders(vmrun, inst)
                 if ip_address:
@@ -416,8 +415,7 @@ class Mech(MechCommand):
             if inst.created:
                 vmrun = VMrun(inst.vmx)
 
-                lookup = inst.enable_ip_lookup
-                ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
+                ip_address = inst.get_ip()
                 state = vmrun.check_tools_state(quiet=True)
 
                 print("Current machine state:" + os.linesep)
@@ -619,8 +617,7 @@ class Mech(MechCommand):
 
                 if vmrun.unpause(quiet=True) is not None:
                     print(colored.blue("Getting IP address..."))
-                    lookup = inst.enable_ip_lookup
-                    ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+                    ip_address = inst.get_ip(wait=True)
                     if not disable_shared_folders:
                         utils.share_folders(vmrun, inst)
                     else:
@@ -639,8 +636,7 @@ class Mech(MechCommand):
                         print(colored.red("VM not started"))
                     else:
                         print(colored.blue("Getting IP address..."))
-                        lookup = inst.enable_ip_lookup
-                        ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+                        ip_address = inst.get_ip(wait=True)
                         if not disable_shared_folders:
                             utils.share_folders(vmrun, inst)
                         if ip_address:
@@ -797,9 +793,7 @@ class Mech(MechCommand):
         inst = MechInstance(instance)
 
         if inst.created:
-            vmrun = VMrun(inst.vmx)
-            lookup = inst.enable_ip_lookup
-            ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+            ip_address = inst.get_ip()
             if ip_address:
                 print(colored.green(ip_address))
             else:
@@ -815,6 +809,19 @@ class Mech(MechCommand):
         Provisions the Mech machine.
 
         Usage: mech provision [options] [<instance>]
+
+        Notes:
+          - There are a few provision types: 'file', 'shell', and 'pyinfra'.
+          - 'shell' can be inline.
+          - 'shell' and 'pyinfra' can have a remote endpoint ('http', 'https',
+            'ftp') for the script.
+            (ex: 'http://example.com/somefile.sh' or ex: 'ftp://foo.com/install.sh')
+          - 'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
+            See https://pyinfra.readthedocs.io/en/latest/ for more info.
+          - Provisioning is run when the instance is started. This option
+            is if you want to re-run the provisioning.
+          - An example of provisioning could be installing puppet (or your config tool
+            of choice).
 
         Options:
             -h, --help                       Print this help
@@ -868,8 +875,7 @@ class Mech(MechCommand):
                     print(colored.red("VM not restarted"))
                 else:
                     print(colored.blue("Getting IP address..."))
-                    lookup = inst.enable_ip_lookup
-                    ip_address = vmrun.get_guest_ip_address(lookup=lookup)
+                    ip_address = inst.get_ip(wait=True)
                     if ip_address:
                         if started:
                             print(colored.green("VM ({}) started "
@@ -953,9 +959,7 @@ class Mech(MechCommand):
         for name in self.mechfile:
             inst = MechInstance(name, self.mechfile)
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                lookup = inst.enable_ip_lookup
-                ip_address = vmrun.get_guest_ip_address(wait=False, quiet=True, lookup=lookup)
+                ip_address = inst.get_ip()
                 if ip_address is None:
                     ip_address = colored.yellow("poweroff")
                 elif not ip_address:

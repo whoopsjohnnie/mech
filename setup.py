@@ -25,7 +25,7 @@ setup(
     version=__version__,
     author="Kevin Chung, Germán Méndez Bravo, Mike Kinney",
     author_email="kchung@nyu.edu, german.mb@gmail.com, mike.kinney@gmail.com",
-    url="https://mechboxes.github.io/mkinney/",
+    url="https://github.com/mkinney/mech",
     download_url="https://github.com/mkinney/mech/tarball/master",
     license="MIT",
     description="Tool for command line virtual machines",
@@ -43,10 +43,9 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: System :: Emulators",
         "Topic :: Utilities",
-        "Programming Language :: Python :: 2",
         "Programming Language :: Python :: 3",
     ],
-    install_requires=['requests', 'clint', 'docopt', 'filelock'],
+    install_requires=['requests', 'clint', 'docopt', 'filelock', 'pyinfra'],
     packages=['mech'],
     entry_points={
         'console_scripts': [
