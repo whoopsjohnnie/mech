@@ -259,12 +259,11 @@ class Helpers:
                 print("Could not kill pid:{}".format(pid))
 
     @staticmethod
-    def find_vmx_for_dir(part_of_dir):
-        """Return all pids that that are VMware VMs where
-           the .vmx part_of_dir matches the full path."""
+    def find_pids(search_string):
+        """Return all pids that that match the search_string."""
         pids = []
         results = subprocess.run(args='ps -ef | grep vmware-vmx | grep {} | grep -v grep'
-                                 .format(part_of_dir), shell=True, capture_output=True)
+                                 .format(search_string), shell=True, capture_output=True)
         if results.returncode == 0:
             # we found a proc
             stdout = results.stdout.decode('utf-8')
@@ -276,9 +275,16 @@ class Helpers:
         return pids
 
     @staticmethod
-    def cleanup_dir_and_vms_from_dir(a_dir):
-        """Kill any vms from this directory, remove directory and re-create the directory."""
-        Helpers.kill_pids(Helpers.find_vmx_for_dir(a_dir + '/.mech/'))
+    def cleanup_dir_and_vms_from_dir(a_dir, name='first'):
+        """Kill processes and remove directory and re-create the directory.
+           For VMware VMs, look for the .vmx part_of_dir matches the full path.
+           For virtualbox look 'VBoxHeadless --comment <name of the instance>'
+           Note: Unfortunately, the name is global, so you can only have one
+           'first' isntance. Make instance name unique for int tests that use
+           virtualbox.
+       """
+        Helpers.kill_pids(Helpers.find_pids(a_dir + '/.mech/'))
+        Helpers.kill_pids(Helpers.find_pids('VBoxHeadless --comment {}'.format(name)))
         rmtree(a_dir, ignore_errors=True)
         os.mkdir(a_dir)
 

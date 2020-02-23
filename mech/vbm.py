@@ -242,5 +242,19 @@ class VBoxManage():
     #                       cloudprofiles
 
     def list(self, quiet=False):
-        '''List all running VMs'''
+        '''List all VMs'''
         return self.run('list', 'vms', quiet=quiet)
+
+    def list_running(self, quiet=False):
+        '''List all running VMs'''
+        running_vms = []
+        output = self.run('list', 'runningvms', quiet=quiet)
+        each_line = output.split('\n')
+        LOGGER.debug('each_line:%s', each_line)
+        for line in each_line:
+            LOGGER.debug('line:%s', line)
+            parts = line.split(' ')
+            if len(parts) > 0:
+                running_vms.append(parts[0].replace('"', ''))
+        LOGGER.debug('running_vms:%s', running_vms)
+        return running_vms

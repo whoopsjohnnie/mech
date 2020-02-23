@@ -353,7 +353,11 @@ class Mech(MechCommand):
                 vbm = VBoxManage()
                 vbm.create_hostonly(quiet=True)
                 vbm.hostonly(inst.name, quiet=True)
-                started = vbm.start(vmname=inst.name, gui=gui, quiet=True)
+                vbm.start(vmname=inst.name, gui=gui, quiet=True)
+                running_vms = vbm.list_running()
+                started = None
+                if inst.name in running_vms:
+                    started = True
 
             if started is None:
                 print(colored.red("VM not started"))
@@ -370,16 +374,9 @@ class Mech(MechCommand):
                     if started:
                         print(colored.green("VM ({})"
                                             "started on {}".format(instance, ip_address)))
-                    else:
-                        print(colored.yellow("VM ({}) was already started "
-                                             "on {}".format(instance, ip_address)))
                 else:
-                    if started:
-                        print(colored.green("VM ({}) started on an unknown "
-                                            "IP address".format(instance)))
-                    else:
-                        print(colored.yellow("VM ({}) was already started on an "
-                                             "unknown IP address".format(instance)))
+                    print(colored.green("VM ({}) started on an unknown "
+                                        "IP address".format(instance)))
 
                 if inst.provider == 'vmware':
                     # if not already using preshared key, switch to it
