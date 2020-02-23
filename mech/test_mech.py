@@ -1926,8 +1926,9 @@ def test_mech_remove_no_name():
         a_mech.remove(arguments)
 
 
+@patch('mech.vmrun.VMrun.installed', return_value=True)
 @patch('mech.vmrun.VMrun.list', return_value="Total running VMs: 0")
-def test_mech_global_status(mock_list, capfd):
+def test_mech_global_status(mock_list, mock_vmrun_installed, capfd):
     """Test 'mech global-status'."""
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -1935,6 +1936,7 @@ def test_mech_global_status(mock_list, capfd):
     a_mech.global_status(arguments)
     out, _ = capfd.readouterr()
     mock_list.assert_called()
+    mock_vmrun_installed.assert_called()
     assert re.search(r'Total running VMs', out, re.MULTILINE)
 
 
