@@ -2,6 +2,7 @@
 
 ![Python package](https://github.com/mkinney/mech/workflows/Python%20package/badge.svg)
 [![codecov](https://codecov.io/gh/mkinney/mech/branch/master/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/mikemech)
 
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMmare Fusion but was too cheap to buy the Vagrant plugin.
