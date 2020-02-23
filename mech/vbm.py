@@ -70,7 +70,7 @@ class VBoxManage():
     def installed(self):
         """Returns True if VB is installed (based on whether
            we could find the VBoxManage command."""
-        if self.executable is not None:
+        if self.executable is not None and os.path.exists(self.executable):
             return True
         else:
             return False
@@ -170,8 +170,10 @@ class VBoxManage():
         else:
             return ip_address
 
-    def register(self, filename, gui=False, quiet=False):
-        '''Register a VM'''
+    def register(self, filename, quiet=False):
+        '''Register a VM.
+           Note: Probably want to use importvm().
+        '''
         return self.run('registervm', filename, quiet=quiet)
 
     def unregister(self, vmname, quiet=False):

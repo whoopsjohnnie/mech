@@ -73,7 +73,7 @@ class VMrun():  # pylint: disable=too-many-public-methods
     def installed(self):
         """Returns True if vmware is installed (based on whether we
            could find the vmrun command."""
-        if self.executable is not None:
+        if self.executable is not None and os.path.exists(self.executable):
             return True
         else:
             return False
