@@ -27,6 +27,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import re
 import logging
 import subprocess
 import time
@@ -180,6 +181,16 @@ class VBoxManage():
         '''List hostonly interfaces.'''
         return self.run('list', 'hostonlyifs', quiet=quiet)
 
+
+    def create_hostonly(self, quiet=False):
+        '''Create the stuff needed for hostonly networking to work.'''
+        ifs = self.list_hostonly_ifs()
+        if re.search(r'vboxnet', ifs, re.MULTILINE) is None:
+            self.create_hostonly_if(quiet=quiet)
+        ds = self.list_dhcpservers(quiet=quiet)
+        if re.search(r'vboxnet', ds, re.MULTILINE) is None:
+            self.add_hostonly_dhcp(quiet=quiet)
+
     def create_hostonly_if(self, quiet=False):
         '''Create hostonly interface (creates vboxnet0)'''
         return self.run('hostonlyif', 'create', quiet=quiet)
@@ -191,7 +202,7 @@ class VBoxManage():
     def add_hostonly_dhcp(self, host_interface='vboxnet0', quiet=False):
         '''Create dhcp on host interface (ex: vboxnet0).'''
         return self.run('dhcpserver', 'add', '--ifname', host_interface,
-                        '--ip', '192.168.56.1', '--netmask', '255.255.255.0',
+                        '--enable', '--ip', '192.168.56.1', '--netmask', '255.255.255.0',
                         '--lower-ip', '192.168.56.100', '--upper-ip', '192.168.56.200',
                         quiet=quiet)
 
@@ -202,13 +213,6 @@ class VBoxManage():
     def list_dhcpservers(self, quiet=False):
         '''List dhcpservers.'''
         return self.run('list', 'dhcpservers', quiet=quiet)
-
-    def enable_hostonly_dhcp(self, host_interface='vboxnet0', quiet=False):
-        '''Enable dhcp on host interface (ex: vboxnet0).'''
-        return self.run('dhcpserver', 'modify', '--ifname', host_interface, '--enable',
-                        '--ip', '192.168.56.1', '--netmask', '255.255.255.0',
-                        '--lower-ip', '192.168.56.100', '--upper-ip', '192.168.56.200',
-                        quiet=quiet)
 
     def hostonly(self, vmname, quiet=False):
         '''Make a VM use hostonly networking'''

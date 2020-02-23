@@ -351,24 +351,9 @@ class Mech(MechCommand):
                 started = vmrun.start(gui=gui)
             else:
                 vbm = VBoxManage()
-
-                # networking stuff (TODO: move elsewhere)
-                ifs = vbm.list_hostonly_ifs()
-                print('ifs:{}'.format(ifs))
-                vbm.create_hostonly_if()
-                ifs = vbm.list_hostonly_ifs()
-                print('ifs:{}'.format(ifs))
-
-                s = vbm.list_dhcpservers()
-                print('s:{}'.format(s))
-                vbm.add_hostonly_dhcp()
-
-                s = vbm.list_dhcpservers()
-                print('s:{}'.format(s))
-                vbm.enable_hostonly_dhcp()
-
+                vbm.create_hostonly()
                 vbm.hostonly(inst.name)
-                started = vbm.start(vmname=inst.name, gui=gui)
+                started = vbm.start(vmname=inst.name, gui=gui, quiet=True)
 
             if started is None:
                 print(colored.red("VM not started"))
@@ -532,8 +517,9 @@ class Mech(MechCommand):
                         vbm.stop(vmname=inst.name)
                         vbm.unregister(vmname=inst.name)
 
-                        vbm.remove_hostonly_if()
-                        vbm.remove_hostonly_dhcp()
+                        # TODO: should add this functionality somewhere?
+                        #vbm.remove_hostonly_if()
+                        #vbm.remove_hostonly_dhcp()
 
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)

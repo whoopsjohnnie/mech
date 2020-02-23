@@ -425,8 +425,8 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         print('ovf_path:{}'.format(ovf_path))
         vbm = mech.vbm.VBoxManage()
         import_results = vbm.importvm(path_to_ovf=ovf_path, name=name,
-                                      base_folder=mech_dir())
-        print('import_results:{}'.format(import_results))
+                                      base_folder=mech_dir(), quiet=True)
+        LOGGER.debug('import_results:%s', import_results)
         vbox_path = locate(instance_path_save, '*.vbox')
         if not vbox_path:
             sys.exit(colored.red("Cannot locate an vbox file"))
