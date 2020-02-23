@@ -4,6 +4,9 @@
 [![codecov](https://codecov.io/gh/mkinney/mech/branch/master/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mikemech)
 
+Newly added virtualbox functionality. Please test and provide any feedback/issues.
+By default, the provider will be 'vmware'.
+
 One of the authors made this because they don't like VirtualBox and wanted to use vagrant
 with VMmare Fusion but was too cheap to buy the Vagrant plugin.
 
@@ -53,14 +56,28 @@ Starts and provisions the mech environment.
 
 Usage: mech up [options] [<instance>]
 
+Notes:
+   - If no instance is specified, all instances will be started.
+   - The options (memsize, numvcpus, and no-nat) will only be applied
+     upon first run of the 'up' command.
+   - The 'no-nat' option will only be applied if there is no network
+     interface supplied in the box file.
+   - Unless 'disable-shared-folders' is used, a default read/write
+     share called "mech" will be mounted from the current directory.
+     (ex: '/mnt/hgfs/mech' on guest will have the file "Mechfile".)
+     To change shared folders, modify the Mechfile directly.
+   - The 'remove-vagrant' option will remove the vagrant account from the
+     guest VM which is what 'mech' uses to communicate with the VM.
+     Be sure you can connect/admin the instance before using this option.
+
 Options:
-	--disable-provisioning       Do not provision
-	--disable-shared-folders     Do not share folders with VM
-	--gui                        Start GUI
-	--memsize 1024               Specify the size of memory for VM
-	--no-cache                   Do not save the downloaded box
-	--no-nat                     Do not use NAT network (i.e., bridged)
-	--numvcpus 1                 Specify the number of vcpus for VM
+        --disable-provisioning       Do not provision
+        --disable-shared-folders     Do not share folders with VM
+        --gui                        Start GUI
+        --memsize 1024               Specify the size of memory for VM
+        --no-cache                   Do not save the downloaded box
+        --no-nat                     Do not use NAT network (i.e., bridged)
+        --numvcpus 1                 Specify the number of vcpus for VM
     -h, --help                       Print this help
     -r, --remove-vagrant             Remove vagrant user
 
@@ -78,6 +95,43 @@ Initializing and using a machine from HashiCorp's Vagrant Cloud:
 generate a Mechfile in the current directory. You can also pull boxes
 from Vagrant Cloud with `mech init freebsd/FreeBSD-11.1-RELEASE`.
 See the `mech up -h` page for more information.
+
+Can have multiple instances of the same box. The default instance name is 'first'.
+
+Here is the help info for adding a new instance:
+
+```
+% mech add -h
+Add instance to the Mechfile.
+
+Usage: mech add [options] <name> <location>
+
+Example box: bento/ubuntu-18.04
+
+Notes:
+- The 'add-me' option will add the currently logged in user to the guest,
+  add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+  for that user.
+
+Options:
+    -a, --add-me                     Add the current host user/pubkey to guest
+        --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+        --box-version VERSION        Constrain version of the added box
+    -h, --help                       Print this help
+    -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
+    -u, --use-me                     Use the current user for mech interactions
+```
+
+Here is what it would look like having multiple instance with different providers:
+```
+% mech list
+                NAME	        ADDRESS	                                BOX	     VERSION	    PROVIDER
+               fifth	     notcreated	                 bento/ubuntu-18.04	 202002.04.0	  virtualbox
+               first	  192.168.3.231	                 bento/ubuntu-18.04	 201912.04.0	      vmware
+              fourth	 192.168.56.134	                 bento/ubuntu-18.04	 202002.04.0	  virtualbox
+              second	     notcreated	              mrlesmithjr/alpine311	  1578437753	      vmware
+               third	     notcreated	                 bento/ubuntu-18.04	 201912.04.0	      vmware
+```
 
 # Install
 
