@@ -1866,3 +1866,12 @@ def test_get_provider_simulate_win(mock_sys_platform):
     with patch('subprocess.Popen', a_mock):
         provider = mech.utils.get_provider('/tmp/vmrun')
         assert provider == 'ws'
+
+
+def test_valid_provider():
+    """Test valid_provider."""
+    assert mech.utils.valid_provider('vmware')
+    assert mech.utils.valid_provider('virtualbox')
+    assert not mech.utils.valid_provider(None)
+    assert not mech.utils.valid_provider('')
+    assert not mech.utils.valid_provider('atari')

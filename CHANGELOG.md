@@ -1,3 +1,8 @@
+# TBD
+
++ Breaking change: boxes will now include the provider ('vmware' or 'virtualbox'). This may
+  cause boxes to be re-downloaded.
+
 # v0.8.2
 
 + Add pyinfra provisioning

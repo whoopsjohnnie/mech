@@ -37,6 +37,7 @@ from clint.textui import colored
 
 from . import utils
 from .vmrun import VMrun
+from .vbm import VBoxManage
 from .mech_instance import MechInstance
 from .mech_command import MechCommand
 from .mech_box import MechBox
@@ -135,6 +136,7 @@ class Mech(MechCommand):
             -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
                 --name INSTANCE              Name of the instance (myinst1)
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
             -u, --use-me                     Use the current user for mech interactions
         """
         add_me = arguments['--add-me']
@@ -143,13 +145,20 @@ class Mech(MechCommand):
         box_version = arguments['--box-version']
         box = arguments['--box']
         location = arguments['<location>']
+        provider = arguments['--provider']
+
+        if provider is None:
+            provider = 'vmware'
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
 
         if not name or name == "":
             name = "first"
 
         force = arguments['--force']
 
-        LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
+        LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
+                     name, box, box_version, location, provider)
 
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
@@ -163,7 +172,8 @@ class Mech(MechCommand):
             name=name,
             box_version=box_version,
             add_me=add_me,
-            use_me=use_me)
+            use_me=use_me,
+            provider=provider)
         print(colored.green(textwrap.fill(
             "A `Mechfile` has been initialized and placed in this directory. "
             "You are now ready to `mech up` your first virtual environment!")))
@@ -186,6 +196,7 @@ class Mech(MechCommand):
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
             -h, --help                       Print this help
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
             -u, --use-me                     Use the current user for mech interactions
         """
         name = arguments['<name>']
@@ -193,12 +204,21 @@ class Mech(MechCommand):
         box = arguments['--box']
         add_me = arguments['--add-me']
         use_me = arguments['--use-me']
+        provider = arguments['--provider']
         location = arguments['<location>']
+
+        print('before provider:{}'.format(provider))
+        if provider is None:
+            provider = 'vmware'
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
+        print('after provider:{}'.format(provider))
 
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
 
-        LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
+        LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
+                     name, box, box_version, location, provider)
 
         print(colored.green("Adding ({}) to the Mechfile.".format(name)))
 
@@ -208,7 +228,8 @@ class Mech(MechCommand):
             name=name,
             box_version=box_version,
             add_me=add_me,
-            use_me=use_me)
+            use_me=use_me,
+            provider=provider)
         print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
@@ -303,8 +324,9 @@ class Mech(MechCommand):
                 location = inst.box_file
 
             # only run init_box on first "up"
+            # extracts the VM files from the singular .box archive
             if not inst.created:
-                inst.vmx = utils.init_box(
+                path_to_vmx_or_ovf = utils.init_box(
                     instance,
                     box=inst.box,
                     box_version=inst.box_version,
@@ -313,20 +335,52 @@ class Mech(MechCommand):
                     save=save,
                     numvcpus=numvcpus,
                     memsize=memsize,
-                    no_nat=no_nat)
+                    no_nat=no_nat,
+                    provider=inst.provider)
+                if inst.provider == 'vmware':
+                    inst.vmx = path_to_vmx_or_ovf
+                else:
+                    inst.ovf = path_to_vmx_or_ovf
                 inst.created = True
 
-            # Note: user/password is needed for provisioning
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            print(colored.blue("Bringing machine ({}) up...".format(instance)))
-            started = vmrun.start(gui=gui)
+            started = None
+            if inst.provider == 'vmware':
+                # Note: user/password is needed for provisioning
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                print(colored.blue("Bringing machine ({}) up...".format(instance)))
+                started = vmrun.start(gui=gui)
+            else:
+                vbm = VBoxManage()
+
+                # networking stuff (TODO: move elsewhere)
+                ifs = vbm.list_hostonly_ifs()
+                print('ifs:{}'.format(ifs))
+                vbm.create_hostonly_if()
+                ifs = vbm.list_hostonly_ifs()
+                print('ifs:{}'.format(ifs))
+
+                s = vbm.list_dhcpservers()
+                print('s:{}'.format(s))
+                vbm.add_hostonly_dhcp()
+
+                s = vbm.list_dhcpservers()
+                print('s:{}'.format(s))
+                vbm.enable_hostonly_dhcp()
+
+                vbm.hostonly(inst.name)
+                started = vbm.start(vmname=inst.name, gui=gui)
+
             if started is None:
                 print(colored.red("VM not started"))
             else:
                 print(colored.blue("Getting IP address..."))
                 ip_address = inst.get_ip(wait=True)
+
                 if not disable_shared_folders:
-                    utils.share_folders(vmrun, inst)
+                    # TODO: virtualbox
+                    if inst.provider == 'vmware':
+                        utils.share_folders(vmrun, inst)
+
                 if ip_address:
                     if started:
                         print(colored.green("VM ({})"
@@ -342,16 +396,18 @@ class Mech(MechCommand):
                         print(colored.yellow("VM ({}) was already started on an "
                                              "unknown IP address".format(instance)))
 
-                # if not already using preshared key, switch to it
-                if not inst.use_psk and inst.auth:
-                    utils.add_auth(inst)
-                    inst.switch_to_psk()
+                # TODO: add these for virtualbox
+                if inst.provider == 'vmware':
+                    # if not already using preshared key, switch to it
+                    if not inst.use_psk and inst.auth:
+                        utils.add_auth(inst)
+                        inst.switch_to_psk()
 
-                if remove_vagrant:
-                    utils.del_user(inst, 'vagrant')
+                    if remove_vagrant:
+                        utils.del_user(inst, 'vagrant')
 
-                if not disable_provisioning:
-                    utils.provision(inst, show=False)
+                    if not disable_provisioning:
+                        utils.provision(inst, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -465,9 +521,20 @@ class Mech(MechCommand):
                 if force or utils.confirm("Are you sure you want to delete {} "
                                           "at {}".format(inst.name, inst.path), default='n'):
                     print(colored.green("Deleting ({})...".format(instance)))
-                    vmrun = VMrun(inst.vmx)
-                    vmrun.stop(mode='hard', quiet=True)
-                    vmrun.delete_vm()
+
+                    if inst.provider == 'vmware':
+                        vmrun = VMrun(inst.vmx)
+                        vmrun.stop(mode='hard', quiet=True)
+                        vmrun.delete_vm()
+                    else:
+                        vbm = VBoxManage()
+
+                        vbm.stop(vmname=inst.name)
+                        vbm.unregister(vmname=inst.name)
+
+                        vbm.remove_hostonly_if()
+                        vbm.remove_hostonly_dhcp()
+
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
                     print("Deleted")
@@ -501,15 +568,23 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                if not force and vmrun.installed_tools():
-                    stopped = vmrun.stop()
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    if not force and vmrun.installed_tools():
+                        stopped = vmrun.stop()
+                    else:
+                        stopped = vmrun.stop(mode='hard')
+                    if stopped is None:
+                        print(colored.red("Not stopped", vmrun))
+                    else:
+                        print(colored.green("Stopped", vmrun))
                 else:
-                    stopped = vmrun.stop(mode='hard')
-                if stopped is None:
-                    print(colored.red("Not stopped", vmrun))
-                else:
-                    print(colored.green("Stopped", vmrun))
+                    vbm = VBoxManage()
+                    stopped = vbm.stop(vmname=inst.name)
+                    if stopped is None:
+                        print(colored.red("Not stopped", vbm))
+                    else:
+                        print(colored.green("Stopped", vbm))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 
@@ -949,11 +1024,12 @@ class Mech(MechCommand):
             print('Instance Details')
             print()
         else:
-            print("{}\t{}\t{}\t{}".format(
+            print("{}\t{}\t{}\t{}\t{}".format(
                 'NAME'.rjust(20),
                 'ADDRESS'.rjust(15),
                 'BOX'.rjust(35),
-                'VERSION'.rjust(12)
+                'VERSION'.rjust(12),
+                'PROVIDER'.rjust(12),
             ))
 
         for name in self.mechfile:
@@ -977,11 +1053,12 @@ class Mech(MechCommand):
                 box_version = inst.box_version
                 if inst.box_version is None:
                     box_version = ''
-                print("{}\t{}\t{}\t{}".format(
+                print("{}\t{}\t{}\t{}\t{}".format(
                     colored.green(name.rjust(20)),
                     ip_address.rjust(15),
                     inst.box.rjust(35),
-                    box_version.rjust(12)
+                    box_version.rjust(12),
+                    inst.provider.rjust(12)
                 ))
 
     # allow 'mech ls' as alias to 'mech list'

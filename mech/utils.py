@@ -40,13 +40,14 @@ import tempfile
 import textwrap
 import subprocess
 import collections
-from shutil import copyfile
+from shutil import copyfile, rmtree
 
 import requests
 from clint.textui import colored
 from clint.textui import progress
 
 from .vmrun import VMrun
+import mech.vbm
 from .compat import b2s, PY3, raw_input
 
 LOGGER = logging.getLogger(__name__)
@@ -227,9 +228,10 @@ def default_shared_folders():
 
 
 def build_mechfile_entry(location, box=None, name=None, box_version=None,
-                         shared_folders=None):
+                         shared_folders=None, provider=None):
     """Build the Mechfile from the inputs."""
-    LOGGER.debug("location:%s name:%s box:%s box_version:%s", location, name, box, box_version)
+    LOGGER.debug("location:%s name:%s box:%s box_version:%s provider:%s",
+                 location, name, box, box_version, provider)
     mechfile_entry = {}
 
     if location is None:
@@ -238,6 +240,7 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
     mechfile_entry['name'] = name
     mechfile_entry['box'] = box
     mechfile_entry['box_version'] = box_version
+    mechfile_entry['provider'] = provider
 
     if shared_folders is None:
         shared_folders = default_shared_folders()
@@ -289,26 +292,30 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
             sys.exit(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
 
     LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
-    return catalog_to_mechfile(catalog, name=name, box=box, box_version=box_version)
+    return catalog_to_mechfile(catalog, name=name, box=box,
+                               box_version=box_version, provider=provider)
 
 
-def catalog_to_mechfile(catalog, name=None, box=None, box_version=None):
+def catalog_to_mechfile(catalog, name=None, box=None, box_version=None, provider=None):
     """Convert the Hashicorp cloud catalog entry to Mechfile entry."""
     LOGGER.debug('catalog:%s name:%s box:%s box_version:%s', catalog, name, box, box_version)
+    if provider is None:
+        provider = 'vmware'
     mechfile = {}
     versions = catalog.get('versions', [])
     for ver in versions:
         current_version = ver['version']
         if not box_version or current_version == box_version:
-            for provider in ver['providers']:
-                if 'vmware' in provider['name']:
+            for a_provider in ver['providers']:
+                if provider in a_provider['name']:
                     mechfile['name'] = name
+                    mechfile['provider'] = provider
                     mechfile['box'] = catalog['name']
                     mechfile['box_version'] = current_version
-                    mechfile['url'] = provider['url']
+                    mechfile['url'] = a_provider['url']
                     mechfile['shared_folders'] = default_shared_folders()
                     return mechfile
-    sys.exit(colored.red("Couldn't find a VMWare compatible VM using catalog:{}".format(catalog)))
+    sys.exit(colored.red("Couldn't find a compatible VM using catalog:{}".format(catalog)))
 
 
 def tar_cmd(*args, **kwargs):
@@ -340,25 +347,47 @@ def tar_cmd(*args, **kwargs):
 
 
 def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
-             instance_path=None, numvcpus=None, memsize=None, no_nat=False):
+             instance_path=None, numvcpus=None, memsize=None, no_nat=False, provider=None):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
-       desired settings. Return the full path to the vmx file.
+       desired settings (if vmware).
+
+       Return the full path to the vmx or vbox file.
+
+       VMware will just use the files as extracted.
+       VirtualBox needs to "import" the ovf. It creates a .vbox file.
     """
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s", name, box, box_version, location)
-    if not locate(instance_path, '*.vmx'):
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s provider:%s",
+                 name, box, box_version, location, provider)
+    if provider is None:
+        provider = 'vmware'
+
+    look_for = '*.vmx'
+    vbox_path = ''
+    instance_path_save = instance_path
+    if provider == 'virtualbox':
+        look_for = '*.ovf'
+        vbox_path = locate(instance_path, '*.vbox')
+        # need to extract the files somewhere, then we will
+        # remove them after importing to virtualbox
+        if vbox_path != '':
+            instance_path += '_tmp'
+
+    # if we do not find the vmx file nor is the already imported files in place
+    if not locate(instance_path, look_for) and vbox_path != '':
         name_version_box = add_box(
             name=name,
             box=box,
             box_version=box_version,
             location=location,
             force=force,
-            save=save)
+            save=save,
+            provider=provider)
         if not name_version_box:
-            sys.exit(colored.red("Cannot find a valid box with a VMX file in it"))
+            sys.exit(colored.red("Cannot find a valid box with a VMX/OVF file in boxfile"))
 
         box_parts = box.split('/')
-        box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
+        box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes', provider,
                                               box_parts[0], box_parts[1], box_version)))
         box_file = locate(box_dir, '*.box')
 
@@ -383,25 +412,42 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         if not save and box.startswith(tempfile.gettempdir()):
             os.unlink(box)
 
-    vmx_path = locate(instance_path, '*.vmx')
-    if not vmx_path:
-        sys.exit(colored.red("Cannot locate a VMX file"))
-
-    update_vmx(vmx_path, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
-    return vmx_path
+    if provider == 'vmware':
+        vmx_path = locate(instance_path, '*.vmx')
+        if not vmx_path:
+            sys.exit(colored.red("Cannot locate a VMX file"))
+        update_vmx(vmx_path, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
+        return vmx_path
+    else:
+        ovf_path = locate(instance_path, '*.ovf')
+        if not ovf_path:
+            sys.exit(colored.red("Cannot locate an OVF file"))
+        print('ovf_path:{}'.format(ovf_path))
+        vbm = mech.vbm.VBoxManage()
+        import_results = vbm.importvm(path_to_ovf=ovf_path, name=name,
+                                      base_folder=mech_dir())
+        print('import_results:{}'.format(import_results))
+        vbox_path = locate(instance_path_save, '*.vbox')
+        if not vbox_path:
+            sys.exit(colored.red("Cannot locate an vbox file"))
+        # remove the extracted files
+        rmtree(instance_path)
+        return vbox_path
 
 
 def add_box(name=None, box=None, box_version=None, location=None,
-            force=False, save=True):
+            force=False, save=True, provider=None):
     """Add a box."""
     # build the dict
-    LOGGER.debug('name:%s box:%s box_version:%s location:%s', name,
-                 box, box_version, location)
+    LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
+                 name, box, box_version, location, provider)
+
     mechfile_entry = build_mechfile_entry(
         box=box,
         name=name,
         location=location,
-        box_version=box_version)
+        box_version=box_version,
+        provider=provider)
 
     return add_mechfile(
         mechfile_entry,
@@ -410,53 +456,59 @@ def add_box(name=None, box=None, box_version=None, location=None,
         location=location,
         box_version=box_version,
         force=force,
-        save=save)
+        save=save,
+        provider=provider)
 
 
 def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
-                 location=None, force=False, save=True):
+                 location=None, force=False, save=True, provider=None):
     """Add a mechfile entry."""
-    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s',
-                 mechfile_entry, name, box, box_version, location)
+    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s provider:%s',
+                 mechfile_entry, name, box, box_version, location, provider)
 
     box = mechfile_entry.get('box')
     name = mechfile_entry.get('name')
     box_version = mechfile_entry.get('box_version')
+    provider = mechfile_entry.get('provider')
 
     url = mechfile_entry.get('url')
     box_file = mechfile_entry.get('file')
 
     if box_file:
         return add_box_file(box=box, box_version=box_version, filename=box_file,
-                            force=force, save=save)
+                            force=force, save=save, provider=provider)
 
     if url:
         return add_box_url(name=name, box=box, box_version=box_version,
-                           url=url, force=force, save=save)
+                           url=url, force=force, save=save, provider=provider)
     print(
         colored.red(
             "Could not find a VMWare compatible VM for '{}'{}".format(
                 name, " ({})".format(box_version) if box_version else "")))
 
 
-def add_box_url(name, box, box_version, url, force=False, save=True):
+def add_box_url(name, box, box_version, url, force=False, save=True, provider=None):
     """Add a box using the URL."""
-    LOGGER.debug('name:%s box:%s box_version:%s url:%s', name, box, box_version, url)
+    LOGGER.debug('name:%s box:%s box_version:%s url:%s provider:%s',
+                 name, box, box_version, url, provider)
     boxname = os.path.basename(url)
     box_parts = box.split('/')
     first_box_part = box_parts[0]
     second_box_part = ''
     if len(box_parts) > 1:
         second_box_part = box_parts[1]
-    box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes',
+    if provider is None:
+        provider = 'vmware'
+    box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes', provider,
                                           first_box_part, second_box_part, box_version)))
     exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:
-            print(colored.blue("Attempting to download box '{}'...".format(box)))
+            print(colored.blue("Attempting to download provider:{} box:'{}'...".format(provider,
+                                                                                       box)))
         else:
-            print(colored.blue("Box '{}' could not be found. "
-                               "Attempting to download...".format(box)))
+            print(colored.blue("Provider:{} Box:'{}' could not be found. "
+                               "Attempting to download...".format(provider, box)))
         try:
             print(colored.blue("URL: {}".format(url)))
             response = requests.get(url, stream=True)
@@ -492,7 +544,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True):
                     # Otherwise it must be a valid box:
                     return add_box_file(box=box, box_version=box_version,
                                         filename=the_file.name, url=url, force=force,
-                                        save=save)
+                                        save=save, provider=provider)
             finally:
                 os.unlink(the_file.name)
         except requests.HTTPError as exc:
@@ -502,14 +554,23 @@ def add_box_url(name, box, box_version, url, force=False, save=True):
     return name, box_version, box
 
 
-def add_box_file(box=None, box_version=None, filename=None, url=None, force=False, save=True):
+def add_box_file(box=None, box_version=None, filename=None, url=None,
+                 force=False, save=True, provider=None):
     """Add a box using a file as the source. Returns box and box_version."""
-    print(colored.blue("Checking box '{}' integrity filename:{}...".format(box, filename)))
+    print(colored.blue("Checking integrity of provider:{} box:'{}' "
+                       "filename:{}...".format(provider, box, filename)))
+
+    valid_endswith = 'vmx'
+    look_for = '*.vmx'
+    if provider == 'virtualbox':
+        valid_endswith = 'ovf'
+        look_for = '*.ovf'
 
     if sys.platform == 'win32':
-        cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True, force_local=True)
+        cmd = tar_cmd('-tf', filename, look_for, wildcards=True, fast_read=True, force_local=True)
     else:
-        cmd = tar_cmd('-tf', filename, '*.vmx', wildcards=True, fast_read=True)
+        cmd = tar_cmd('-tf', filename, look_for, wildcards=True, fast_read=True)
+
     if cmd:
         startupinfo = None
         if os.name == "nt":
@@ -522,7 +583,7 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
         files = tar.getnames()
         valid_tar = False
         for i in files:
-            if i.endswith('vmx'):
+            if i.endswith(valid_endswith):
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
@@ -533,7 +594,8 @@ def add_box_file(box=None, box_version=None, filename=None, url=None, force=Fals
     if valid_tar:
         if save:
             boxname = os.path.basename(url if url else filename)
-            box = os.path.join(*filter(None, (mech_dir(), 'boxes', box, box_version, boxname)))
+            box = os.path.join(*filter(None, (mech_dir(), 'boxes', provider, box,
+                                              box_version, boxname)))
             path = os.path.dirname(box)
             makedirs(path)
             if not os.path.exists(box) or force:
@@ -551,15 +613,16 @@ def get_info_for_auth(mech_use=False):
 
 
 def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
-                  use_me=None):
+                  use_me=None, provider=None):
     """Initialize the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
-                 name, box, box_version, location, add_me, use_me)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s provider:%s",
+                 name, box, box_version, location, add_me, use_me, provider)
     mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
-        box_version=box_version)
+        box_version=box_version,
+        provider=provider)
     if add_me:
         mechfile_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('mechfile_entry:%s', mechfile_entry)
@@ -567,15 +630,16 @@ def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=N
 
 
 def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
-                    use_me=None):
+                    use_me=None, provider=None):
     """Add entry to the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s",
-                 name, box, box_version, location, add_me, use_me)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s provider:%s",
+                 name, box, box_version, location, add_me, use_me, provider)
     this_mech_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
-        box_version=box_version)
+        box_version=box_version,
+        provider=provider)
     if add_me:
         this_mech_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('this_mech_entry:%s', this_mech_entry)
@@ -1136,30 +1200,44 @@ def share_folders(vmrun, inst):
         vmrun.add_shared_folder(share_name, host_path, quiet=True)
 
 
-def get_fallback_executable():
-    """Get a fallback executable for the command line tool 'vmrun'."""
+def get_fallback_executable(command_name='vmrun'):
+    """Get a fallback executable for a command line tool."""
     if 'PATH' in os.environ:
         LOGGER.debug("os.environ['PATH']:%s", os.environ['PATH'])
         for path in os.environ['PATH'].split(os.pathsep):
-            vmrun = os.path.join(path, 'vmrun')
+            vmrun = os.path.join(path, command_name)
             if os.path.exists(vmrun):
                 return vmrun
-            vmrun = os.path.join(path, 'vmrun.exe')
+            vmrun = os.path.join(path, command_name + '.exe')
             if os.path.exists(vmrun):
                 return vmrun
     return None
 
 
-def get_darwin_executable():
-    """Get the full path for the 'vmrun' command on a mac host."""
-    vmrun = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
-    if os.path.exists(vmrun):
-        return vmrun
+def valid_provider(provider):
+    """Determine if the provider provided is supported and valid.
+       Returns True if it is valid or False if it is not valid.
+    """
+    if provider in ('vmware', 'virtualbox'):
+        return True
+    else:
+        return False
+
+
+def get_darwin_executable(command_name='vmrun'):
+    """Get the full path for the command to run on a mac host."""
+    if command_name == 'vmrun':
+        full_command = '/Applications/VMware Fusion.app/Contents/Library/vmrun'
+    else:
+        full_command = '/usr/local/bin/VBoxManage'
+    if os.path.exists(full_command):
+        return full_command
     return get_fallback_executable()
 
 
 def get_win32_executable():
-    """Get the full path for the 'vmrun' command on a Windows host."""
+    """Get the full path for the 'vmrun' command on a Windows host.
+    """
     if PY3:
         import winreg
     else:

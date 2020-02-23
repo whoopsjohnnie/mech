@@ -27,9 +27,14 @@
 from __future__ import print_function, absolute_import
 
 import os
+import sys
 import fnmatch
 import logging
 import shutil
+
+
+from clint.textui import colored
+
 
 from . import utils
 from .mech_command import MechCommand
@@ -66,14 +71,21 @@ class MechBox(MechCommand):
                 --box-version VERSION        Constrain version of the added box
             -f, --force                      Overwrite an existing box if it exists
             -h, --help                       Print this help
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
         """
 
         location = arguments['<location>']
         box_version = arguments['--box-version']
-
         force = arguments['--force']
+        provider = arguments['<provider>']
+
+        if provider is None:
+            provider = 'vmware'
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
+
         utils.add_box(name=None, box=None, location=location, box_version=box_version,
-                      force=force)
+                      force=force, provider=provider)
 
     def list(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
@@ -92,7 +104,10 @@ class MechBox(MechCommand):
         path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
         for root, _, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
+                # TODO: remove prints below and show the correct provider
+                print(' filename:{}'.format(filename))
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
+                print(' directory:{}'.format(directory))
                 account, box, version = (directory.split('/', 2) + ['', ''])[:3]
                 print("{}\t{}".format(
                     "{}/{}".format(account, box).rjust(35),
@@ -106,14 +121,19 @@ class MechBox(MechCommand):
         """
         Remove a box from mech that matches the given name and version.
 
-        Usage: mech box remove [options] <name> <version>
+        Usage: mech box remove [options] <provider> <name> <version>
 
         Options:
             -h, --help                       Print this help
         """
         name = arguments['<name>']
         box_version = arguments['<version>']
-        path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', name, box_version))
+        provider = arguments['<provider>']
+
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
+
+        path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', provider, name, box_version))
         if os.path.exists(path):
             shutil.rmtree(path)
             print("Removed {} {}".format(name, box_version))
