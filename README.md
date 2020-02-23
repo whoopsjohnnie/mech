@@ -4,16 +4,12 @@
 [![codecov](https://codecov.io/gh/mkinney/mech/branch/master/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mikemech)
 
-Newly added virtualbox functionality. Please test and provide any feedback/issues.
-By default, the provider will be 'vmware'.
+*Newly added virtualbox functionality.* Please test and provide any feedback/issues.
+By default, the provider will be `vmware`.
 
-One of the authors made this because they don't like VirtualBox and wanted to use vagrant
-with VMmare Fusion but was too cheap to buy the Vagrant plugin.
+There is `--help` on every operation.
 
-https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
-
-Usage is pretty straightforward:
-
+# mech --help
 ```
 Usage: mech [options] <command> [<args>...]
 
@@ -50,7 +46,10 @@ For help on any individual command run `mech <command> -h`
 Example:
 
     mech up --help
+```
 
+# mech up --help
+```
 % mech up --help
 Starts and provisions the mech environment.
 
@@ -81,11 +80,13 @@ Options:
     -h, --help                       Print this help
     -r, --remove-vagrant             Remove vagrant user
 
-Example using mech:
+```
 
+# Example using mech
 
 Initializing and using a machine from HashiCorp's Vagrant Cloud:
 
+```
     mech init bento/ubuntu-18.04
     mech up
     mech ssh
@@ -100,6 +101,7 @@ Can have multiple instances of the same box. The default instance name is 'first
 
 Here is the help info for adding a new instance:
 
+# mech add --help
 ```
 % mech add -h
 Add instance to the Mechfile.
@@ -122,6 +124,7 @@ Options:
     -u, --use-me                     Use the current user for mech interactions
 ```
 
+# mech list
 Here is what it would look like having multiple instance with different providers:
 ```
 % mech list
@@ -133,7 +136,9 @@ Here is what it would look like having multiple instance with different provider
                third	     notcreated	                 bento/ubuntu-18.04	 201912.04.0	      vmware
 ```
 
-# Install
+# Installation
+
+To install:
 
 `pip install -U mikemech`
 
@@ -164,7 +169,7 @@ or
 vmhgfs-fuse .host:/mech /mnt/hgfs
 ```
 
-# Changing vcpus and/or memory size
+# Changing vcpus and/or memory size (vmware only)
 
 If you do not specify how many vcpus or memory, then the values
 in the .box file will be used. To override, use appropriate settings:
@@ -217,3 +222,11 @@ source ~/.bash_profile
 ```
 
 4. Try it out by typing `mech <tab>`. It should show the options available.
+
+# Background
+
+One of the authors made this because they don't like VirtualBox and wanted to use vagrant
+with VMmare Fusion but was too cheap to buy the Vagrant plugin.
+
+https://blog.kchung.co/mech-vagrant-with-vmware-integration-for-free/
+
