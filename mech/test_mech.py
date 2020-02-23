@@ -1343,7 +1343,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
         mock_get_ip.assert_called()
         mock_del_user.assert_called()
         out, _ = capfd.readouterr()
-        assert re.search(r'was already started on', out, re.MULTILINE)
+        assert re.search(r'started', out, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
@@ -1383,7 +1383,7 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         mock_run_script_in_guest.assert_called()
         mock_vmrun_get_ip.assert_called()
         out, _ = capfd.readouterr()
-        assert re.search(r'was already started on', out, re.MULTILINE)
+        assert re.search(r'started', out, re.MULTILINE)
         assert re.search(r'Added auth', out, re.MULTILINE)
 
 

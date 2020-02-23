@@ -371,9 +371,7 @@ class Mech(MechCommand):
                         utils.share_folders(vmrun, inst)
 
                 if ip_address:
-                    if started:
-                        print(colored.green("VM ({})"
-                                            "started on {}".format(instance, ip_address)))
+                    print(colored.green("VM ({})started on {}".format(instance, ip_address)))
                 else:
                     print(colored.green("VM ({}) started on an unknown "
                                         "IP address".format(instance)))

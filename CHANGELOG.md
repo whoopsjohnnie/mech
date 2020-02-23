@@ -1,7 +1,13 @@
 # TBD
 
-+ Breaking change: boxes will now include the provider ('vmware' or 'virtualbox'). This may
-  cause boxes to be re-downloaded.
++ Added initial virtualbox provider; basic functionality ("up", "down",
+  "add", "init", "list", "destroy", "ssh", "scp", "ip", "global-status")
+  limited to "host only" networking (a "vboxnet0" and a dhcp server is created),
+  no provisioning, no shared folders, cannot override cpu/memory;
+  added "not implemented yet" messages so it is clear what is implemented;
+  changed the output for operations like "start" and "list"
++ Breaking change: boxes will now include the provider ('vmware' or 'virtualbox').
+  This will cause boxes to be re-downloaded.
 
 # v0.8.2
 

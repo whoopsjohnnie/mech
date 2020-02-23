@@ -104,7 +104,7 @@ def test_int_smoke(helpers):
     # should be able to re-up, verify 'start' alias works, too
     commands = ["mech up", "mech start"]
     expected_lines = ["Bringing machine", "Getting IP", "Sharing folders",
-                      "was already started", "Provisioning"]
+                      "started", "Provisioning"]
     for command in commands:
         results = subprocess.run(commands, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
