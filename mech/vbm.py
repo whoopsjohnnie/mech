@@ -67,6 +67,14 @@ class VBoxManage():
         # just return the command info
         self.test_mode = test_mode
 
+    def installed(self):
+        """Returns True if VB is installed (based on whether
+           we could find the VBoxManage command."""
+        if self.executable is not None:
+            return True
+        else:
+            return False
+
     def run(self, cmd, *args, **kwargs):
         """Execute a command."""
         quiet = kwargs.pop('quiet', False)
@@ -177,6 +185,10 @@ class VBoxManage():
     def stop(self, vmname, quiet=False):
         '''Stop a VM'''
         return self.run('controlvm', vmname, 'poweroff', quiet=quiet)
+
+    def pause(self, vmname, quiet=False):
+        '''Pause a VM'''
+        return self.run('controlvm', vmname, 'pause', quiet=quiet)
 
     def list_hostonly_ifs(self, quiet=False):
         '''List hostonly interfaces.'''
