@@ -70,6 +70,14 @@ class VMrun():  # pylint: disable=too-many-public-methods
         # just return the command info
         self.test_mode = test_mode
 
+    def installed(self):
+        """Returns True if vmware is installed (based on whether we
+           could find the vmrun command."""
+        if self.executable is not None and os.path.exists(self.executable):
+            return True
+        else:
+            return False
+
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""
         quiet = kwargs.pop('quiet', False)

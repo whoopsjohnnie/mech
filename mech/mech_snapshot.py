@@ -64,11 +64,14 @@ class MechSnapshot(MechCommand):
         instance = arguments['<instance>']
         inst = MechInstance(instance)
 
-        vmrun = VMrun(inst.vmx)
-        if vmrun.delete_snapshot(name) is None:
-            print(colored.red("Cannot delete name"))
+        if inst.provider == 'vmware':
+            vmrun = VMrun(inst.vmx)
+            if vmrun.delete_snapshot(name) is None:
+                print(colored.red("Cannot delete name"))
+            else:
+                print(colored.green("Snapshot {} deleted".format(name)))
         else:
-            print(colored.green("Snapshot {} deleted".format(name)))
+            print(colored.red("Not yet implemented on this platform."))
 
     # add alias for 'mech snapshot remove'
     remove = delete
@@ -95,8 +98,11 @@ class MechSnapshot(MechCommand):
             inst = MechInstance(instance)
             print('Snapshots for instance:{}'.format(instance))
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                print(vmrun.list_snapshots())
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    print(vmrun.list_snapshots())
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print(colored.red('Instance ({}) is not created.'.format(instance)))
 
@@ -123,10 +129,13 @@ class MechSnapshot(MechCommand):
 
         inst = MechInstance(instance)
         if inst.created:
-            vmrun = VMrun(inst.vmx)
-            if vmrun.snapshot(name) is None:
-                sys.exit(colored.red("Warning: Could not take snapshot."))
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                if vmrun.snapshot(name) is None:
+                    sys.exit(colored.red("Warning: Could not take snapshot."))
+                else:
+                    print(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
             else:
-                print(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
+                print(colored.red("Not yet implemented on this platform."))
         else:
             print(colored.red('Instance ({}) is not created.'.format(instance)))

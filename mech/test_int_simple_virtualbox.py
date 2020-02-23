@@ -1,6 +1,6 @@
 # Copyright (c) 2020 Mike Kinney
 
-"""Mech integration tests: simple ones (including smoke)"""
+"""Mech integration tests: simple ones (including virtualbox smoke)"""
 import re
 import subprocess
 import platform
@@ -9,62 +9,14 @@ import pytest
 
 
 @pytest.mark.int
-def test_int_no_args():
-    """Test without any args"""
-    return_value, out = subprocess.getstatusoutput('mech')
-    assert re.match(r'Usage: mech ', out)
-    assert return_value == 1
+def test_int_smoke_virtualbox(helpers):
+    """Smoke test most options using virtualbox."""
 
-
-@pytest.mark.int
-def test_int_version():
-    """Test '--version'."""
-    return_value, out = subprocess.getstatusoutput('mech --version')
-    assert re.match(r'mech v[0-9]+\.[0-9]+\.[0-9]', out)
-    assert return_value == 0
-
-
-@pytest.mark.int
-def test_int_help():
-    """Test '--help'."""
-    return_value, out = subprocess.getstatusoutput('mech --help')
-    assert re.match(r'Usage: mech ', out)
-    assert return_value == 0
-
-
-@pytest.mark.int
-def test_int_no_mechfile(helpers):
-    """Test when no Mechfile."""
-    test_dir = "tests/int/no_mechfile"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
-    command = "mech ls"
-    return_value, out = subprocess.getstatusoutput(command)
-    assert re.search(r'Could not find a Mechfile', out)
-    assert return_value == 1
-
-
-@pytest.mark.int
-def test_int_smoke(helpers):
-    """Smoke test most options."""
-
-    test_dir = "tests/int/simple"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
-
-    # ensure we need to provide more args
-    commands = ["mech box", "mech init", "mech ip", "mech ps", "mech scp", "mech snapshot",
-                "mech snapshot save", "mech snapshot save snap1", "mech snapshot delete",
-                "mech snapshot remove", "mech ssh"]
-    expected = "Usage: mech "
-    for command in commands:
-        results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-        stdout = results.stdout.decode('utf-8')
-        stderr = results.stderr.decode('utf-8')
-        assert stdout == ''
-        assert results.returncode == 1
-        assert re.search(expected, stderr)
+    test_dir = "tests/int/simple_virtualbox"
+    helpers.cleanup_dir_and_vms_from_dir(test_dir, 'first')
 
     # should init
-    command = "mech init mrlesmithjr/alpine311"
+    command = "mech init --provider virtualbox bento/ubuntu-18.04"
     expected_lines = ["Initializing", "Loading metadata", "has been initialized", "mech up"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
@@ -77,10 +29,8 @@ def test_int_smoke(helpers):
 
     # should start
     command = "mech up"
-    expected_lines = ["could not be found", "vmware_desktop",
-                      "integrity", "Extracting", "Added network",
-                      "Bringing machine", "Getting IP", "Sharing folders",
-                      "started", "Provisioning"]
+    expected_lines = ["virtualbox", "Extracting", "Getting IP", "started",
+                      "Not yet implemented"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -90,21 +40,9 @@ def test_int_smoke(helpers):
         print(line)
         assert re.search(line, stdout, re.MULTILINE)
 
-    # ensure we get proper response from bad instance name
-    commands = ["mech status first2", "mech ip first2"]
-    expected = "was not found in the Mechfile"
-    for command in commands:
-        results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-        stdout = results.stdout.decode('utf-8')
-        stderr = results.stderr.decode('utf-8')
-        assert stdout == ''
-        assert results.returncode == 1
-        assert re.search(expected, stderr)
-
     # should be able to re-up, verify 'start' alias works, too
     commands = ["mech up", "mech start"]
-    expected_lines = ["Bringing machine", "Getting IP", "Sharing folders",
-                      "started", "Provisioning"]
+    expected_lines = ["Getting IP", "started"]
     for command in commands:
         results = subprocess.run(commands, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
@@ -117,7 +55,7 @@ def test_int_smoke(helpers):
 
     # test 'mech ps'
     command = "mech ps first"
-    expected_lines = ["/sbin/init"]
+    expected_lines = ["Not yet implemented"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -129,7 +67,7 @@ def test_int_smoke(helpers):
 
     # test 'mech status'
     command = "mech status"
-    expected_lines = ["first", "Tools running"]
+    expected_lines = ["Not yet implemented"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -141,7 +79,7 @@ def test_int_smoke(helpers):
 
     # test 'mech global-status'
     command = "mech global-status"
-    expected_lines = [test_dir + '/.mech/first/']
+    expected_lines = ['first']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -153,7 +91,7 @@ def test_int_smoke(helpers):
 
     # test 'mech list'
     commands = ["mech ls", "mech list"]
-    expected_lines = ['first', 'alpine']
+    expected_lines = ['first', 'ubuntu', 'virtualbox']
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
@@ -182,7 +120,7 @@ def test_int_smoke(helpers):
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
-    assert re.search('The virtual machine is not powered on', stderr, re.MULTILINE)
+    assert stderr == ''
     assert results.returncode == 0
     for line in expected_lines:
         print(line)
@@ -202,7 +140,7 @@ def test_int_smoke(helpers):
 
     # test 'mech pause'
     command = "mech pause"
-    expected_lines = ['Paused']
+    expected_lines = ['Not yet implemented']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -214,7 +152,7 @@ def test_int_smoke(helpers):
 
     # test 'mech resume'
     command = "mech resume"
-    expected_lines = ['resumed']
+    expected_lines = ['Not yet implemented']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -226,7 +164,7 @@ def test_int_smoke(helpers):
 
     # test 'mech suspend'
     command = "mech suspend"
-    expected_lines = ['Suspended']
+    expected_lines = ['Not yet implemented']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -238,7 +176,7 @@ def test_int_smoke(helpers):
 
     # test 'mech resume' after suspend
     command = "mech resume"
-    expected_lines = ['started']
+    expected_lines = ['Not yet implemented']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -301,7 +239,7 @@ def test_int_smoke(helpers):
     else:
         # test "mech port"
         command = "mech port"
-        expected = "Total port forwardings: 0"
+        expected = "Not yet implemented"
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
@@ -311,7 +249,7 @@ def test_int_smoke(helpers):
 
     # test "mech box list" (and alias)
     commands = ["mech box list", "mech box ls"]
-    expected = r"alpine"
+    expected = r"ubuntu"
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
@@ -322,7 +260,7 @@ def test_int_smoke(helpers):
 
     # test "mech snapshot list" (and alias)
     commands = ["mech snapshot list", "mech snapshot ls"]
-    expected = "Total snapshots: 0"
+    expected = "Not yet implemented"
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
@@ -333,7 +271,7 @@ def test_int_smoke(helpers):
 
     # test "mech snapshot save"
     command = "mech snapshot save snap1 first"
-    expected = "taken"
+    expected = "Not yet implemented"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -342,28 +280,28 @@ def test_int_smoke(helpers):
     assert re.search(expected, stdout)
 
     # test "mech snapshot save" with same args again
-    command = "mech snapshot save snap1 first"
-    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-    stdout = results.stdout.decode('utf-8')
-    stderr = results.stderr.decode('utf-8')
-    assert stdout == ''
-    assert re.search('A snapshot with the name already exists', stderr)
-    assert results.returncode == 1
+    # command = "mech snapshot save snap1 first"
+    # results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    # stdout = results.stdout.decode('utf-8')
+    # stderr = results.stderr.decode('utf-8')
+    # assert stdout == ''
+    # assert re.search('A snapshot with the name already exists', stderr)
+    # assert results.returncode == 1
 
     # test "mech snapshot list" (and alias) again (now that we have one)
-    commands = ["mech snapshot list", "mech snapshot ls"]
-    expected = "Total snapshots: 1"
-    for command in commands:
-        results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-        stdout = results.stdout.decode('utf-8')
-        stderr = results.stderr.decode('utf-8')
-        assert stderr == ''
-        assert results.returncode == 0
-        assert re.search(expected, stdout, re.MULTILINE)
+    # commands = ["mech snapshot list", "mech snapshot ls"]
+    # expected = "Total snapshots: 1"
+    # for command in commands:
+    #     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    #     stdout = results.stdout.decode('utf-8')
+    #     stderr = results.stderr.decode('utf-8')
+    #     assert stderr == ''
+    #     assert results.returncode == 0
+    #     assert re.search(expected, stdout, re.MULTILINE)
 
     # test "mech snapshot delete"
     command = "mech snapshot delete snap1 first"
-    expected = "deleted"
+    expected = "Not yet implemented"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')

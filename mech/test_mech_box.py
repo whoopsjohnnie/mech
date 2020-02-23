@@ -53,9 +53,9 @@ def test_mech_box_list_one_box(mock_os_getcwd, capfd):
         mock_walk.return_value = [
             ('/tmp', ['boxes'], []),
             ('/tmp/boxes', ['bento'], []),
-            ('/tmp/boxes/bento', ['ubuntu-18.04'], []),
-            ('/tmp/boxes/bento/ubuntu-18.04', ['201912.04.0'], []),
-            ('/tmp/boxes/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
+            ('/tmp/boxes/vmware/bento', ['ubuntu-18.04'], []),
+            ('/tmp/boxes/vmware/bento/ubuntu-18.04', ['201912.04.0'], []),
+            ('/tmp/boxes/vmware/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
         ]
         a_mech.list({})
         mock_walk.assert_called()
@@ -79,9 +79,10 @@ def test_mech_box_add_new(mock_os_getcwd, mock_os_path_exists,
     a_mech = mech.mech.MechBox(arguments=global_arguments)
     arguments = mech_box_arguments
     arguments['<location>'] = 'bento/ubuntu-19.10'
+    arguments['<provider>'] = 'vmware'
     a_mech.add(arguments)
     out, _ = capfd.readouterr()
-    assert re.search(r'Checking box', out, re.MULTILINE)
+    assert re.search(r'Checking integrity', out, re.MULTILINE)
 
 
 @patch('requests.get')
@@ -116,6 +117,7 @@ def test_mech_box_remove_exists(mock_os_path_exists, mock_rmtree, capfd):
     arguments = {
         '<name>': 'bento/ubuntu-18.04',
         '<version>': 'somever',
+        '<provider>': 'vmware',
     }
     a_mech.remove(arguments)
     out, _ = capfd.readouterr()
@@ -133,6 +135,7 @@ def test_mech_box_remove_does_not_exists(mock_os_path_exists, capfd):
     arguments = {
         '<name>': 'bento/ubuntu-18.04',
         '<version>': 'somever',
+        '<provider>': 'vmware',
     }
     a_mech.remove(arguments)
     out, _ = capfd.readouterr()

@@ -647,6 +647,7 @@ def test_build_mechfile_entry_https_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'provider': None,
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'https://foo'
     }
@@ -658,6 +659,7 @@ def test_build_mechfile_entry_http_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'provider': None,
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'http://foo'
@@ -670,6 +672,7 @@ def test_build_mechfile_entry_ftp_location():
         'box': None,
         'box_version': None,
         'name': None,
+        'provider': None,
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
@@ -681,11 +684,13 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
         'box': 'bbb',
         'box_version': 'ccc',
         'name': 'aaa',
+        'provider': 'vmware',
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
     assert mech.utils.build_mechfile_entry(location='ftp://foo', name='aaa',
-                                           box='bbb', box_version='ccc') == expected
+                                           box='bbb', box_version='ccc',
+                                           provider='vmware') == expected
 
 
 def test_build_mechfile_entry_file_location_json(catalog):
@@ -698,6 +703,7 @@ def test_build_mechfile_entry_file_location_json(catalog):
         'box': 'bento/ubuntu-18.04',
         'box_version': 'aaa',
         'name': 'first',
+        'provider': 'vmware',
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
@@ -726,6 +732,7 @@ def test_build_mechfile_entry_file_location_external_good(mock_requests_get,
         'box': 'bento/ubuntu-18.04',
         'box_version': 'aaa',
         'name': None,
+        'provider': 'vmware',
         'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
@@ -1866,3 +1873,12 @@ def test_get_provider_simulate_win(mock_sys_platform):
     with patch('subprocess.Popen', a_mock):
         provider = mech.utils.get_provider('/tmp/vmrun')
         assert provider == 'ws'
+
+
+def test_valid_provider():
+    """Test valid_provider."""
+    assert mech.utils.valid_provider('vmware')
+    assert mech.utils.valid_provider('virtualbox')
+    assert not mech.utils.valid_provider(None)
+    assert not mech.utils.valid_provider('')
+    assert not mech.utils.valid_provider('atari')

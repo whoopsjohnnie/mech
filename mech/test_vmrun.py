@@ -1,8 +1,7 @@
 # Copyright (c) 2020 Mike Kinney
-
 """Tests for VMrun class."""
-
 from unittest.mock import patch, MagicMock, mock_open
+
 
 import mech.vmrun
 
@@ -19,6 +18,24 @@ def test_vmrun_vmrun(mock_popen):
     got = vmrun.vmrun('list', vmrun.vmx_file)
     assert got is None
     mock_popen.assert_called()
+
+
+@patch('os.path.exists', return_value=True)
+def test_vmrun_installed(mock_path_exists):
+    """Test installed."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    assert vmrun.installed()
+    mock_path_exists.assert_called()
+
+
+@patch('os.path.exists', return_value=False)
+def test_vmrun_executable_not_found(mock_path_exists):
+    """Test installed."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    assert not vmrun.installed()
+    mock_path_exists.assert_called()
 
 
 def test_vmrun_start():

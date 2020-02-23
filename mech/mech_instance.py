@@ -36,6 +36,7 @@ from clint.textui import colored
 
 from . import utils
 from .vmrun import VMrun
+from .vbm import VBoxManage
 
 LOGGER = logging.getLogger(__name__)
 
@@ -94,6 +95,8 @@ class MechInstance():
         self.enable_ip_lookup = False
         self.config = {}
         self.ip = None
+        # Note: providers are 'vmware' (default) or 'virtualbox'.
+        self.provider = mechfile[name].get('provider', 'vmware')
         self.tools_state = None
         self.auth = mechfile[name].get('auth', None)
         self.shared_folders = mechfile[name].get('shared_folders', [])
@@ -101,14 +104,26 @@ class MechInstance():
         self.password = DEFAULT_PASSWORD
         self.use_psk = False
         self.path = os.path.join(utils.mech_dir(), name)
-        vmx = utils.locate(self.path, '*.vmx')
-        # Note: If vm has not been started vmx will be None
-        if vmx:
-            self.vmx = vmx
-            self.created = True
-        else:
-            self.vmx = None
-            self.created = False
+        self.vmx = None
+        self.vbox = None
+        if self.provider == 'vmware':
+            # Note: If vmware vm has not been started vmx will be None
+            vmx = utils.locate(self.path, '*.vmx')
+            if vmx:
+                self.vmx = vmx
+                self.created = True
+            else:
+                self.vmx = None
+                self.created = False
+        elif self.provider == 'virtualbox':
+            # Note: If virtualbox vm has not been started vmx will be None
+            vbox = utils.locate(self.path, '*.vbox')
+            if vbox:
+                self.vbox = vbox
+                self.created = True
+            else:
+                self.vbox = None
+                self.created = False
 
         # If vmx exists, then the VM has already been created.
         # See if we need to switch to preshared key authentication
@@ -131,12 +146,17 @@ class MechInstance():
         if self.ip:
             return self.ip
         else:
-            if self.vmx:
-                vmrun = VMrun(self.vmx)
-                ip_address = vmrun.get_guest_ip_address(wait=wait,
-                                                        lookup=self.enable_ip_lookup,
-                                                        quiet=quiet)
-                self.ip = ip_address
+            if self.provider == 'vmware':
+                if self.vmx:
+                    vmrun = VMrun(self.vmx)
+                    ip_address = vmrun.get_guest_ip_address(wait=wait,
+                                                            lookup=self.enable_ip_lookup,
+                                                            quiet=quiet)
+                    self.ip = ip_address
+                    return self.ip
+            else:
+                vbm = VBoxManage()
+                self.ip = vbm.ip(self.name, wait=wait, quiet=quiet)
                 return self.ip
 
     def get_tools_state(self):
@@ -158,7 +178,7 @@ class MechInstance():
                 'vmx:{vmx}{sep}user:{user}{sep}'
                 'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
                 '{sep}config:{config}{sep}shared_folders:{shared_folders}'
-                '{sep}auth:{auth}{sep}use_psk:{use_psk}'.
+                '{sep}auth:{auth}{sep}use_psk:{use_psk}{sep}provider:{provider}'.
                 format(name=self.name, created=self.created,
                        box=self.box, box_version=self.box_version,
                        url=self.url, box_file=self.box_file,
@@ -167,7 +187,8 @@ class MechInstance():
                        enable_ip_lookup=self.enable_ip_lookup,
                        config=self.config,
                        shared_folders=self.shared_folders,
-                       auth=self.auth, use_psk=self.use_psk, sep=sep))
+                       auth=self.auth, use_psk=self.use_psk,
+                       provider=self.provider, sep=sep))
 
     def config_ssh(self):
         """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""

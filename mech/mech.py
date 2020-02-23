@@ -37,6 +37,7 @@ from clint.textui import colored
 
 from . import utils
 from .vmrun import VMrun
+from .vbm import VBoxManage
 from .mech_instance import MechInstance
 from .mech_command import MechCommand
 from .mech_box import MechBox
@@ -135,6 +136,7 @@ class Mech(MechCommand):
             -f, --force                      Overwrite existing Mechfile
             -h, --help                       Print this help
                 --name INSTANCE              Name of the instance (myinst1)
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
             -u, --use-me                     Use the current user for mech interactions
         """
         add_me = arguments['--add-me']
@@ -143,13 +145,20 @@ class Mech(MechCommand):
         box_version = arguments['--box-version']
         box = arguments['--box']
         location = arguments['<location>']
+        provider = arguments['--provider']
+
+        if provider is None:
+            provider = 'vmware'
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
 
         if not name or name == "":
             name = "first"
 
         force = arguments['--force']
 
-        LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
+        LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
+                     name, box, box_version, location, provider)
 
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
@@ -163,7 +172,8 @@ class Mech(MechCommand):
             name=name,
             box_version=box_version,
             add_me=add_me,
-            use_me=use_me)
+            use_me=use_me,
+            provider=provider)
         print(colored.green(textwrap.fill(
             "A `Mechfile` has been initialized and placed in this directory. "
             "You are now ready to `mech up` your first virtual environment!")))
@@ -186,6 +196,7 @@ class Mech(MechCommand):
                 --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
                 --box-version VERSION        Constrain version of the added box
             -h, --help                       Print this help
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
             -u, --use-me                     Use the current user for mech interactions
         """
         name = arguments['<name>']
@@ -193,12 +204,21 @@ class Mech(MechCommand):
         box = arguments['--box']
         add_me = arguments['--add-me']
         use_me = arguments['--use-me']
+        provider = arguments['--provider']
         location = arguments['<location>']
+
+        print('before provider:{}'.format(provider))
+        if provider is None:
+            provider = 'vmware'
+        if not utils.valid_provider(provider):
+            sys.exit(colored.red("Need to provide valid provider."))
+        print('after provider:{}'.format(provider))
 
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
 
-        LOGGER.debug('name:%s box:%s box_version:%s location:%s', name, box, box_version, location)
+        LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
+                     name, box, box_version, location, provider)
 
         print(colored.green("Adding ({}) to the Mechfile.".format(name)))
 
@@ -208,7 +228,8 @@ class Mech(MechCommand):
             name=name,
             box_version=box_version,
             add_me=add_me,
-            use_me=use_me)
+            use_me=use_me,
+            provider=provider)
         print(colored.green("Added to the Mechfile."))
 
     def remove(self, arguments):
@@ -303,8 +324,9 @@ class Mech(MechCommand):
                 location = inst.box_file
 
             # only run init_box on first "up"
+            # extracts the VM files from the singular .box archive
             if not inst.created:
-                inst.vmx = utils.init_box(
+                path_to_vmx_or_ovf = utils.init_box(
                     instance,
                     box=inst.box,
                     box_version=inst.box_version,
@@ -313,45 +335,61 @@ class Mech(MechCommand):
                     save=save,
                     numvcpus=numvcpus,
                     memsize=memsize,
-                    no_nat=no_nat)
+                    no_nat=no_nat,
+                    provider=inst.provider)
+                if inst.provider == 'vmware':
+                    inst.vmx = path_to_vmx_or_ovf
+                else:
+                    inst.ovf = path_to_vmx_or_ovf
                 inst.created = True
 
-            # Note: user/password is needed for provisioning
-            vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-            print(colored.blue("Bringing machine ({}) up...".format(instance)))
-            started = vmrun.start(gui=gui)
+            started = None
+            if inst.provider == 'vmware':
+                # Note: user/password is needed for provisioning
+                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+                print(colored.blue("Bringing machine ({}) up...".format(instance)))
+                started = vmrun.start(gui=gui)
+            else:
+                vbm = VBoxManage()
+                vbm.create_hostonly(quiet=True)
+                vbm.hostonly(inst.name, quiet=True)
+                vbm.start(vmname=inst.name, gui=gui, quiet=True)
+                running_vms = vbm.list_running()
+                started = None
+                if inst.name in running_vms:
+                    started = True
+
             if started is None:
                 print(colored.red("VM not started"))
             else:
                 print(colored.blue("Getting IP address..."))
                 ip_address = inst.get_ip(wait=True)
+
                 if not disable_shared_folders:
-                    utils.share_folders(vmrun, inst)
+                    # TODO: virtualbox
+                    if inst.provider == 'vmware':
+                        utils.share_folders(vmrun, inst)
+
                 if ip_address:
-                    if started:
-                        print(colored.green("VM ({})"
-                                            "started on {}".format(instance, ip_address)))
-                    else:
-                        print(colored.yellow("VM ({}) was already started "
-                                             "on {}".format(instance, ip_address)))
+                    print(colored.green("VM ({})started on {}".format(instance, ip_address)))
                 else:
-                    if started:
-                        print(colored.green("VM ({}) started on an unknown "
-                                            "IP address".format(instance)))
-                    else:
-                        print(colored.yellow("VM ({}) was already started on an "
-                                             "unknown IP address".format(instance)))
+                    print(colored.green("VM ({}) started on an unknown "
+                                        "IP address".format(instance)))
 
-                # if not already using preshared key, switch to it
-                if not inst.use_psk and inst.auth:
-                    utils.add_auth(inst)
-                    inst.switch_to_psk()
+                if inst.provider == 'vmware':
+                    # if not already using preshared key, switch to it
+                    if not inst.use_psk and inst.auth:
+                        utils.add_auth(inst)
+                        inst.switch_to_psk()
 
-                if remove_vagrant:
-                    utils.del_user(inst, 'vagrant')
+                    if remove_vagrant:
+                        utils.del_user(inst, 'vagrant')
 
-                if not disable_provisioning:
-                    utils.provision(inst, show=False)
+                    if not disable_provisioning:
+                        utils.provision(inst, show=False)
+                else:
+                    print(colored.red("Not yet implemented on this platform:"))
+                    print(colored.red("(use-psk, remove-vagrant, provisioning)"))
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -366,7 +404,14 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         vmrun = VMrun()
-        print(vmrun.list())
+        if vmrun.installed():
+            print("===VMware VMs===")
+            print(vmrun.list())
+
+        vbm = VBoxManage()
+        if vbm.installed():
+            print("===VirtualBox VMs===")
+            print(vbm.list())
 
     def ps(self, arguments):  # pylint: disable=invalid-name,no-self-use
         """
@@ -382,9 +427,13 @@ class Mech(MechCommand):
         inst = MechInstance(instance_name)
 
         if inst.created:
-            # Note: user/password is needed for ps
-            vmrun = VMrun(inst.vmx, inst.user, inst.password)
-            print(vmrun.list_processes_in_guest())
+            if inst.provider == 'vmware':
+                # Note: user/password is needed for ps
+                vmrun = VMrun(inst.vmx, inst.user, inst.password)
+                print(vmrun.list_processes_in_guest())
+            else:
+                print(colored.red("Not yet implemented on this platform."))
+
         else:
             print("VM {} not created.".format(instance_name))
 
@@ -413,27 +462,32 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
 
-                ip_address = inst.get_ip()
-                state = vmrun.check_tools_state(quiet=True)
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
 
-                print("Current machine state:" + os.linesep)
-                if ip_address is None:
-                    ip_address = "poweroff"
-                elif not ip_address:
-                    ip_address = "unknown"
-                print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box, ip_address, state))
+                    ip_address = inst.get_ip()
+                    state = vmrun.check_tools_state(quiet=True)
 
-                if ip_address == "poweroff":
-                    print(os.linesep + "The VM is powered off. To restart the VM, "
-                          "simply run `mech up {}`".format(instance))
-                elif ip_address == "unknown":
-                    print(os.linesep + "The VM is on. but it has no IP to connect to,"
-                          "VMware Tools must be installed")
-                elif state in ("installed", "running"):
-                    print(os.linesep + "The VM is ready. Connect to it "
-                          "using `mech ssh {}`".format(instance))
+                    print("Current machine state:" + os.linesep)
+                    if ip_address is None:
+                        ip_address = "poweroff"
+                    elif not ip_address:
+                        ip_address = "unknown"
+                    print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box,
+                                                             ip_address, state))
+
+                    if ip_address == "poweroff":
+                        print(os.linesep + "The VM is powered off. To restart the VM, "
+                              "simply run `mech up {}`".format(instance))
+                    elif ip_address == "unknown":
+                        print(os.linesep + "The VM is on. but it has no IP to connect to,"
+                              "VMware Tools must be installed")
+                    elif state in ("installed", "running"):
+                        print(os.linesep + "The VM is ready. Connect to it "
+                              "using `mech ssh {}`".format(instance))
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print("The VM ({}) has not been created.".format(instance))
 
@@ -465,9 +519,17 @@ class Mech(MechCommand):
                 if force or utils.confirm("Are you sure you want to delete {} "
                                           "at {}".format(inst.name, inst.path), default='n'):
                     print(colored.green("Deleting ({})...".format(instance)))
-                    vmrun = VMrun(inst.vmx)
-                    vmrun.stop(mode='hard', quiet=True)
-                    vmrun.delete_vm()
+
+                    if inst.provider == 'vmware':
+                        vmrun = VMrun(inst.vmx)
+                        vmrun.stop(mode='hard', quiet=True)
+                        vmrun.delete_vm()
+                    else:
+                        vbm = VBoxManage()
+
+                        vbm.stop(vmname=inst.name, quiet=True)
+                        vbm.unregister(vmname=inst.name, quiet=True)
+
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
                     print("Deleted")
@@ -501,15 +563,23 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                if not force and vmrun.installed_tools():
-                    stopped = vmrun.stop()
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    if not force and vmrun.installed_tools():
+                        stopped = vmrun.stop()
+                    else:
+                        stopped = vmrun.stop(mode='hard')
+                    if stopped is None:
+                        print(colored.red("Not stopped", vmrun))
+                    else:
+                        print(colored.green("Stopped", vmrun))
                 else:
-                    stopped = vmrun.stop(mode='hard')
-                if stopped is None:
-                    print(colored.red("Not stopped", vmrun))
-                else:
-                    print(colored.green("Stopped", vmrun))
+                    vbm = VBoxManage()
+                    stopped = vbm.stop(vmname=inst.name, quiet=True)
+                    if stopped is None:
+                        print(colored.red("Not stopped", vbm))
+                    else:
+                        print(colored.green("Stopped", vbm))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 
@@ -539,11 +609,15 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                if vmrun.pause() is None:
-                    print(colored.red("Not paused", vmrun))
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    pause_results = vmrun.pause()
+                    if pause_results is None:
+                        print(colored.red("Not paused", vmrun))
+                    else:
+                        print(colored.yellow("Paused", vmrun))
                 else:
-                    print(colored.yellow("Paused", vmrun))
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 
@@ -571,15 +645,18 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                state = vmrun.check_tools_state(quiet=True)
-                if state == "running":
-                    print("VM must be stopped before doing upgrade.")
-                else:
-                    if vmrun.upgradevm(quiet=False) is None:
-                        print(colored.red("Not upgraded", vmrun))
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    state = vmrun.check_tools_state(quiet=True)
+                    if state == "running":
+                        print("VM must be stopped before doing upgrade.")
                     else:
-                        print(colored.yellow("Upgraded", vmrun))
+                        if vmrun.upgradevm(quiet=False) is None:
+                            print(colored.red("Not upgraded", vmrun))
+                        else:
+                            print(colored.yellow("Upgraded", vmrun))
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 
@@ -613,46 +690,49 @@ class Mech(MechCommand):
             # if we have started this instance before, try to unpause
             if inst.created:
 
-                vmrun = VMrun(inst.vmx)
-
-                if vmrun.unpause(quiet=True) is not None:
-                    print(colored.blue("Getting IP address..."))
-                    ip_address = inst.get_ip(wait=True)
-                    if not disable_shared_folders:
-                        utils.share_folders(vmrun, inst)
-                    else:
-                        print(colored.blue("Disabling shared folders..."))
-                        vmrun.disable_shared_folders(quiet=False)
-                    if ip_address:
-                        print(colored.green("VM resumed on {}".format(ip_address)))
-                    else:
-                        print(colored.green("VM resumed on an unknown IP address"))
-
-                else:
-                    # Otherwise try starting
+                if inst.provider == 'vmware':
                     vmrun = VMrun(inst.vmx)
-                    started = vmrun.start()
-                    if started is None:
-                        print(colored.red("VM not started"))
-                    else:
+
+                    if vmrun.unpause(quiet=True) is not None:
                         print(colored.blue("Getting IP address..."))
                         ip_address = inst.get_ip(wait=True)
                         if not disable_shared_folders:
                             utils.share_folders(vmrun, inst)
-                        if ip_address:
-                            if started:
-                                print(colored.green("VM ({}) started on "
-                                                    "{}".format(instance, ip_address)))
-                            else:
-                                print(colored.yellow("VM ({}) already was started "
-                                                     "on {}".format(instance, ip_address)))
                         else:
-                            if started:
-                                print(colored.green("VM ({}) started on an unknown "
-                                                    "IP address".format(instance)))
+                            print(colored.blue("Disabling shared folders..."))
+                            vmrun.disable_shared_folders(quiet=False)
+                        if ip_address:
+                            print(colored.green("VM resumed on {}".format(ip_address)))
+                        else:
+                            print(colored.green("VM resumed on an unknown IP address"))
+
+                    else:
+                        # Otherwise try starting
+                        vmrun = VMrun(inst.vmx)
+                        started = vmrun.start()
+                        if started is None:
+                            print(colored.red("VM not started"))
+                        else:
+                            print(colored.blue("Getting IP address..."))
+                            ip_address = inst.get_ip(wait=True)
+                            if not disable_shared_folders:
+                                utils.share_folders(vmrun, inst)
+                            if ip_address:
+                                if started:
+                                    print(colored.green("VM ({}) started on "
+                                                        "{}".format(instance, ip_address)))
+                                else:
+                                    print(colored.yellow("VM ({}) already was started "
+                                                         "on {}".format(instance, ip_address)))
                             else:
-                                print(colored.yellow("VM ({}) already was started on an "
-                                                     "unknown IP address".format(instance)))
+                                if started:
+                                    print(colored.green("VM ({}) started on an unknown "
+                                                        "IP address".format(instance)))
+                                else:
+                                    print(colored.yellow("VM ({}) already was started on an "
+                                                         "unknown IP address".format(instance)))
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print(colored.red("VM not created"))
 
@@ -678,11 +758,14 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
-                if vmrun.suspend() is None:
-                    print(colored.red("Not suspended", vmrun))
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    if vmrun.suspend() is None:
+                        print(colored.red("Not suspended", vmrun))
+                    else:
+                        print(colored.green("Suspended", vmrun))
                 else:
-                    print(colored.green("Suspended", vmrun))
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print("VM has not been created.")
 
@@ -841,7 +924,10 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                utils.provision(inst, show)
+                if inst.provider == 'vmware':
+                    utils.provision(inst, show)
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print("VM not created.")
 
@@ -867,29 +953,34 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                vmrun = VMrun(inst.vmx)
 
-                print(colored.blue("Reloading machine..."))
-                started = vmrun.reset()
-                if started is None:
-                    print(colored.red("VM not restarted"))
-                else:
-                    print(colored.blue("Getting IP address..."))
-                    ip_address = inst.get_ip(wait=True)
-                    if ip_address:
-                        if started:
-                            print(colored.green("VM ({}) started "
-                                                "on {}".format(instance, ip_address)))
-                        else:
-                            print(colored.yellow("VM ({}) already was started on "
-                                                 "{}".format(instance, ip_address)))
+                if inst.provider == 'vmware':
+
+                    vmrun = VMrun(inst.vmx)
+
+                    print(colored.blue("Reloading machine..."))
+                    started = vmrun.reset()
+                    if started is None:
+                        print(colored.red("VM not restarted"))
                     else:
-                        if started:
-                            print(colored.green("VM ({}) started on an unknown IP "
-                                                "address".format(instance)))
+                        print(colored.blue("Getting IP address..."))
+                        ip_address = inst.get_ip(wait=True)
+                        if ip_address:
+                            if started:
+                                print(colored.green("VM ({}) started "
+                                                    "on {}".format(instance, ip_address)))
+                            else:
+                                print(colored.yellow("VM ({}) already was started on "
+                                                     "{}".format(instance, ip_address)))
                         else:
-                            print(colored.yellow("VM ({}) already was started "
-                                                 "on an unknown IP address".format(instance)))
+                            if started:
+                                print(colored.green("VM ({}) started on an unknown IP "
+                                                    "address".format(instance)))
+                            else:
+                                print(colored.yellow("VM ({}) already was started "
+                                                     "on an unknown IP address".format(instance)))
+                else:
+                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print("VM not created.")
 
@@ -919,16 +1010,19 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
-            print('Instance ({}):'. format(instance))
-            nat_found = False
-            vmrun = VMrun(inst.vmx)
-            for line in vmrun.list_host_networks().split('\n'):
-                network = line.split()
-                if len(network) > 2 and network[2] == 'nat':
-                    print(vmrun.list_port_forwardings(network[1]))
-                    nat_found = True
-            if not nat_found:
-                print(colored.red("Cannot find a nat network"), file=sys.stderr)
+            if inst.provider == 'vmware':
+                print('Instance ({}):'. format(instance))
+                nat_found = False
+                vmrun = VMrun(inst.vmx)
+                for line in vmrun.list_host_networks().split('\n'):
+                    network = line.split()
+                    if len(network) > 2 and network[2] == 'nat':
+                        print(vmrun.list_port_forwardings(network[1]))
+                        nat_found = True
+                if not nat_found:
+                    print(colored.red("Cannot find a nat network"), file=sys.stderr)
+            else:
+                print(colored.red("Not yet implemented on this platform."))
 
     def list(self, arguments):
         """
@@ -949,11 +1043,12 @@ class Mech(MechCommand):
             print('Instance Details')
             print()
         else:
-            print("{}\t{}\t{}\t{}".format(
+            print("{}\t{}\t{}\t{}\t{}".format(
                 'NAME'.rjust(20),
                 'ADDRESS'.rjust(15),
                 'BOX'.rjust(35),
-                'VERSION'.rjust(12)
+                'VERSION'.rjust(12),
+                'PROVIDER'.rjust(12),
             ))
 
         for name in self.mechfile:
@@ -977,11 +1072,12 @@ class Mech(MechCommand):
                 box_version = inst.box_version
                 if inst.box_version is None:
                     box_version = ''
-                print("{}\t{}\t{}\t{}".format(
+                print("{}\t{}\t{}\t{}\t{}".format(
                     colored.green(name.rjust(20)),
                     ip_address.rjust(15),
                     inst.box.rjust(35),
-                    box_version.rjust(12)
+                    box_version.rjust(12),
+                    inst.provider.rjust(12)
                 ))
 
     # allow 'mech ls' as alias to 'mech list'
