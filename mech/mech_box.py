@@ -97,21 +97,20 @@ class MechBox(MechCommand):
             -h, --help                       Print this help
         """
 
-        print("{}\t{}".format(
+        print("{}\t{}\t{}".format(
             'BOX'.rjust(35),
             'VERSION'.rjust(12),
+            'PROVIDER'.rjust(12),
         ))
         path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
         for root, _, filenames in os.walk(path):
             for filename in fnmatch.filter(filenames, '*.box'):
-                # TODO: remove prints below and show the correct provider
-                print(' filename:{}'.format(filename))
                 directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
-                print(' directory:{}'.format(directory))
-                account, box, version = (directory.split('/', 2) + ['', ''])[:3]
-                print("{}\t{}".format(
+                provider, account, box, version = directory.split('/', 3)
+                print("{}\t{}\t{}".format(
                     "{}/{}".format(account, box).rjust(35),
                     version.rjust(12),
+                    provider.rjust(12),
                 ))
 
     # add alias for 'mech box ls'

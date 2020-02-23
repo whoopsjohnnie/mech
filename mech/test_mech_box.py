@@ -53,9 +53,9 @@ def test_mech_box_list_one_box(mock_os_getcwd, capfd):
         mock_walk.return_value = [
             ('/tmp', ['boxes'], []),
             ('/tmp/boxes', ['bento'], []),
-            ('/tmp/boxes/bento', ['ubuntu-18.04'], []),
-            ('/tmp/boxes/bento/ubuntu-18.04', ['201912.04.0'], []),
-            ('/tmp/boxes/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
+            ('/tmp/boxes/vmware/bento', ['ubuntu-18.04'], []),
+            ('/tmp/boxes/vmware/bento/ubuntu-18.04', ['201912.04.0'], []),
+            ('/tmp/boxes/vmware/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
         ]
         a_mech.list({})
         mock_walk.assert_called()
