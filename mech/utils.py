@@ -845,9 +845,11 @@ def provision(instance, show=False):
                                         "args:{}".format(instance.name, provision_type,
                                                          path, args)))
                 else:
-                    if provision_pyinfra(instance, path, args) is None:
+                    return_code, stdout, stderr = provision_pyinfra(instance, path, args)
+                    if return_code is None:
                         print(colored.red("Not Provisioned"))
                         return
+                    LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
                 provisioned += 1
 
             else:
@@ -990,6 +992,12 @@ def provision_pyinfra(instance, script_path, args=None):
         script_path (str): path to the script to run, must end with .py
         args (list of str): arguments to the script
 
+    Return:
+        return_code(int): return code of the process (0=success)
+        stdout(str): standard output
+        stderr(str): standard error
+
+
     """
     if args is None:
         args = []
@@ -997,7 +1005,9 @@ def provision_pyinfra(instance, script_path, args=None):
     LOGGER.debug('script_path:%s args:%s', instance, script_path, args)
 
     if script_path and os.path.isfile(script_path):
-        return run_pyinfra_script(instance.get_ip(), script_path, args)
+        return run_pyinfra_script(instance.get_ip(), instance.user,
+                                  password=instance.password,
+                                  script_path=script_path, args=args)
     else:
         if script_path:
             if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
@@ -1005,7 +1015,7 @@ def provision_pyinfra(instance, script_path, args=None):
                 try:
                     response = requests.get(script_path)
                     response.raise_for_status()
-                    inline = response.read()
+                    pyinfra_remote_contents = response.text
                 except requests.HTTPError:
                     return
                 except requests.ConnectionError:
@@ -1014,11 +1024,14 @@ def provision_pyinfra(instance, script_path, args=None):
                 print(colored.red("Cannot open {}".format(script_path)))
                 return
 
-        the_file = tempfile.NamedTemporaryFile(delete=False)
+        LOGGER.debug('pyinfra_remote_contents:%s', pyinfra_remote_contents)
+        the_file = tempfile.NamedTemporaryFile(delete=False, suffix='.py')
         try:
-            the_file.write(str.encode(inline))
+            the_file.write(str.encode(pyinfra_remote_contents))
             the_file.close()
-            return run_pyinfra_script(instance.get_ip(), inline, args)
+            return run_pyinfra_script(host=instance.get_ip(), username=instance.user,
+                                      password=instance.password,
+                                      script_path=the_file.name, args=args)
         finally:
             os.unlink(the_file.name)
 
@@ -1026,7 +1039,7 @@ def provision_pyinfra(instance, script_path, args=None):
 def pyinfra_installed():
     """Return True if the utility 'pyinfra' is installed, otherwise return False.
     """
-    results = subprocess.run("pyinfra --version", shell=True)
+    results = subprocess.run("pyinfra --version", shell=True, capture_output=True)
     return results.returncode == 0
 
 
@@ -1043,12 +1056,13 @@ def run_pyinfra_script(host, username, password=None, script_path=None, args=Non
          - args(kwargs): arguments to pass to running the script
 
        Returns:
-         - return_code(int): example: 0=success
+         - return_code(int): return code from the run example: 0=success
          - stdout(string): output from the run
          - stderr(string): errors from the run
 
-       TODO: Do we want to add host to known_hosts?
     """
+    LOGGER.debug("host:%s username:%s script_path:%s args:%s",
+                 host, username, script_path, args)
     if args is None:
         args = []
 
@@ -1085,7 +1099,12 @@ def run_pyinfra_script(host, username, password=None, script_path=None, args=Non
                         "authenticating with username:{} password:{}"
                         .format(script_path, args, host, username, password_to_print)))
 
-    command = "pyinfra {} {}".format(host, script_path)
+    user_auth = '--user "{}"'.format(username)
+    if password is not None:
+        user_auth += ' --password "{}"'.format(username, password)
+    command = "pyinfra {host} {user_auth} {script}".format(host=host, user_auth=user_auth,
+                                                           script=script_path)
+    LOGGER.debug('About to run this pyinfra command:%s', command)
     results = subprocess.run(command, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')

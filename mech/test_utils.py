@@ -1494,8 +1494,7 @@ def test_provision_pyinfra_http(mock_os_path_is_file, mock_requests_get, mock_ru
     mock_inst.use_psk = False
     mock_inst.get_ip.return_value = '192.168.0.100'
     mock_requests_get.return_value.status_code = 200
-    mock_requests_get.return_value.raise_for_status.return_value = None
-    mock_requests_get.return_value.read.return_value = 'exec -- echo hello'
+    mock_requests_get.return_value.text = 'exec -- echo hello'
     mech.utils.provision(instance=mock_inst, show=None)
     out, _ = capfd.readouterr()
     mock_os_path_is_file.assert_called()

@@ -7,13 +7,13 @@
     "provision": [
       {
         "type": "file",
-    	"source": "file1.txt",
-    	"destination": "/tmp/file1.txt"
+        "source": "file1.txt",
+        "destination": "/tmp/file1.txt"
       },
       {
         "type": "file",
-    	"source": "file2.txt",
-    	"destination": "/tmp/file2.txt"
+        "source": "file2.txt",
+        "destination": "/tmp/file2.txt"
       }
     ]
   },
@@ -25,20 +25,20 @@
     "provision": [
       {
         "type": "shell",
-    	"path": "file1.sh",
-    	"args": [
+        "path": "file1.sh",
+        "args": [
           "a=1",
           "b=true"
         ]
       },
       {
         "type": "shell",
-    	"path": "file2.sh",
-    	"args": []
+        "path": "file2.sh",
+        "args": []
       },
       {
         "type": "shell",
-        "inline": "echo hello from inline"
+        "inline": "echo hello from inline > /tmp/inline_test.out"
       }
     ]
   },
@@ -48,5 +48,18 @@
     "name": "third",
     "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
     "provision": []
+  },
+  "fourth": {
+    "box": "mrlesmithjr/alpine311",
+    "box_version": "1578437753",
+    "name": "fourth",
+    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
+    "provision": [
+      {
+        "type": "pyinfra",
+        "path": "https://raw.githubusercontent.com/Fizzadar/pyinfra/master/examples/apk.py",
+        "args": []
+      }
+    ]
   }
 }

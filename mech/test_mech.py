@@ -539,7 +539,7 @@ def test_mech_provision_with_pyinfra_show(mock_locate, mock_load_mechfile,
     assert re.search(r'file1.py', out, re.MULTILINE)
 
 
-@patch('mech.utils.provision_pyinfra', return_value=None)
+@patch('mech.utils.provision_pyinfra', return_value=(None, None, None))
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
