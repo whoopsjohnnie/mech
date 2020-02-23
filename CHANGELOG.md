@@ -1,4 +1,4 @@
-# TBD
+# v0.8.3
 
 + Added initial virtualbox provider; basic functionality ("up", "down",
   "add", "init", "list", "destroy", "ssh", "scp", "ip", "global-status")
