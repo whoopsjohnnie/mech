@@ -205,6 +205,7 @@ def mech_add_arguments():
         '--box': None,
         '--add-me': None,
         '--use-me': None,
+        '--provider': None,
         '<location>': None,
     }
 
@@ -215,6 +216,7 @@ def mech_box_arguments():
     return {
         '--force': False,
         '--box-version': None,
+        '<provider>': None,
         '<location>': None,
     }
 
@@ -229,6 +231,7 @@ def mech_init_arguments():
         '--box': None,
         '--add-me': None,
         '--use-me': None,
+        '--provider': None,
         '<location>': None,
     }
 

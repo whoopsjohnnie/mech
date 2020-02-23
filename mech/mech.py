@@ -351,8 +351,8 @@ class Mech(MechCommand):
                 started = vmrun.start(gui=gui)
             else:
                 vbm = VBoxManage()
-                vbm.create_hostonly()
-                vbm.hostonly(inst.name)
+                vbm.create_hostonly(quiet=True)
+                vbm.hostonly(inst.name, quiet=True)
                 started = vbm.start(vmname=inst.name, gui=gui, quiet=True)
 
             if started is None:
@@ -514,12 +514,8 @@ class Mech(MechCommand):
                     else:
                         vbm = VBoxManage()
 
-                        vbm.stop(vmname=inst.name)
-                        vbm.unregister(vmname=inst.name)
-
-                        # TODO: should add this functionality somewhere?
-                        #vbm.remove_hostonly_if()
-                        #vbm.remove_hostonly_dhcp()
+                        vbm.stop(vmname=inst.name, quiet=True)
+                        vbm.unregister(vmname=inst.name, quiet=True)
 
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
@@ -566,7 +562,7 @@ class Mech(MechCommand):
                         print(colored.green("Stopped", vmrun))
                 else:
                     vbm = VBoxManage()
-                    stopped = vbm.stop(vmname=inst.name)
+                    stopped = vbm.stop(vmname=inst.name, quiet=True)
                     if stopped is None:
                         print(colored.red("Not stopped", vbm))
                     else:

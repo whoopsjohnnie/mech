@@ -142,7 +142,8 @@ class VBoxManage():
 
     def _ip(self, vmname, quiet=False):
         """Get ip address of VM."""
-        line = self.run('guestproperty', 'get', vmname, '/VirtualBox/GuestInfo/Net/0/V4/IP', quiet=False)
+        line = self.run('guestproperty', 'get', vmname,
+                        '/VirtualBox/GuestInfo/Net/0/V4/IP', quiet=False)
         if line and line != 'No value set!':
             parts = line.split()
             if len(parts) > 1:
@@ -181,7 +182,6 @@ class VBoxManage():
         '''List hostonly interfaces.'''
         return self.run('list', 'hostonlyifs', quiet=quiet)
 
-
     def create_hostonly(self, quiet=False):
         '''Create the stuff needed for hostonly networking to work.'''
         ifs = self.list_hostonly_ifs()
@@ -216,7 +216,8 @@ class VBoxManage():
 
     def hostonly(self, vmname, quiet=False):
         '''Make a VM use hostonly networking'''
-        return self.run('modifyvm', vmname, '--nic1', 'hostonly', '--hostonlyadapter1', 'vboxnet0', quiet=quiet)
+        return self.run('modifyvm', vmname, '--nic1', 'hostonly',
+                        '--hostonlyadapter1', 'vboxnet0', quiet=quiet)
 
     ############################################################################
     # list [--long|-l] [--sorted|-s]          vms|runningvms|ostypes|hostdvds|hostfloppies|

@@ -363,7 +363,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         provider = 'vmware'
 
     look_for = '*.vmx'
-    vbox_path = ''
+    vbox_path = None
     instance_path_save = instance_path
     if provider == 'virtualbox':
         look_for = '*.ovf'
@@ -374,7 +374,8 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             instance_path += '_tmp'
 
     # if we do not find the vmx file nor is the already imported files in place
-    if not locate(instance_path, look_for) and vbox_path != '':
+    found_vmx_or_ovf = locate(instance_path, look_for)
+    if not found_vmx_or_ovf and vbox_path != '':
         name_version_box = add_box(
             name=name,
             box=box,
@@ -422,7 +423,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         ovf_path = locate(instance_path, '*.ovf')
         if not ovf_path:
             sys.exit(colored.red("Cannot locate an OVF file"))
-        print('ovf_path:{}'.format(ovf_path))
+        LOGGER.debug('ovf_path:%s', ovf_path)
         vbm = mech.vbm.VBoxManage()
         import_results = vbm.importvm(path_to_ovf=ovf_path, name=name,
                                       base_folder=mech_dir(), quiet=True)
