@@ -159,6 +159,21 @@ class MechInstance():
                 self.ip = vbm.ip(self.name, wait=wait, quiet=quiet)
                 return self.ip
 
+    def get_vm_state(self):
+        """ Get the state of the VM.
+            Returns one of the following: (notcreated, running, paused, poweroff, unknown)
+        """
+        if self.provider == 'virtualbox':
+            vbm = VBoxManage()
+            return vbm.vm_state(self.name)
+
+    def get_vm_info(self):
+        """ Get detailed info about the VM.
+        """
+        if self.provider == 'virtualbox':
+            vbm = VBoxManage()
+            return vbm.get_vm_info(self.name)
+
     def get_tools_state(self):
         """ Get the tools state."""
         if self.tools_state:

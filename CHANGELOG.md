@@ -3,6 +3,9 @@
 + Added virtualbox "no-nat" capability (so vm can access internet)
 + Added virtualbox provisioning
 + Added virtualbox integration test
++ Changed "mech ps" to use utils.ssh()
++ Improved "mech list"
++ Removed "mech status" command (see "mech list")
 
 # v0.8.3
 

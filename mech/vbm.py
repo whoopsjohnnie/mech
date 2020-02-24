@@ -265,6 +265,17 @@ class VBoxManage():
         '''List all VMs'''
         return self.run('list', 'vms', quiet=quiet)
 
+    def get_vm_info(self, vmname, quiet=False):
+        '''Return the show VM info'''
+        return self.run('showvminfo', vmname, quiet=quiet)
+
+    def vm_state(self, vmname, quiet=False):
+        '''Return the first word from the showvminfo output line that starts with "State:".'''
+        vm_info = self.get_vm_info(vmname, quiet=quiet)
+        matches = re.search(r'State:(.*)\(', vm_info)
+        if matches:
+            return matches.group(1).strip()
+
     def list_running(self, quiet=False):
         '''List all running VMs'''
         running_vms = []

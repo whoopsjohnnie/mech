@@ -729,6 +729,11 @@ def ssh(instance, command, plain=None, extra=None, command_args=None):
           extra(str): arguments to pass to ssh
           command_args(str): arguments for command
 
+       Returns:
+          return_code(int): 0=success
+          stdout(str): Output from the command
+          stderr(str): Error from the command
+
        Note: May not really need the tempfile if self.use_psk==True.
              Using the tempfile, there are options to not add host to the known_hosts files
              which is useful, but could be MITM attacks. Not likely locally, but still

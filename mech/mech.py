@@ -73,7 +73,6 @@ class Mech(MechCommand):
         snapshot          manages snapshots: save, list, remove, etc.
         ssh               connects to an instance via SSH
         ssh-config        outputs OpenSSH valid configuration to connect to the instances
-        status            outputs status of the instances
         suspend           suspends the instances
         (up|start)        starts instances (aka virtual machines)
         upgrade           upgrade the instances
@@ -438,69 +437,13 @@ class Mech(MechCommand):
         inst = MechInstance(instance_name)
 
         if inst.created:
-            if inst.provider == 'vmware':
-                # Note: user/password is needed for ps
-                vmrun = VMrun(inst.vmx, inst.user, inst.password)
-                print(vmrun.list_processes_in_guest())
-            else:
-                print(colored.red("Not yet implemented on this platform."))
-
+            _, stdout, _ = utils.ssh(inst, "ps -ef")
+            print(stdout)
         else:
             print("VM {} not created.".format(instance_name))
 
     # alias "mech process_status" to "mech ps"
     process_status = ps
-
-    def status(self, arguments):
-        """
-        Outputs status of the instances.
-
-        Usage: mech status [options] [<instance>]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        instance_name = arguments['<instance>']
-
-        if instance_name:
-            # single instance
-            instances = [instance_name]
-        else:
-            # multiple instances
-            instances = self.instances()
-
-        for instance in instances:
-            inst = MechInstance(instance)
-
-            if inst.created:
-
-                if inst.provider == 'vmware':
-                    vmrun = VMrun(inst.vmx)
-
-                    ip_address = inst.get_ip()
-                    state = vmrun.check_tools_state(quiet=True)
-
-                    print("Current machine state:" + os.linesep)
-                    if ip_address is None:
-                        ip_address = "poweroff"
-                    elif not ip_address:
-                        ip_address = "unknown"
-                    print("%s\t%s\t%s\t(VMware Tools %s)" % (inst.name, inst.box,
-                                                             ip_address, state))
-
-                    if ip_address == "poweroff":
-                        print(os.linesep + "The VM is powered off. To restart the VM, "
-                              "simply run `mech up {}`".format(instance))
-                    elif ip_address == "unknown":
-                        print(os.linesep + "The VM is on. but it has no IP to connect to,"
-                              "VMware Tools must be installed")
-                    elif state in ("installed", "running"):
-                        print(os.linesep + "The VM is ready. Connect to it "
-                              "using `mech ssh {}`".format(instance))
-                else:
-                    print(colored.red("Not yet implemented on this platform."))
-            else:
-                print("The VM ({}) has not been created.".format(instance))
 
     def destroy(self, arguments):
         """
@@ -1051,18 +994,23 @@ class Mech(MechCommand):
             print('Instance Details')
             print()
         else:
-            print("{}\t{}\t{}\t{}\t{}".format(
+            print("{}\t{}\t{}\t{}\t{}\t{}".format(
                 'NAME'.rjust(20),
                 'ADDRESS'.rjust(15),
                 'BOX'.rjust(35),
                 'VERSION'.rjust(12),
                 'PROVIDER'.rjust(12),
+                'STATE'.rjust(12),
             ))
 
         for name in self.mechfile:
             inst = MechInstance(name, self.mechfile)
+            vm_state = "unknown"
             if inst.created:
                 ip_address = inst.get_ip()
+                vm_state = inst.get_vm_state()
+                if vm_state is None:
+                    vm_state = "unknown"
                 if ip_address is None:
                     ip_address = colored.yellow("poweroff")
                 elif not ip_address:
@@ -1071,21 +1019,29 @@ class Mech(MechCommand):
                     ip_address = colored.green(ip_address)
             else:
                 ip_address = "notcreated"
+                vm_state = "notcreated"
 
             if detail:
+                print('==================================')
+                print('From Mechfile:')
                 print(inst)
                 print()
+                if inst.provider == 'virtualbox':
+                    if inst.created:
+                        print('From virtualbox:')
+                        print(inst.get_vm_info())
             else:
                 # deal with box_version being none
                 box_version = inst.box_version
                 if inst.box_version is None:
                     box_version = ''
-                print("{}\t{}\t{}\t{}\t{}".format(
+                print("{}\t{}\t{}\t{}\t{}\t{}".format(
                     colored.green(name.rjust(20)),
                     ip_address.rjust(15),
                     inst.box.rjust(35),
                     box_version.rjust(12),
-                    inst.provider.rjust(12)
+                    inst.provider.rjust(12),
+                    vm_state.rjust(12),
                 ))
 
     # allow 'mech ls' as alias to 'mech list'

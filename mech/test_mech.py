@@ -136,89 +136,6 @@ def test_mech_list_powered_off(mock_locate, mock_load_mechfile,
         assert re.search(r'poweroff', out, re.MULTILINE)
 
 
-@patch('mech.utils.load_mechfile')
-@patch('mech.utils.locate', return_value=None)
-def test_mech_status_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
-                                          mechfile_two_entries):
-    """Test 'mech status' with two entries, neither created."""
-    mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {'<instance>': None}
-    a_mech.status(arguments)
-    out, _ = capfd.readouterr()
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    assert re.search(r'first.*has not been created', out, re.MULTILINE)
-    assert re.search(r'second.*has not been created', out, re.MULTILINE)
-
-
-@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
-@patch('mech.utils.load_mechfile')
-@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_status_powered_on(mock_locate, mock_load_mechfile,
-                                mock_check_tools_state, capfd,
-                                mechfile_two_entries):
-    """Test 'mech status' powered on."""
-    mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {'<instance>': 'first'}
-    with patch.object(mech.mech_instance.MechInstance,
-                      'get_ip', return_value='192.168.1.100') as mock_get_ip:
-        a_mech.status(arguments)
-        out, _ = capfd.readouterr()
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_get_ip.assert_called()
-        mock_check_tools_state.assert_called()
-        assert re.search(r'VM is ready', out, re.MULTILINE)
-
-
-@patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
-@patch('mech.utils.load_mechfile')
-@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_status_powered_off(mock_locate, mock_load_mechfile,
-                                 mock_check_tools_state,
-                                 capfd, mechfile_two_entries):
-    """Test 'mech status' powered off."""
-    mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {'<instance>': 'first'}
-    with patch.object(mech.mech_instance.MechInstance,
-                      'get_ip', return_value=None) as mock_get_ip:
-        a_mech.status(arguments)
-        out, _ = capfd.readouterr()
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_get_ip.assert_called()
-        mock_check_tools_state.assert_called()
-        assert re.search(r'VM is powered off', out, re.MULTILINE)
-
-
-@patch('mech.vmrun.VMrun.check_tools_state', return_value=False)
-@patch('mech.utils.load_mechfile')
-@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_status_could_not_get_ip(mock_locate, mock_load_mechfile,
-                                      mock_check_tools_state, capfd,
-                                      mechfile_two_entries):
-    """Test 'mech status' powered off."""
-    mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {'<instance>': 'first'}
-    with patch.object(mech.mech_instance.MechInstance,
-                      'get_ip', return_value=False) as mock_get_ip:
-        a_mech.status(arguments)
-        out, _ = capfd.readouterr()
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_get_ip.assert_called()
-        mock_check_tools_state.assert_called()
-        assert re.search(r'VM is on.*no IP to connect', out, re.MULTILINE)
-
-
 @patch('mech.utils.get_provider', return_value=None)
 @patch('os.path.exists', return_value=True)
 @patch('shutil.rmtree')
@@ -1931,21 +1848,24 @@ def test_mech_global_status(mock_list, mock_vmrun_installed, capfd):
     assert re.search(r'Total running VMs', out, re.MULTILINE)
 
 
-PROCESSES = """Process list: 99
-pid=1, owner=root, cmd=/sbin/init
-pid=2, owner=root, cmd=kthreadd
-pid=3, owner=root, cmd=rcu_gp
-pid=4, owner=root, cmd=rcu_par_gp
-pid=5, owner=root, cmd=kworker/0:0-events
-pid=6, owner=root, cmd=kworker/0:0H-kblockd
-"""
-@patch('mech.vmrun.VMrun.list_processes_in_guest', return_value=PROCESSES)
+PROCESSES = """UID        PID  PPID  C STIME TTY          TIME CMD
+root         1     0  4 17:57 ?        00:00:00 /sbin/init
+root         2     0  0 17:57 ?        00:00:00 [kthreadd]
+root         3     2  0 17:57 ?        00:00:00 [kworker/0:0]
+root         4     2  0 17:57 ?        00:00:00 [kworker/0:0H]
+root         5     2  0 17:57 ?        00:00:00 [kworker/u2:0]
+root         6     2  0 17:57 ?        00:00:00 [mm_percpu_wq]
+root         7     2  0 17:57 ?        00:00:00 [ksoftirqd/0]
+root         8     2  0 17:57 ?        00:00:00 [rcu_sched]
+root         9     2  0 17:57 ?        00:00:00 [rcu_bh]"""
+@patch('mech.utils.ssh')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 @patch('os.getcwd')
-def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_processes, capfd,
+def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_ssh, capfd,
                  mechfile_two_entries):
     """Test 'mech ps'."""
+    mock_ssh.return_value = 0, PROCESSES, ''
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
     global_arguments = {'--debug': False}
@@ -1958,7 +1878,7 @@ def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_list_process
     mock_getcwd.assert_called()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_list_processes.assert_called()
+    mock_ssh.assert_called()
     assert re.search(r'kworker', out, re.MULTILINE)
 
 
