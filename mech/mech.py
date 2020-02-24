@@ -326,7 +326,7 @@ class Mech(MechCommand):
             # only run init_box on first "up"
             # extracts the VM files from the singular .box archive
             if not inst.created:
-                path_to_vmx_or_ovf = utils.init_box(
+                path_to_vmx_or_vbox = utils.init_box(
                     instance,
                     box=inst.box,
                     box_version=inst.box_version,
@@ -338,9 +338,9 @@ class Mech(MechCommand):
                     no_nat=no_nat,
                     provider=inst.provider)
                 if inst.provider == 'vmware':
-                    inst.vmx = path_to_vmx_or_ovf
+                    inst.vmx = path_to_vmx_or_vbox
                 else:
-                    inst.ovf = path_to_vmx_or_ovf
+                    inst.vbox = path_to_vmx_or_vbox
                 inst.created = True
 
             started = None

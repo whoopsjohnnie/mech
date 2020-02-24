@@ -13,7 +13,7 @@ def test_int_smoke_virtualbox(helpers):
     """Smoke test most options using virtualbox."""
 
     test_dir = "tests/int/simple_virtualbox"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir, 'first')
+    helpers.cleanup_dir_and_vms_from_dir(test_dir, names=['first'])
 
     # should init
     command = "mech init --provider virtualbox bento/ubuntu-18.04"

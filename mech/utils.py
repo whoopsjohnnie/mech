@@ -827,7 +827,7 @@ def del_user(instance, username):
     print(colored.green('Removing username ({}) from instance:{}...'.format(username,
                                                                             instance.name)))
 
-    cmd = 'sudo userdel -fr vagrant'
+    cmd = 'sudo userdel -fr {}'.format(username)
     LOGGER.debug('cmd:%s', cmd)
     ssh(instance=instance, command=cmd)
 
@@ -1036,7 +1036,7 @@ def provision_pyinfra(instance, script_path, args=None):
     if args is None:
         args = []
 
-    LOGGER.debug('script_path:%s args:%s', instance, script_path, args)
+    LOGGER.debug('instance.name:%s script_path:%s args:%s', instance.name, script_path, args)
 
     if script_path and os.path.isfile(script_path):
         return run_pyinfra_script(instance.get_ip(), instance.user,
@@ -1125,13 +1125,9 @@ def run_pyinfra_script(host, username, password=None, script_path=None, args=Non
         print(colored.red("Warning: pyinfra must be installed."))
         return
 
-    # hide password (howerver, it is probably just 'vagrant')
-    password_to_print = "***using psk***"
-    if password is not None:
-        password_to_print = "***hidden***"
     print(colored.green("Going to run ({}) using args({}) on host:{} "
-                        "authenticating with username:{} password:{}"
-                        .format(script_path, args, host, username, password_to_print)))
+                        "authenticating with username:{}"
+                        .format(script_path, args, host, username)))
 
     user_auth = '--user "{}"'.format(username)
     if password is not None:

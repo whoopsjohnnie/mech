@@ -26,7 +26,7 @@
     "provision": [
       {
         "args": [],
-        "path": "https://raw.githubusercontent.com/Fizzadar/pyinfra/master/examples/apk.py",
+        "path": "https://raw.githubusercontent.com/Fizzadar/pyinfra/master/examples/npm.py",
         "type": "pyinfra"
       }
     ],

@@ -261,9 +261,11 @@ class Helpers:
     @staticmethod
     def find_pids(search_string):
         """Return all pids that that match the search_string."""
+        # print('search_string:{}'.format(search_string))
         pids = []
-        results = subprocess.run(args='ps -ef | grep vmware-vmx | grep {} | grep -v grep'
+        results = subprocess.run(args="ps -ef | grep '{}' | grep -v grep"
                                  .format(search_string), shell=True, capture_output=True)
+        # print('results:{}'.format(results))
         if results.returncode == 0:
             # we found a proc
             stdout = results.stdout.decode('utf-8')
@@ -272,10 +274,11 @@ class Helpers:
                 if len(data) > 2:
                     # add pid to the collection
                     pids.append(data[1])
+        # print('pids:{}'.format(pids))
         return pids
 
     @staticmethod
-    def cleanup_dir_and_vms_from_dir(a_dir, name='first'):
+    def cleanup_dir_and_vms_from_dir(a_dir, names=['first']):
         """Kill processes and remove directory and re-create the directory.
            For VMware VMs, look for the .vmx part_of_dir matches the full path.
            For virtualbox look 'VBoxHeadless --comment <name of the instance>'
@@ -283,9 +286,32 @@ class Helpers:
            'first' isntance. Make instance name unique for int tests that use
            virtualbox.
        """
-        Helpers.kill_pids(Helpers.find_pids(a_dir + '/.mech/'))
-        Helpers.kill_pids(Helpers.find_pids('VBoxHeadless --comment {}'.format(name)))
+        # remove from virtualbox
+        for name in names:
+            results = subprocess.run(args="VBoxManage unregistervm {}".format(name),
+                                     shell=True, capture_output=True)
+            # print('results:{}'.format(results))
+        # kill vmware processes
+        Helpers.kill_pids(Helpers.find_pids('vmware-vmx.*' + a_dir + '/.mech/'))
+        # kill virtualbox processes (if any)
+        for name in names:
+            Helpers.kill_pids(Helpers.find_pids('VBoxHeadless --comment {} '.format(name)))
+        # clean up the vm files
         rmtree(a_dir, ignore_errors=True)
+        # remove any "dead" instances in virtualbox
+        results = subprocess.run(args="VBoxManage list vms", shell=True, capture_output=True)
+        stdout = results.stdout.decode('utf-8')
+        vms = stdout.split('\n')
+        # print('vms:{}'.format(vms))
+        for line in vms:
+            # print('line:{}'.format(line))
+            parts = line.split(' ')
+            if len(parts) > 1 and parts[0] == '"<inaccessible>"':
+                results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
+                                         shell=True, capture_output=True)
+                # print('results:{}'.format(results))
+        # print('results:{}'.format(results))
+        # re-create the directory to start afresh
         os.mkdir(a_dir)
 
 
