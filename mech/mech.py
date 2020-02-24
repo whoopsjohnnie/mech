@@ -571,7 +571,12 @@ class Mech(MechCommand):
                     else:
                         print(colored.yellow("Paused", vmrun))
                 else:
-                    print(colored.red("Not yet implemented on this platform."))
+                    vbm = VBoxManage()
+                    pause_results = vbm.pause(inst.name)
+                    if pause_results is None:
+                        print(colored.red("Not paused", vbm))
+                    else:
+                        print(colored.yellow("Paused", vbm))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 

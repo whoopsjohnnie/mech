@@ -1396,3 +1396,13 @@ def test_valid_provider():
     assert not mech.utils.valid_provider(None)
     assert not mech.utils.valid_provider('')
     assert not mech.utils.valid_provider('atari')
+
+
+def test_vm_ready_based_on_state():
+    """Test vm_ready_based_on_state."""
+    assert mech.utils.vm_ready_based_on_state('powered on')
+    assert mech.utils.vm_ready_based_on_state('running')
+    assert mech.utils.vm_ready_based_on_state('started')
+    assert not mech.utils.vm_ready_based_on_state('unkown')
+    assert not mech.utils.vm_ready_based_on_state('paused')
+    assert not mech.utils.vm_ready_based_on_state('power off')

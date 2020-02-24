@@ -91,7 +91,7 @@ def test_int_smoke(helpers):
         assert re.search(line, stdout, re.MULTILINE)
 
     # ensure we get proper response from bad instance name
-    commands = ["mech status first2", "mech ip first2"]
+    commands = ["mech ip first2"]
     expected = "was not found in the Mechfile"
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
@@ -118,18 +118,6 @@ def test_int_smoke(helpers):
     # test 'mech ps'
     command = "mech ps first"
     expected_lines = ["/sbin/init"]
-    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-    stdout = results.stdout.decode('utf-8')
-    stderr = results.stderr.decode('utf-8')
-    assert stderr == ''
-    assert results.returncode == 0
-    for line in expected_lines:
-        print(line)
-        assert re.search(line, stdout, re.MULTILINE)
-
-    # test 'mech status'
-    command = "mech status"
-    expected_lines = ["first", "Tools running"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')

@@ -719,6 +719,14 @@ def add_auth(instance):
         print(colored.blue("No auth to add."))
 
 
+def vm_ready_based_on_state(state):
+    """Return True if the state is one where we can communicate with it (scp/ssh, etc.)
+    """
+    if state in ["started", "powered on", "running", "unpaused"]:
+        return True
+    return False
+
+
 def ssh(instance, command, plain=None, extra=None, command_args=None):
     """Run ssh command.
 
@@ -742,38 +750,41 @@ def ssh(instance, command, plain=None, extra=None, command_args=None):
     LOGGER.debug('command:%s plain:%s extra:%s command_args:%s',
                  command, plain, extra, command_args)
     if instance.created:
-        config_ssh = instance.config_ssh()
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
-        try:
-            temp_file.write(config_ssh_string(config_ssh).encode('utf-8'))
-            temp_file.close()
+        state = instance.get_vm_state()
+        if vm_ready_based_on_state(state):
+            config_ssh = instance.config_ssh()
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
+            try:
+                temp_file.write(config_ssh_string(config_ssh).encode('utf-8'))
+                temp_file.close()
 
-            cmds = ['ssh']
-            if not plain:
-                cmds.extend(('-F', temp_file.name))
-            if not plain:
-                cmds.append(config_ssh['Host'])
-            if extra:
-                cmds.append(extra)
-            if command:
-                cmds.extend(('--', command))
-            if command_args:
-                cmds.append(command_args)
+                cmds = ['ssh']
+                if not plain:
+                    cmds.extend(('-F', temp_file.name))
+                if not plain:
+                    cmds.append(config_ssh['Host'])
+                if extra:
+                    cmds.append(extra)
+                if command:
+                    cmds.extend(('--', command))
+                if command_args:
+                    cmds.append(command_args)
 
-            LOGGER.debug('cmds:%s', cmds)
+                LOGGER.debug('cmds:%s', cmds)
 
-            # if running a script
-            if command:
-                result = subprocess.run(cmds, capture_output=True)
-                stdout = result.stdout.decode('utf-8').strip()
-                stderr = result.stderr.decode('utf-8').strip()
-                return result.returncode, stdout, stderr
-            else:
-                # interactive
-                return subprocess.call(cmds), None, None
-        finally:
-            os.unlink(temp_file.name)
-
+                # if running a script
+                if command:
+                    result = subprocess.run(cmds, capture_output=True)
+                    stdout = result.stdout.decode('utf-8').strip()
+                    stderr = result.stderr.decode('utf-8').strip()
+                    return result.returncode, stdout, stderr
+                else:
+                    # interactive
+                    return subprocess.call(cmds), None, None
+            finally:
+                os.unlink(temp_file.name)
+        else:
+            return 1, '', 'VM not ready({})'.format(state)
 
 def scp(instance, src, dst, dst_is_host, extra=None):
     """Run scp command.

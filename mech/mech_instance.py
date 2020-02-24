@@ -161,14 +161,19 @@ class MechInstance():
 
     def get_vm_state(self):
         """ Get the state of the VM.
-            Returns one of the following: (notcreated, running, paused, poweroff, unknown)
+            Returns info like: ('running', 'paused', 'powered off')
         """
+        if self.provider == 'vmware':
+            vmrun = VMrun(self.vmx)
+            return vmrun.vm_state()
+
         if self.provider == 'virtualbox':
             vbm = VBoxManage()
             return vbm.vm_state(self.name)
 
     def get_vm_info(self):
         """ Get detailed info about the VM.
+            There is no equivalent in VMware. :-(
         """
         if self.provider == 'virtualbox':
             vbm = VBoxManage()
@@ -211,7 +216,7 @@ class MechInstance():
             sys.exit(colored.red(textwrap.fill(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
-                "Additionally, check the output of `mech status` to verify "
+                "Additionally, check the output of `mech ls` to verify "
                 "that the machine is in the state that you expect.")))
 
         if not self.use_psk:

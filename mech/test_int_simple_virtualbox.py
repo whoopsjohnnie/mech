@@ -65,18 +65,6 @@ def test_int_smoke_virtualbox(helpers):
         print(line)
         assert re.search(line, stdout, re.MULTILINE)
 
-    # test 'mech status'
-    command = "mech status"
-    expected_lines = ["Not yet implemented"]
-    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
-    stdout = results.stdout.decode('utf-8')
-    stderr = results.stderr.decode('utf-8')
-    assert stderr == ''
-    assert results.returncode == 0
-    for line in expected_lines:
-        print(line)
-        assert re.search(line, stdout, re.MULTILINE)
-
     # test 'mech global-status'
     command = "mech global-status"
     expected_lines = ['first']

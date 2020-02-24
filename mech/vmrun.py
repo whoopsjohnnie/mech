@@ -27,6 +27,7 @@ from __future__ import absolute_import
 
 import os
 import sys
+import re
 import logging
 import subprocess
 import tempfile
@@ -734,3 +735,27 @@ class VMrun():  # pylint: disable=too-many-public-methods
         '''
         state = self.check_tools_state(quiet=quiet)
         return state in ('installed', 'running')
+
+    def vm_state(self, quiet=False):
+        '''Return info about the state of the VM.
+
+           Note: This is totally a hack as the VMware vmrun api does not provide much of
+                 this info.
+
+           Look in the vmware.log in same dir as .vmx file.
+           Read file in reverse order until we find one of these strings
+
+        '''
+        if self.vmx_file:
+            vmware_log = os.path.join(os.path.dirname(self.vmx_file), "vmware.log")
+            if os.path.isfile(vmware_log):
+                for line in reversed(list(open(vmware_log))):
+                    if re.search(r"Reporting power state change \(opcode=2, err=0\)", line):
+                        return "started"  # could also be "reset"
+                    if re.search(r"VMX exit \(0\)", line):
+                        return "stopped"  # could also be "suspend"
+                    if re.search("VMAutomation_Pause: pause = FALSE", line):
+                        return "unpaused"
+                    if re.search("VMAutomation_Pause: pause = TRUE", line):
+                        return "paused"
+            return 'unknown'
