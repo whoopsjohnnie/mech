@@ -2,7 +2,10 @@
 
 set -e
 
-echo "Change mech/__init__.py version, update the CHANGELOG.md file and commit those changes before running this script."
+echo "***Be sure you are on master branch.***"
+echo "Change mech/__init__.py version."
+echo "Update the CHANGELOG.md file."
+echo "Commit those changes before running this script."
 
 VERSION=`python setup.py --version`
 

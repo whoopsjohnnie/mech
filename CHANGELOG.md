@@ -1,5 +1,6 @@
-# TBD
+# v0.8.4
 
++ This release provides most functionality for virtualbox and vmware
 + Added virtualbox "no-nat" capability (so vm can access internet)
 + Added virtualbox provisioning
 + Added virtualbox integration test
