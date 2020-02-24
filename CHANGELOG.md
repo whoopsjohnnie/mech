@@ -1,3 +1,9 @@
+# TBD
+
++ Added virtualbox "no-nat" capability (so vm can access internet)
++ Added virtualbox provisioning
++ Added virtualbox integration test
+
 # v0.8.3
 
 + Added initial virtualbox provider; basic functionality ("up", "down",

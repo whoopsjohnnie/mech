@@ -1,6 +1,10 @@
 # Copyright (c) 2020 Mike Kinney
 
-"""Mech integration tests: provisioning tests using virtualbox provider"""
+"""Mech integration tests: provisioning tests using virtualbox provider
+   Note: 'no-nat' (bridged) networking must be used for the test that
+   provisions using pyinfra because the ubuntu server needs to install
+   using apt. (over the internet)
+"""
 import re
 import subprocess
 
@@ -24,8 +28,8 @@ def test_int_provision(helpers):
     assert stderr == ''
     assert results.returncode == 0
 
-    # up without provisioning
-    command = "mech up --disable-provisioning"
+    # up without provisioning and with no-nat
+    command = "mech up --no-nat --disable-provisioning"
     expected_lines = [r".first.*started",
                       r".second.*started",
                       r".third.*started",
