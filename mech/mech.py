@@ -351,8 +351,11 @@ class Mech(MechCommand):
                 started = vmrun.start(gui=gui)
             else:
                 vbm = VBoxManage()
-                vbm.create_hostonly(quiet=True)
-                vbm.hostonly(inst.name, quiet=True)
+                if no_nat:
+                    vbm.bridged(inst.name, quiet=False)
+                else:
+                    vbm.create_hostonly(quiet=True)
+                    vbm.hostonly(inst.name, quiet=True)
                 vbm.start(vmname=inst.name, gui=gui, quiet=True)
                 running_vms = vbm.list_running()
                 started = None

@@ -229,9 +229,19 @@ class VBoxManage():
         return self.run('list', 'dhcpservers', quiet=quiet)
 
     def hostonly(self, vmname, quiet=False):
-        '''Make a VM use hostonly networking'''
+        '''Make a VM use hostonly networking.
+           Note: The VM will not be able to access the internet.
+        '''
         return self.run('modifyvm', vmname, '--nic1', 'hostonly',
                         '--hostonlyadapter1', 'vboxnet0', quiet=quiet)
+
+    def bridged(self, vmname, bridge_adapter='en0', quiet=False):
+        '''Make a VM use bridged networking.
+           Note: Will get an IP from network DHCP server.
+                 Should be able to access internet.
+        '''
+        return self.run('modifyvm', vmname, '--nic1', 'bridged', '--bridgeadapter1',
+                        bridge_adapter, quiet=quiet)
 
     ############################################################################
     # list [--long|-l] [--sorted|-s]          vms|runningvms|ostypes|hostdvds|hostfloppies|
