@@ -44,6 +44,15 @@ def test_int_shared_folders(helpers):
     assert re.search("Mechfile", stdout)
     assert results.returncode == 0
 
+    # ensure the Mechfile is present from the guest
+    command = 'mech ssh -c "ls -al /mnt/mech/Mechfile" second'
+    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    assert stderr == ''
+    assert re.search("Mechfile", stdout)
+    assert results.returncode == 0
+
     # create a simple file to see if visible on another share
     command = 'date > /tmp/now'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
@@ -60,6 +69,15 @@ def test_int_shared_folders(helpers):
     stderr = results.stderr.decode('utf-8')
     assert stderr == ''
     assert re.search("/mnt/hgfs/mech2/now", stdout)
+    assert results.returncode == 0
+
+    # ensure we can see the file on the other share
+    command = 'mech ssh -c "ls -al /mnt/mech2/now" second'
+    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    assert stderr == ''
+    assert re.search("/mnt/mech2/now", stdout)
     assert results.returncode == 0
 
     # stop
@@ -96,6 +114,16 @@ def test_int_shared_folders(helpers):
     # linux returns 255 and nothing on stdout
     assert results.returncode == 2 or results.returncode == 255
 
+    # ensure the Mechfile is *NOT* present from the guest
+    command = 'mech ssh -c "ls -al /mnt/mech/Mechfile" second'
+    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    assert stderr == ''
+    # assert re.search("No such file or directory", stdout)
+    # linux returns 255 and nothing on stdout
+    assert results.returncode == 2 or results.returncode == 255
+
     # pause
     command = "mech pause"
     expected_lines = [r"Paused"]
@@ -122,6 +150,15 @@ def test_int_shared_folders(helpers):
 
     # ensure the Mechfile is *NOT* present from the guest
     command = 'mech ssh -c "ls -al /mnt/hgfs/mech/Mechfile" first'
+    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    assert stderr == ''
+    assert re.search("No such file or directory", stdout)
+    assert results.returncode == 2
+
+    # ensure the Mechfile is *NOT* present from the guest
+    command = 'mech ssh -c "ls -al /mnt/mech/Mechfile" second'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')

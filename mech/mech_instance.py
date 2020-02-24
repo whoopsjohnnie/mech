@@ -125,6 +125,12 @@ class MechInstance():
                 self.vbox = None
                 self.created = False
 
+        self.no_nat = False
+        self.remove_vagrant = False
+        self.gui = False
+        self.disable_provisioning = False
+        self.disable_shared_folders = False
+
         # If vmx exists, then the VM has already been created.
         # See if we need to switch to preshared key authentication
         # for interactions with this guest.
@@ -159,6 +165,26 @@ class MechInstance():
                 self.ip = vbm.ip(self.name, wait=wait, quiet=quiet)
                 return self.ip
 
+    def get_vm_state(self):
+        """ Get the state of the VM.
+            Returns info like: ('running', 'paused', 'powered off')
+        """
+        if self.provider == 'vmware':
+            vmrun = VMrun(self.vmx)
+            return vmrun.vm_state()
+
+        if self.provider == 'virtualbox':
+            vbm = VBoxManage()
+            return vbm.vm_state(self.name)
+
+    def get_vm_info(self):
+        """ Get detailed info about the VM.
+            There is no equivalent in VMware. :-(
+        """
+        if self.provider == 'virtualbox':
+            vbm = VBoxManage()
+            return vbm.get_vm_info(self.name)
+
     def get_tools_state(self):
         """ Get the tools state."""
         if self.tools_state:
@@ -172,13 +198,16 @@ class MechInstance():
     def __repr__(self):
         """Return a representation of a Mech instance."""
         sep = '\n'
-        return ('name:{name}{sep}created:{created}{sep}box:{box}{sep}'
-                'box_version:{box_version}{sep}'
-                'url:{url}{sep}box_file:{box_file}{sep}provision:{provision}{sep}'
-                'vmx:{vmx}{sep}user:{user}{sep}'
-                'password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
+        return ('name:{name}{sep}created:{created}{sep}box:{box}'
+                '{sep}box_version:{box_version}'
+                '{sep}url:{url}{sep}box_file:{box_file}{sep}provision:{provision}'
+                '{sep}vmx:{vmx}{sep}user:{user}'
+                '{sep}password:{password}{sep}enable_ip_lookup:{enable_ip_lookup}'
                 '{sep}config:{config}{sep}shared_folders:{shared_folders}'
-                '{sep}auth:{auth}{sep}use_psk:{use_psk}{sep}provider:{provider}'.
+                '{sep}auth:{auth}{sep}use_psk:{use_psk}{sep}provider:{provider}'
+                '{sep}no_nat:{no_nat}{sep}remove_vagrant:{remove_vagrant}'
+                '{sep}gui:{gui}{sep}disable_provisioning:{disable_provisioning}'
+                '{sep}disable_shared_folders:{disable_shared_folders}'.
                 format(name=self.name, created=self.created,
                        box=self.box, box_version=self.box_version,
                        url=self.url, box_file=self.box_file,
@@ -188,7 +217,11 @@ class MechInstance():
                        config=self.config,
                        shared_folders=self.shared_folders,
                        auth=self.auth, use_psk=self.use_psk,
-                       provider=self.provider, sep=sep))
+                       provider=self.provider, no_nat=self.no_nat,
+                       remove_vagrant=self.remove_vagrant, gui=self.gui,
+                       disable_provisioning=self.disable_provisioning,
+                       disable_shared_folders=self.disable_shared_folders,
+                       sep=sep))
 
     def config_ssh(self):
         """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""
@@ -196,7 +229,7 @@ class MechInstance():
             sys.exit(colored.red(textwrap.fill(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
-                "Additionally, check the output of `mech status` to verify "
+                "Additionally, check the output of `mech ls` to verify "
                 "that the machine is in the state that you expect.")))
 
         if not self.use_psk:

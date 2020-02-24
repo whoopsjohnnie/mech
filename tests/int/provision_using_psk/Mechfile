@@ -22,7 +22,7 @@
     ],
     "shared_folders": [
       {
-        "host_path": "../..",
+        "host_path": ".",
         "share_name": "mech"
       }
     ],
@@ -58,7 +58,7 @@
     ],
     "shared_folders": [
       {
-        "host_path": "../..",
+        "host_path": ".",
         "share_name": "mech"
       }
     ],
@@ -76,7 +76,7 @@
     "provision": [],
     "shared_folders": [
       {
-        "host_path": "../..",
+        "host_path": ".",
         "share_name": "mech"
       }
     ],

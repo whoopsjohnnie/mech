@@ -188,9 +188,41 @@ class VBoxManage():
         '''Stop a VM'''
         return self.run('controlvm', vmname, 'poweroff', quiet=quiet)
 
+    def resume(self, vmname, quiet=False):
+        '''Resume a VM'''
+        return self.run('controlvm', vmname, 'resume', quiet=quiet)
+
+    def reset(self, vmname, quiet=False):
+        '''Reset a VM'''
+        return self.run('controlvm', vmname, 'reset', quiet=quiet)
+
     def pause(self, vmname, quiet=False):
         '''Pause a VM'''
         return self.run('controlvm', vmname, 'pause', quiet=quiet)
+
+    def cpus(self, vmname, num_cpus, quiet=False):
+        '''Changes VM to have num_cpus.
+           Note: VM must be stopped.
+        '''
+        return self.run('modifyvm', vmname,
+                        '--cpus', '{}'.format(num_cpus), quiet=quiet)
+
+    def memory(self, vmname, memory_in_mb, quiet=False):
+        '''Changes VM to have memory_in_mb.
+           Note: VM must be stopped.
+        '''
+        return self.run('modifyvm', vmname,
+                        '--memory', '{}'.format(memory_in_mb), quiet=quiet)
+
+    def sharedfolder_add(self, vmname, share_name, host_path, quiet=False):
+        '''Add a shared folder'''
+        return self.run('sharedfolder', 'add', vmname,
+                        '--name', share_name, '--hostpath', host_path, quiet=quiet)
+
+    def sharedfolder_remove(self, vmname, share_name, quiet=False):
+        '''Remove a shared folder'''
+        return self.run('sharedfolder', 'remove', vmname,
+                        '--name', share_name, quiet=quiet)
 
     def list_hostonly_ifs(self, quiet=False):
         '''List hostonly interfaces.'''
@@ -229,9 +261,19 @@ class VBoxManage():
         return self.run('list', 'dhcpservers', quiet=quiet)
 
     def hostonly(self, vmname, quiet=False):
-        '''Make a VM use hostonly networking'''
+        '''Make a VM use hostonly networking.
+           Note: The VM will not be able to access the internet.
+        '''
         return self.run('modifyvm', vmname, '--nic1', 'hostonly',
                         '--hostonlyadapter1', 'vboxnet0', quiet=quiet)
+
+    def bridged(self, vmname, bridge_adapter='en0', quiet=False):
+        '''Make a VM use bridged networking.
+           Note: Will get an IP from network DHCP server.
+                 Should be able to access internet.
+        '''
+        return self.run('modifyvm', vmname, '--nic1', 'bridged', '--bridgeadapter1',
+                        bridge_adapter, quiet=quiet)
 
     ############################################################################
     # list [--long|-l] [--sorted|-s]          vms|runningvms|ostypes|hostdvds|hostfloppies|
@@ -244,6 +286,17 @@ class VBoxManage():
     def list(self, quiet=False):
         '''List all VMs'''
         return self.run('list', 'vms', quiet=quiet)
+
+    def get_vm_info(self, vmname, quiet=False):
+        '''Return the show VM info'''
+        return self.run('showvminfo', vmname, quiet=quiet)
+
+    def vm_state(self, vmname, quiet=False):
+        '''Return the first word from the showvminfo output line that starts with "State:".'''
+        vm_info = self.get_vm_info(vmname, quiet=quiet)
+        matches = re.search(r'State:(.*)\(', vm_info)
+        if matches:
+            return matches.group(1).strip()
 
     def list_running(self, quiet=False):
         '''List all running VMs'''

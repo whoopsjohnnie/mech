@@ -3,16 +3,33 @@
     "box": "bento/ubuntu-18.04",
     "box_version": "201912.04.0",
     "name": "first",
-    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box",
     "shared_folders": [
       {
-        "share_name": "mech",
-        "host_path": "../.."
+        "host_path": ".",
+        "share_name": "mech"
       },
       {
-        "share_name": "mech2",
-        "host_path": "/tmp"
+        "host_path": "/tmp",
+        "share_name": "mech2"
       }
-    ]
+    ],
+    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box"
+  },
+  "second": {
+    "box": "bento/ubuntu-18.04",
+    "box_version": "202002.04.0",
+    "name": "second",
+    "provider": "virtualbox",
+    "shared_folders": [
+      {
+        "host_path": ".",
+        "share_name": "mech"
+      },
+      {
+        "host_path": "/private/tmp",
+        "share_name": "mech2"
+      }
+    ],
+    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
   }
 }
