@@ -720,14 +720,23 @@ def add_auth(instance):
         print(colored.blue("No auth to add."))
 
 
-def ssh(instance, command, plain=None, extra=None):
+def ssh(instance, command, plain=None, extra=None, command_args=None):
     """Run ssh command.
+
+       Parameters:
+          instance(MechInstance): a mech instance
+          command(str): command to execute (ex: 'chmod +x /tmp/file')
+          plain(bool): use user/pass auth
+          extra(str): arguments to pass to ssh
+          command_args(str): arguments for command
+
        Note: May not really need the tempfile if self.use_psk==True.
              Using the tempfile, there are options to not add host to the known_hosts files
              which is useful, but could be MITM attacks. Not likely locally, but still
              could be an issue.
     """
-    LOGGER.debug('command:%s plain:%s extra:%s', command, plain, extra)
+    LOGGER.debug('command:%s plain:%s extra:%s command_args:%s',
+                 command, plain, extra, command_args)
     if instance.created:
         config_ssh = instance.config_ssh()
         temp_file = tempfile.NamedTemporaryFile(delete=False)
@@ -738,19 +747,16 @@ def ssh(instance, command, plain=None, extra=None):
             cmds = ['ssh']
             if not plain:
                 cmds.extend(('-F', temp_file.name))
-            if extra:
-                cmds.extend(extra)
             if not plain:
                 cmds.append(config_ssh['Host'])
+            if extra:
+                cmds.append(extra)
             if command:
                 cmds.extend(('--', command))
+            if command_args:
+                cmds.append(command_args)
 
-            LOGGER.debug(
-                " ".join(
-                    "'{}'".format(
-                        c.replace(
-                            "'",
-                            "\\'")) if ' ' in c else c for c in cmds))
+            LOGGER.debug('cmds:%s', cmds)
 
             # if running a script
             if command:
@@ -823,7 +829,7 @@ def del_user(instance, username):
 
     cmd = 'sudo userdel -fr vagrant'
     LOGGER.debug('cmd:%s', cmd)
-    ssh(instance, cmd)
+    ssh(instance=instance, command=cmd)
 
 
 def provision(instance, show=False):
@@ -937,7 +943,7 @@ def provision_file(instance, source, destination):
 def create_tempfile_in_guest(instance):
     """Create a tempfile in the guest."""
     cmd = 'tmpfile=$(mktemp); echo $tmpfile'
-    _, stdout, _ = ssh(instance, cmd)
+    _, stdout, _ = ssh(instance=instance, command=cmd)
     return stdout
 
 
@@ -999,14 +1005,14 @@ def provision_shell(instance, inline, script_path, args=None):
         print(colored.blue("Configuring environment..."))
         make_executable = "chmod +x '{}'".format(tmp_path)
         LOGGER.debug('make_executable:%s', make_executable)
-        if ssh(instance, make_executable) is None:
+        if ssh(instance=instance, command=make_executable) is None:
             print(colored.red("Warning: Could not configure script in the environment."))
             return
 
         print(colored.blue("Executing program..."))
         args_string = ' '.join([str(elem) for elem in args])
         LOGGER.debug('args:%s args_string:%s', args, args_string)
-        return ssh(instance, tmp_path, args_string)
+        return ssh(instance=instance, command=tmp_path, command_args=args_string)
 
     finally:
         return ssh(instance, 'rm -f "{}"'.format(tmp_path))

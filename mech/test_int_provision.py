@@ -122,6 +122,15 @@ def test_int_provision(helpers):
     assert re.search("/tmp/file1.sh.out", stdout)
     assert results.returncode == 0
 
+    # ensure file1.sh.out has the args
+    command = """mech ssh -c "grep 'a=1 b=true' /tmp/file1.sh.out" second"""
+    results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
+    stdout = results.stdout.decode('utf-8')
+    stderr = results.stderr.decode('utf-8')
+    assert stderr == ''
+    assert re.search("a=1 b=true", stdout)
+    assert results.returncode == 0
+
     # ensure file exists now on second from inline shell provisioning
     command = 'mech ssh -c "ls -al /tmp/inline_test.out" second'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
