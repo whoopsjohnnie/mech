@@ -657,23 +657,26 @@ def add_auth(instance):
     """Add authentication to VM."""
 
     if not instance:
-        sys.exit(colored.red("Need to provide an instance to add_auth()."))
+        sys.exit(colored.red("Need to provide an instance to before we can add authentication."))
 
-    if instance.vmx is None:
-        sys.exit(colored.red("Need to provide vmx add_auth()."))
+    if instance.provider == 'vmware' and instance.vmx is None:
+        sys.exit(colored.red("Need to provide vmx before we can add authentication."))
+
+    if instance.provider == 'virtualbox' and instance.vbox is None:
+        sys.exit(colored.red("Need to provide vbox before we can add authentication."))
 
     if instance.user is None or instance.user == '':
-        sys.exit(colored.red("Need to provide user to add_auth()."))
+        sys.exit(colored.red("Need to provide user to add authentication."))
 
     if instance.password is None or instance.password == '':
-        sys.exit(colored.red("Need to provide password to add_auth()."))
+        sys.exit(colored.red("Need to provide password to add authentication."))
 
     print(colored.green('Adding auth to instance:{}'.format(instance.name)))
 
     vmrun = VMrun(instance.vmx, instance.user, instance.password)
     # cannot run if vmware tools are not installed
     if not vmrun.installed_tools():
-        sys.exit(colored.red("Cannot add auth if VMware Tools are not installed."))
+        sys.exit(colored.red("Cannot add authentication if VMware Tools are not installed."))
 
     if instance.auth:
         username = instance.auth.get('username', None)
@@ -803,7 +806,8 @@ def del_user(instance, username):
     """Delete a user in guest VM."""
 
     if not instance:
-        sys.exit(colored.red("Need to provide an instance to del_user()."))
+        sys.exit(colored.red("Need to provide an instance before "
+                             "we can delete user:{}.".format(username)))
 
     if instance.vmx is None:
         sys.exit(colored.red("VM must be created."))
@@ -819,21 +823,7 @@ def del_user(instance, username):
 
     cmd = 'sudo userdel -fr vagrant'
     LOGGER.debug('cmd:%s', cmd)
-
-    if instance.use_psk:
-        ssh(instance, cmd)
-    else:
-        vmrun = VMrun(instance.vmx, user=instance.user,
-                      password=instance.password)
-        # cannot run if vmware tools are not installed
-        if not vmrun.installed_tools():
-            sys.exit(colored.red("Cannot delete user if VMware Tools are not installed."))
-        results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
-        LOGGER.debug('results:%s', results)
-        if results is None:
-            print(colored.red("Failed deleting user."))
-        else:
-            print(colored.green("Successfully deleted user ({}).".format(username)))
+    ssh(instance, cmd)
 
 
 def provision(instance, show=False):
@@ -853,15 +843,16 @@ def provision(instance, show=False):
     if not instance:
         sys.exit(colored.red("Need to provide an instance to provision()."))
 
-    if instance.vmx is None or instance.user is None:
-        sys.exit(colored.red("Need to provide vmx/user to provision()."))
+    if instance.provider == 'vmware' and instance.vmx is None:
+        sys.exit(colored.red("Need to provide vmx to provision()."))
+
+    if instance.provider == 'virtualbox' and instance.vbox is None:
+        sys.exit(colored.red("Need to provide vbox to provision()."))
+
+    if instance.user is None:
+        sys.exit(colored.red("Need to provide user to provision()."))
 
     print(colored.green('Provisioning instance:{}'.format(instance.name)))
-
-    vmrun = VMrun(instance.vmx, instance.user, instance.password)
-    # cannot run provisioning if vmware tools are not installed
-    if not vmrun.installed_tools():
-        sys.exit(colored.red("Cannot provision if VMware Tools are not installed."))
 
     provisioned = 0
     if instance.provision:
@@ -875,7 +866,7 @@ def provision(instance, show=False):
                                         "destination:{}".format(instance.name, provision_type,
                                                                 source, destination)))
                 else:
-                    results = provision_file(vmrun, instance, source, destination)
+                    results = provision_file(instance, source, destination)
                     LOGGER.debug('results:%s', results)
                     if results is None:
                         print(colored.red("Not Provisioned"))
@@ -894,7 +885,7 @@ def provision(instance, show=False):
                                         "args:{}".format(instance.name, provision_type,
                                                          inline, path, args)))
                 else:
-                    if provision_shell(vmrun, instance, inline, path, args) is None:
+                    if provision_shell(instance, inline, path, args) is None:
                         print(colored.red("Not Provisioned"))
                         return
                 provisioned += 1
@@ -927,11 +918,11 @@ def provision(instance, show=False):
         print(colored.blue("Nothing to provision"))
 
 
-def provision_file(vmrun, instance, source, destination):
+def provision_file(instance, source, destination):
     """Provision from file.
 
     Args:
-        vmrun (VMrun): instance of the VMrun class
+        instance (MechInstance): instance of the MechInstance class
         source (str): full path of a file to copy
         source (str): full path where the file is to be copied to
 
@@ -940,11 +931,7 @@ def provision_file(vmrun, instance, source, destination):
 
     """
     print(colored.blue("Copying ({}) to ({})".format(source, destination)))
-    if instance.use_psk:
-        results = scp(instance, source, destination, True)
-    else:
-        results = vmrun.copy_file_from_host_to_guest(source, destination)
-    return results
+    return scp(instance, source, destination, True)
 
 
 def create_tempfile_in_guest(instance):
@@ -954,11 +941,10 @@ def create_tempfile_in_guest(instance):
     return stdout
 
 
-def provision_shell(vmrun, instance, inline, script_path, args=None):
+def provision_shell(instance, inline, script_path, args=None):
     """Provision from shell.
 
     Args:
-        vmrun (VMrun): instance of the VMrun class
         instance (MechInstance): instance of the MechInstance class
         inline (bool): run the script inline
         script_path (str): path to the script to run
@@ -967,10 +953,7 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
     """
     if args is None:
         args = []
-    if instance.use_psk:
-        tmp_path = create_tempfile_in_guest(instance)
-    else:
-        tmp_path = vmrun.create_tempfile_in_guest()
+    tmp_path = create_tempfile_in_guest(instance)
     LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
                  inline, script_path, args, tmp_path)
     if tmp_path is None or tmp_path == '':
@@ -980,15 +963,10 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
     try:
         if script_path and os.path.isfile(script_path):
             print(colored.blue("Configuring script {}...".format(script_path)))
-            if instance.use_psk:
-                results = scp(instance, script_path, tmp_path, True)
-                if results is None:
-                    print(colored.red("Warning: Could not copy file to guest."))
-                    return
-            else:
-                if vmrun.copy_file_from_host_to_guest(script_path, tmp_path) is None:
-                    print(colored.red("Warning: Could not copy file to guest."))
-                    return
+            results = scp(instance, script_path, tmp_path, True)
+            if results is None:
+                print(colored.red("Warning: Could not copy file to guest."))
+                return
         else:
             if script_path:
                 if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
@@ -1014,39 +992,24 @@ def provision_shell(vmrun, instance, inline, script_path, args=None):
             try:
                 the_file.write(str.encode(inline))
                 the_file.close()
-                if instance.use_psk:
-                    scp(instance, the_file.name, tmp_path, True)
-                else:
-                    if vmrun.copy_file_from_host_to_guest(the_file.name, tmp_path) is None:
-                        return
+                scp(instance, the_file.name, tmp_path, True)
             finally:
                 os.unlink(the_file.name)
 
         print(colored.blue("Configuring environment..."))
         make_executable = "chmod +x '{}'".format(tmp_path)
         LOGGER.debug('make_executable:%s', make_executable)
-        if instance.use_psk:
-            if ssh(instance, make_executable) is None:
-                print(colored.red("Warning: Could not configure script in the environment."))
-                return
-        else:
-            if vmrun.run_script_in_guest('/bin/sh', make_executable) is None:
-                print(colored.red("Warning: Could not configure script in the environment."))
-                return
+        if ssh(instance, make_executable) is None:
+            print(colored.red("Warning: Could not configure script in the environment."))
+            return
 
         print(colored.blue("Executing program..."))
-        if instance.use_psk:
-            args_string = ' '.join([str(elem) for elem in args])
-            LOGGER.debug('args:%s args_string:%s', args, args_string)
-            return ssh(instance, tmp_path, args_string)
-        else:
-            return vmrun.run_program_in_guest(tmp_path, args)
+        args_string = ' '.join([str(elem) for elem in args])
+        LOGGER.debug('args:%s args_string:%s', args, args_string)
+        return ssh(instance, tmp_path, args_string)
 
     finally:
-        if instance.use_psk:
-            return ssh(instance, 'rm -f "{}"'.format(tmp_path))
-        else:
-            vmrun.delete_file_in_guest(tmp_path, quiet=True)
+        return ssh(instance, 'rm -f "{}"'.format(tmp_path))
 
 
 def provision_pyinfra(instance, script_path, args=None):

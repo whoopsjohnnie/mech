@@ -497,11 +497,10 @@ versions/1578437753/providers/vmware_desktop.box",
     },
 }
 @patch('mech.utils.provision_file', return_value=True)
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_provision_file(mock_locate, mock_load_mechfile,
-                             mock_installed_tools, mock_provision_file, capfd):
+                             mock_provision_file, capfd):
     """Test 'mech provision' (using file provisioning)."""
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -513,16 +512,14 @@ def test_mech_provision_file(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_installed_tools.assert_called()
     mock_provision_file.assert_called()
     assert re.search(r' Provision ', out, re.MULTILINE)
 
 
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_provision_with_pyinfra_show(mock_locate, mock_load_mechfile,
-                                          mock_installed_tools, capfd):
+                                          capfd):
     """Test 'mech provision' (using file provisioning)."""
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -534,17 +531,14 @@ def test_mech_provision_with_pyinfra_show(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_installed_tools.assert_called()
     assert re.search(r' Provision ', out, re.MULTILINE)
     assert re.search(r'file1.py', out, re.MULTILINE)
 
 
 @patch('mech.utils.provision_pyinfra', return_value=(None, None, None))
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_provision_with_pyinfra_fails(mock_locate, mock_load_mechfile,
-                                           mock_installed_tools,
                                            mock_provision_pyinfra, capfd):
     """Test 'mech provision' (using file provisioning)."""
     global_arguments = {'--debug': False}
@@ -557,7 +551,6 @@ def test_mech_provision_with_pyinfra_fails(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_installed_tools.assert_called()
     mock_provision_pyinfra.assert_called()
     assert re.search(r'Not Provisioned', out, re.MULTILINE)
 
@@ -580,11 +573,10 @@ def test_mech_provision_not_started(mock_locate, mock_load_mechfile, capfd):
 
 
 @patch('mech.utils.provision_shell', return_value=True)
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.load_mechfile', return_value=MECHFILE_WITH_PROVISIONING)
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_provision_shell(mock_locate, mock_load_mechfile,
-                              mock_installed_tools, mock_provision_shell, capfd):
+                              mock_provision_shell, capfd):
     """Test 'mech provision' (using shell provisioning)."""
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -596,7 +588,6 @@ def test_mech_provision_shell(mock_locate, mock_load_mechfile,
     out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    mock_installed_tools.assert_called()
     mock_provision_shell.assert_called()
     assert re.search(r' Provision ', out, re.MULTILINE)
 

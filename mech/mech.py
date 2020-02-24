@@ -376,20 +376,16 @@ class Mech(MechCommand):
                     print(colored.green("VM ({}) started on an unknown "
                                         "IP address".format(instance)))
 
-                if inst.provider == 'vmware':
-                    # if not already using preshared key, switch to it
-                    if not inst.use_psk and inst.auth:
-                        utils.add_auth(inst)
-                        inst.switch_to_psk()
+                # if not already using preshared key, switch to it
+                if not inst.use_psk and inst.auth:
+                    utils.add_auth(inst)
+                    inst.switch_to_psk()
 
-                    if remove_vagrant:
-                        utils.del_user(inst, 'vagrant')
+                if remove_vagrant:
+                    utils.del_user(inst, 'vagrant')
 
-                    if not disable_provisioning:
-                        utils.provision(inst, show=False)
-                else:
-                    print(colored.red("Not yet implemented on this platform:"))
-                    print(colored.red("(use-psk, remove-vagrant, provisioning)"))
+                if not disable_provisioning:
+                    utils.provision(inst, show=False)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -924,10 +920,7 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.created:
-                if inst.provider == 'vmware':
-                    utils.provision(inst, show)
-                else:
-                    print(colored.red("Not yet implemented on this platform."))
+                utils.provision(inst, show)
             else:
                 print("VM not created.")
 
