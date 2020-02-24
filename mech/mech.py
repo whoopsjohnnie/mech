@@ -295,10 +295,10 @@ class Mech(MechCommand):
                 --disable-provisioning       Do not provision
                 --disable-shared-folders     Do not share folders with VM
                 --gui                        Start GUI
-                --memsize 1024               Specify the size of memory for VM
+                --memsize 1024               Specify memory size in MB
                 --no-cache                   Do not save the downloaded box
                 --no-nat                     Do not use NAT network (i.e., bridged)
-                --numvcpus 1                 Specify the number of vcpus for VM
+                --numvcpus 1                 Specify number of vcpus
             -h, --help                       Print this help
             -r, --remove-vagrant             Remove vagrant user
         """
@@ -357,6 +357,11 @@ class Mech(MechCommand):
                     inst.vmx = path_to_vmx_or_vbox
                 else:
                     inst.vbox = path_to_vmx_or_vbox
+                    vbm = VBoxManage()
+                    if memsize:
+                        vbm.memory(inst.name, memsize)
+                    if numvcpus:
+                        vbm.cpus(inst.name, numvcpus)
                     # virtualbox wants to add shared folder before starting VM
                     utils.share_folders(inst)
 
@@ -578,7 +583,7 @@ class Mech(MechCommand):
                         else:
                             print(colored.yellow("Upgraded", vmrun))
                 else:
-                    print(colored.red("Not yet implemented on this platform."))
+                    print(colored.red("Functionality not available on this platform."))
             else:
                 print(colored.red("VM ({}) not created.".format(instance)))
 
@@ -647,7 +652,8 @@ class Mech(MechCommand):
                     else:
                         print(colored.green("Suspended", vmrun))
                 else:
-                    print(colored.red("Not yet implemented on this platform."))
+                    print(colored.red("Not sure equivalent command on this platform."))
+                    print(colored.red("If you know, please open issue on github."))
             else:
                 print("VM has not been created.")
 

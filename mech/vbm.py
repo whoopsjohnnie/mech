@@ -200,6 +200,20 @@ class VBoxManage():
         '''Pause a VM'''
         return self.run('controlvm', vmname, 'pause', quiet=quiet)
 
+    def cpus(self, vmname, num_cpus, quiet=False):
+        '''Changes VM to have num_cpus.
+           Note: VM must be stopped.
+        '''
+        return self.run('modifyvm', vmname,
+                        '--cpus', '{}'.format(num_cpus), quiet=quiet)
+
+    def memory(self, vmname, memory_in_mb, quiet=False):
+        '''Changes VM to have memory_in_mb.
+           Note: VM must be stopped.
+        '''
+        return self.run('modifyvm', vmname,
+                        '--memory', '{}'.format(memory_in_mb), quiet=quiet)
+
     def sharedfolder_add(self, vmname, share_name, host_path, quiet=False):
         '''Add a shared folder'''
         return self.run('sharedfolder', 'add', vmname,
