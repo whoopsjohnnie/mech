@@ -222,9 +222,8 @@ def load_mechfile(should_exist=True):
 
 def default_shared_folders():
     """Return the default shared folders config.
-       The host_path value of "../.." is because it is relative to the vmx file.
     """
-    return [{'share_name': 'mech', 'host_path': '../..'}]
+    return [{'share_name': 'mech', 'host_path': '.'}]
 
 
 def build_mechfile_entry(location, box=None, name=None, box_version=None,
@@ -1150,20 +1149,43 @@ def config_ssh_string(config_ssh):
     return ssh_config
 
 
-def share_folders(vmrun, inst):
+def share_folders(inst):
     """Share folders.
     Args:
-        vmrun (VMrun): an instance of the VMrun class
         inst (MechInstance): an instance of the MechInstance class (representing a vm)
 
     """
     print(colored.blue("Sharing folders..."))
-    vmrun.enable_shared_folders(quiet=False)
+
+    if inst.provider == 'vmware':
+        vmrun = VMrun(inst.vmx)
+        vmrun.enable_shared_folders(quiet=False)
+    else:
+        vbm = mech.vbm.VBoxManage()
+
     for share in inst.shared_folders:
         share_name = share.get('share_name')
         host_path = share.get('host_path')
-        print(colored.blue("share:{} host_path:{}".format(share_name, host_path)))
-        vmrun.add_shared_folder(share_name, host_path, quiet=True)
+        if host_path == '.':
+            host_path = main_dir()
+        absolute_host_path = os.path.abspath(host_path)
+        print(colored.blue("share:{} host_path:{} => "
+                           "absolute_host_path:{}".format(share_name, host_path,
+                                                          absolute_host_path)))
+        if inst.provider == 'vmware':
+            vmrun.add_shared_folder(share_name, host_path, quiet=True)
+        else:
+            # for virtualbox, the path must be absolute
+            vbm.sharedfolder_add(inst.name, share_name, absolute_host_path)
+
+
+def virtualbox_share_folder_post_boot(inst):
+    """For virtualbox, we need to create a mount point and mount the share."""
+    for share in inst.shared_folders:
+        share_name = share.get('share_name')
+        command = ("sudo mkdir -p /mnt/{share_name};"
+                   "sudo mount -t vboxsf mech /mnt/{share_name}").format(share_name=share_name)
+        ssh(instance=inst, command=command)
 
 
 def get_fallback_executable(command_name='vmrun'):

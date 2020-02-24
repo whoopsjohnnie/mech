@@ -647,7 +647,7 @@ def test_build_mechfile_entry_https_location():
         'box_version': None,
         'name': None,
         'provider': None,
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'https://foo'
     }
 
@@ -659,7 +659,7 @@ def test_build_mechfile_entry_http_location():
         'box_version': None,
         'name': None,
         'provider': None,
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url':
         'http://foo'
     }
@@ -672,7 +672,7 @@ def test_build_mechfile_entry_ftp_location():
         'box_version': None,
         'name': None,
         'provider': None,
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
 
@@ -684,7 +684,7 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
         'box_version': 'ccc',
         'name': 'aaa',
         'provider': 'vmware',
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
     assert mech.utils.build_mechfile_entry(location='ftp://foo', name='aaa',
@@ -703,7 +703,7 @@ def test_build_mechfile_entry_file_location_json(catalog):
         'box_version': 'aaa',
         'name': 'first',
         'provider': 'vmware',
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
 versions/aaa/providers/vmware_desktop.box'
@@ -732,7 +732,7 @@ def test_build_mechfile_entry_file_location_external_good(mock_requests_get,
         'box_version': 'aaa',
         'name': None,
         'provider': 'vmware',
-        'shared_folders': [{'host_path': '../..', 'share_name': 'mech'}],
+        'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url':
         'https://vagrantcloud.com/bento/boxes/ubuntu-18.04/\
 versions/aaa/providers/vmware_desktop.box'

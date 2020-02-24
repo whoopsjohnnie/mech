@@ -192,6 +192,16 @@ class VBoxManage():
         '''Pause a VM'''
         return self.run('controlvm', vmname, 'pause', quiet=quiet)
 
+    def sharedfolder_add(self, vmname, share_name, host_path, quiet=False):
+        '''Add a shared folder'''
+        return self.run('sharedfolder', 'add', vmname,
+                        '--name', share_name, '--hostpath', host_path, quiet=quiet)
+
+    def sharedfolder_remove(self, vmname, share_name, quiet=False):
+        '''Remove a shared folder'''
+        return self.run('sharedfolder', 'remove', vmname,
+                        '--name', share_name, quiet=quiet)
+
     def list_hostonly_ifs(self, quiet=False):
         '''List hostonly interfaces.'''
         return self.run('list', 'hostonlyifs', quiet=quiet)

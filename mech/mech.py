@@ -127,7 +127,6 @@ class Mech(MechCommand):
             authorized_hosts file for that user.
           - The 'use-me' option will use the currently logged in user for
             future interactions with the guest instead of the vagrant user.
-            The first provisioning run will be done with 'vagrant' user.
 
         Options:
             -a, --add-me                     Add the current host user/pubkey to guest
@@ -272,14 +271,18 @@ class Mech(MechCommand):
            - The options (memsize, numvcpus, and no-nat) will only be applied
              upon first run of the 'up' command.
            - The 'no-nat' option will only be applied if there is no network
-             interface supplied in the box file.
+             interface supplied in the box file for 'vmware'. For 'virtualbox',
+             if you need internet access from the vm, then you will want to
+             use 'no-nat'. Interface 'en0' will be used for bridge.
            - Unless 'disable-shared-folders' is used, a default read/write
              share called "mech" will be mounted from the current directory.
-             (ex: '/mnt/hgfs/mech' on guest will have the file "Mechfile".)
-             To change shared folders, modify the Mechfile directly.
+             '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
+             To add/change shared folders, modify the Mechfile directly, then
+             stop/start the VM.
            - The 'remove-vagrant' option will remove the vagrant account from the
              guest VM which is what 'mech' uses to communicate with the VM.
              Be sure you can connect/admin the instance before using this option.
+             Be sure to check that root cannot ssh, or change the root password.
 
         Options:
                 --disable-provisioning       Do not provision
@@ -341,6 +344,10 @@ class Mech(MechCommand):
                     inst.vmx = path_to_vmx_or_vbox
                 else:
                     inst.vbox = path_to_vmx_or_vbox
+
+                    # virtualbox wants to add shared folder before starting VM
+                    if not disable_shared_folders:
+                        utils.share_folders(inst)
                 inst.created = True
 
             started = None
@@ -369,9 +376,14 @@ class Mech(MechCommand):
                 ip_address = inst.get_ip(wait=True)
 
                 if not disable_shared_folders:
-                    # TODO: virtualbox
+                    # Note: virtualbox shared folders is before VM is started
                     if inst.provider == 'vmware':
-                        utils.share_folders(vmrun, inst)
+                        utils.share_folders(inst)
+                    else:
+                        # for virtualbox and shared folders, there are two steps:
+                        # first step is before boot (see above)
+                        # second step is to create mount point and mount it:
+                        utils.virtualbox_share_folder_post_boot(inst)
 
                 if ip_address:
                     print(colored.green("VM ({})started on {}".format(instance, ip_address)))
@@ -696,7 +708,7 @@ class Mech(MechCommand):
                         print(colored.blue("Getting IP address..."))
                         ip_address = inst.get_ip(wait=True)
                         if not disable_shared_folders:
-                            utils.share_folders(vmrun, inst)
+                            utils.share_folders(inst)
                         else:
                             print(colored.blue("Disabling shared folders..."))
                             vmrun.disable_shared_folders(quiet=False)
@@ -715,7 +727,7 @@ class Mech(MechCommand):
                             print(colored.blue("Getting IP address..."))
                             ip_address = inst.get_ip(wait=True)
                             if not disable_shared_folders:
-                                utils.share_folders(vmrun, inst)
+                                utils.share_folders(inst)
                             if ip_address:
                                 if started:
                                     print(colored.green("VM ({}) started on "
