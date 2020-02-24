@@ -50,6 +50,10 @@ class Mech(MechCommand):
     """
     Usage: mech [options] <command> [<args>...]
 
+    Notes:
+        "mech" provides an easy way to control virtual machines.
+        An "instance" is a virtual machine.
+
     Options:
         -v, --version                    Print the version and exit.
         -h, --help                       Print this help.
@@ -57,37 +61,41 @@ class Mech(MechCommand):
 
     Common commands:
         box               manages boxes: add, list remove, etc.
-        destroy           stops and deletes all traces of the instances
-        (down|stop|halt)  stops the instances
+        destroy           stops and deletes all traces of the instance(s)
+        (down|stop|halt)  stops the instance(s)
         global-status     outputs status of all virutal machines on this host
-        init              initializes a new Mech environment by creating a Mechfile
+        init              initializes a new Mech environment (creates Mechfile)
         ip                outputs ip of an instance
-        (list|ls)         lists all available boxes
-        pause             pauses the instances
-        port              displays information about guest port mappings
-        provision         provisions the Mech machine
-        ps                list running processes for an instance
-        reload            restarts Mech machine, loads new Mechfile configuration
-        resume            resume a paused/suspended Mech machine
-        scp               copies files to/from the machine via SCP
+        (list|ls)         lists instances
+        pause             pauses the instance(s)
+        port              displays guest port mappings (not fully implemented)
+        provision         provisions the instance(s)
+        ps                list running processes in guest
+        (resume|unpause)  resume paused/suspended instance(s)
+        scp               copies files to/from an instance via SCP
         snapshot          manages snapshots: save, list, remove, etc.
-        ssh               connects to an instance via SSH
-        ssh-config        outputs OpenSSH valid configuration to connect to the instances
-        suspend           suspends the instances
-        (up|start)        starts instances (aka virtual machines)
-        upgrade           upgrade the instances
+        ssh               connects to an instance via SSH (or run a command)
+        ssh-config        outputs OpenSSH valid configuration to connect to instance
+        suspend           suspends the instance(s)
+        (up|start)        starts instance(s)
+        upgrade           upgrade the instance(s) - vmware only
 
     For help on any individual command run `mech <command> -h`
 
     All "state" will be saved in .mech directory. (boxes and instances)
 
-    Example:
+    Examples:
 
-    Initializing and using a machine from HashiCorp's Vagrant Cloud:
+    Initializing and using a box from HashiCorp's Vagrant Cloud:
 
         mech init bento/ubuntu-18.04
         mech up
         mech ssh
+
+    Having a problem with a command, add the "--debug" option like this:
+
+        mech --debug up
+
     """
 
     subcommand_name = '<command>'
@@ -321,6 +329,12 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
 
+            inst.gui = gui
+            inst.disable_shared_folders = disable_shared_folders
+            inst.disable_provisioning = disable_provisioning
+            inst.remove_vagrant = remove_vagrant
+            inst.no_nat = no_nat
+
             location = inst.url
             if not location:
                 location = inst.box_file
@@ -343,63 +357,12 @@ class Mech(MechCommand):
                     inst.vmx = path_to_vmx_or_vbox
                 else:
                     inst.vbox = path_to_vmx_or_vbox
-
                     # virtualbox wants to add shared folder before starting VM
-                    if not disable_shared_folders:
-                        utils.share_folders(inst)
+                    utils.share_folders(inst)
+
                 inst.created = True
 
-            started = None
-            if inst.provider == 'vmware':
-                # Note: user/password is needed for provisioning
-                vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-                print(colored.blue("Bringing machine ({}) up...".format(instance)))
-                started = vmrun.start(gui=gui)
-            else:
-                vbm = VBoxManage()
-                if no_nat:
-                    vbm.bridged(inst.name, quiet=False)
-                else:
-                    vbm.create_hostonly(quiet=True)
-                    vbm.hostonly(inst.name, quiet=True)
-                vbm.start(vmname=inst.name, gui=gui, quiet=True)
-                running_vms = vbm.list_running()
-                started = None
-                if inst.name in running_vms:
-                    started = True
-
-            if started is None:
-                print(colored.red("VM not started"))
-            else:
-                print(colored.blue("Getting IP address..."))
-                ip_address = inst.get_ip(wait=True)
-
-                if not disable_shared_folders:
-                    # Note: virtualbox shared folders is before VM is started
-                    if inst.provider == 'vmware':
-                        utils.share_folders(inst)
-                    else:
-                        # for virtualbox and shared folders, there are two steps:
-                        # first step is before boot (see above)
-                        # second step is to create mount point and mount it:
-                        utils.virtualbox_share_folder_post_boot(inst)
-
-                if ip_address:
-                    print(colored.green("VM ({})started on {}".format(instance, ip_address)))
-                else:
-                    print(colored.green("VM ({}) started on an unknown "
-                                        "IP address".format(instance)))
-
-                # if not already using preshared key, switch to it
-                if not inst.use_psk and inst.auth:
-                    utils.add_auth(inst)
-                    inst.switch_to_psk()
-
-                if remove_vagrant:
-                    utils.del_user(inst, 'vagrant')
-
-                if not disable_provisioning:
-                    utils.provision(inst, show=False)
+            utils.start_vm(inst)
 
     # allows "mech start" to alias to "mech up"
     start = up
@@ -644,56 +607,16 @@ class Mech(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            LOGGER.debug('instance:%s inst.vmx:%s', instance, inst.vmx)
+            inst.disable_shared_folders = disable_shared_folders
+            LOGGER.debug('instance:%s', instance)
 
             # if we have started this instance before, try to unpause
             if inst.created:
-
-                if inst.provider == 'vmware':
-                    vmrun = VMrun(inst.vmx)
-
-                    if vmrun.unpause(quiet=True) is not None:
-                        print(colored.blue("Getting IP address..."))
-                        ip_address = inst.get_ip(wait=True)
-                        if not disable_shared_folders:
-                            utils.share_folders(inst)
-                        else:
-                            print(colored.blue("Disabling shared folders..."))
-                            vmrun.disable_shared_folders(quiet=False)
-                        if ip_address:
-                            print(colored.green("VM resumed on {}".format(ip_address)))
-                        else:
-                            print(colored.green("VM resumed on an unknown IP address"))
-
-                    else:
-                        # Otherwise try starting
-                        vmrun = VMrun(inst.vmx)
-                        started = vmrun.start()
-                        if started is None:
-                            print(colored.red("VM not started"))
-                        else:
-                            print(colored.blue("Getting IP address..."))
-                            ip_address = inst.get_ip(wait=True)
-                            if not disable_shared_folders:
-                                utils.share_folders(inst)
-                            if ip_address:
-                                if started:
-                                    print(colored.green("VM ({}) started on "
-                                                        "{}".format(instance, ip_address)))
-                                else:
-                                    print(colored.yellow("VM ({}) already was started "
-                                                         "on {}".format(instance, ip_address)))
-                            else:
-                                if started:
-                                    print(colored.green("VM ({}) started on an unknown "
-                                                        "IP address".format(instance)))
-                                else:
-                                    print(colored.yellow("VM ({}) already was started on an "
-                                                         "unknown IP address".format(instance)))
-                else:
-                    print(colored.red("Not yet implemented on this platform."))
+                utils.unpause_vm(inst)
             else:
                 print(colored.red("VM not created"))
+    # allow 'mech unpause' as alias to 'mech resume'
+    unpause = resume
 
     def suspend(self, arguments):
         """
@@ -886,59 +809,6 @@ class Mech(MechCommand):
 
             if inst.created:
                 utils.provision(inst, show)
-            else:
-                print("VM not created.")
-
-    def reload(self, arguments):
-        """
-        Restarts Mech machine, loads new Mechfile configuration.
-
-        Usage: mech reload [options] [<instance>]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        instance_name = arguments['<instance>']
-
-        if instance_name:
-            # single instance
-            instances = [instance_name]
-        else:
-            # multiple instances
-            instances = self.instances()
-
-        for instance in instances:
-            inst = MechInstance(instance)
-
-            if inst.created:
-
-                if inst.provider == 'vmware':
-
-                    vmrun = VMrun(inst.vmx)
-
-                    print(colored.blue("Reloading machine..."))
-                    started = vmrun.reset()
-                    if started is None:
-                        print(colored.red("VM not restarted"))
-                    else:
-                        print(colored.blue("Getting IP address..."))
-                        ip_address = inst.get_ip(wait=True)
-                        if ip_address:
-                            if started:
-                                print(colored.green("VM ({}) started "
-                                                    "on {}".format(instance, ip_address)))
-                            else:
-                                print(colored.yellow("VM ({}) already was started on "
-                                                     "{}".format(instance, ip_address)))
-                        else:
-                            if started:
-                                print(colored.green("VM ({}) started on an unknown IP "
-                                                    "address".format(instance)))
-                            else:
-                                print(colored.yellow("VM ({}) already was started "
-                                                     "on an unknown IP address".format(instance)))
-                else:
-                    print(colored.red("Not yet implemented on this platform."))
             else:
                 print("VM not created.")
 

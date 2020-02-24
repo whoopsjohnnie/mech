@@ -188,6 +188,14 @@ class VBoxManage():
         '''Stop a VM'''
         return self.run('controlvm', vmname, 'poweroff', quiet=quiet)
 
+    def resume(self, vmname, quiet=False):
+        '''Resume a VM'''
+        return self.run('controlvm', vmname, 'resume', quiet=quiet)
+
+    def reset(self, vmname, quiet=False):
+        '''Reset a VM'''
+        return self.run('controlvm', vmname, 'reset', quiet=quiet)
+
     def pause(self, vmname, quiet=False):
         '''Pause a VM'''
         return self.run('controlvm', vmname, 'pause', quiet=quiet)

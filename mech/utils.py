@@ -71,6 +71,61 @@ def makedirs(name, mode=0o777):
         pass
 
 
+def start_vm(inst):
+    """Start VM."""
+    started = None
+    if inst.provider == 'vmware':
+        # Note: user/password is needed for provisioning
+        vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
+        print(colored.blue("Bringing machine ({}) up...".format(inst.name)))
+        started = vmrun.start(gui=inst.gui)
+    else:
+        vbm = mech.vbm.VBoxManage()
+        if inst.no_nat:
+            vbm.bridged(inst.name, quiet=False)
+        else:
+            vbm.create_hostonly(quiet=True)
+            vbm.hostonly(inst.name, quiet=True)
+        vbm.start(vmname=inst.name, gui=inst.gui, quiet=True)
+        running_vms = vbm.list_running()
+        started = None
+        if inst.name in running_vms:
+            started = True
+
+    if started is None:
+        print(colored.red("VM not started"))
+    else:
+        print(colored.blue("Getting IP address..."))
+        ip_address = inst.get_ip(wait=True)
+
+        if not inst.disable_shared_folders:
+            # Note: virtualbox shared folders is before VM is started
+            if inst.provider == 'vmware':
+                share_folders(inst)
+            else:
+                # for virtualbox and shared folders, there are two steps:
+                # first step is before boot (see above)
+                # second step is to create mount point and mount it:
+                virtualbox_share_folder_post_boot(inst)
+
+        if ip_address:
+            print(colored.green("VM ({})started on {}".format(inst.name, ip_address)))
+        else:
+            print(colored.green("VM ({}) started on an unknown "
+                                "IP address".format(inst.name)))
+
+        # if not already using preshared key, switch to it
+        if not inst.use_psk and inst.auth:
+            add_auth(inst)
+            inst.switch_to_psk()
+
+        if inst.remove_vagrant:
+            del_user(inst, 'vagrant')
+
+        if not inst.disable_provisioning:
+            provision(inst, show=False)
+
+
 def confirm(prompt, default='y'):
     """Confirmation prompt."""
     default = default.lower()
@@ -92,6 +147,40 @@ def confirm(prompt, default='y'):
 
         elif re.match('n(?:o)?', some_input, re.IGNORECASE):
             return False
+
+
+def unpause_vm(inst):
+    """Unpause a VM."""
+    if inst.provider == 'vmware':
+        vmrun = VMrun(inst.vmx)
+        if vmrun.unpause(quiet=True) is not None:
+            print(colored.blue("Getting IP address..."))
+            ip_address = inst.get_ip(wait=True)
+            if not inst.disable_shared_folders:
+                share_folders(inst)
+            else:
+                print(colored.blue("Disabling shared folders..."))
+                vmrun.disable_shared_folders(quiet=False)
+            if ip_address:
+                print(colored.green("VM resumed on {}".format(ip_address)))
+            else:
+                print(colored.green("VM resumed on an unknown IP address"))
+        else:
+            # Otherwise try starting
+            start_vm(inst)
+    else:
+        vbm = mech.vbm.VBoxManage()
+        if vbm.resume(inst.name, quiet=True) is not None:
+            print(colored.blue("Getting IP address..."))
+            ip_address = inst.get_ip(wait=True)
+            # Note: disable_shared_folders is not really an option here
+            if ip_address:
+                print(colored.green("VM resumed on {}".format(ip_address)))
+            else:
+                print(colored.green("VM resumed on an unknown IP address"))
+        else:
+            # Otherwise try starting
+            start_vm(inst)
 
 
 def save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False):
@@ -1178,28 +1267,29 @@ def share_folders(inst):
         inst (MechInstance): an instance of the MechInstance class (representing a vm)
 
     """
-    print(colored.blue("Sharing folders..."))
+    if not inst.disable_shared_folders:
+        print(colored.blue("Sharing folders..."))
 
-    if inst.provider == 'vmware':
-        vmrun = VMrun(inst.vmx)
-        vmrun.enable_shared_folders(quiet=False)
-    else:
-        vbm = mech.vbm.VBoxManage()
-
-    for share in inst.shared_folders:
-        share_name = share.get('share_name')
-        host_path = share.get('host_path')
-        if host_path == '.':
-            host_path = main_dir()
-        absolute_host_path = os.path.abspath(host_path)
-        print(colored.blue("share:{} host_path:{} => "
-                           "absolute_host_path:{}".format(share_name, host_path,
-                                                          absolute_host_path)))
         if inst.provider == 'vmware':
-            vmrun.add_shared_folder(share_name, host_path, quiet=True)
+            vmrun = VMrun(inst.vmx)
+            vmrun.enable_shared_folders(quiet=False)
         else:
-            # for virtualbox, the path must be absolute
-            vbm.sharedfolder_add(inst.name, share_name, absolute_host_path)
+            vbm = mech.vbm.VBoxManage()
+
+        for share in inst.shared_folders:
+            share_name = share.get('share_name')
+            host_path = share.get('host_path')
+            if host_path == '.':
+                host_path = main_dir()
+            absolute_host_path = os.path.abspath(host_path)
+            print(colored.blue("share:{} host_path:{} => "
+                               "absolute_host_path:{}".format(share_name, host_path,
+                                                              absolute_host_path)))
+            if inst.provider == 'vmware':
+                vmrun.add_shared_folder(share_name, host_path, quiet=True)
+            else:
+                # for virtualbox, the path must be absolute
+                vbm.sharedfolder_add(inst.name, share_name, absolute_host_path)
 
 
 def virtualbox_share_folder_post_boot(inst):

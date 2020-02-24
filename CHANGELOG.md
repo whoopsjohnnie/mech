@@ -6,6 +6,8 @@
 + Changed "mech ps" to use utils.ssh()
 + Improved "mech list"
 + Removed "mech status" command (see "mech list")
++ Removed "mech reload" command (not really sure what it did)
++ Removed "mech reset" command (did not see need)
 
 # v0.8.3
 
