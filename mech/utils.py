@@ -1184,7 +1184,8 @@ def virtualbox_share_folder_post_boot(inst):
     for share in inst.shared_folders:
         share_name = share.get('share_name')
         command = ("sudo mkdir -p /mnt/{share_name};"
-                   "sudo mount -t vboxsf mech /mnt/{share_name}").format(share_name=share_name)
+                   "sudo mount -t vboxsf {share_name}"
+                   " /mnt/{share_name}").format(share_name=share_name)
         ssh(instance=inst, command=command)
 
 

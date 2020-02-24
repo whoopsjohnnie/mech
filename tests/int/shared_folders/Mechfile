@@ -29,6 +29,7 @@
         "host_path": "/tmp",
         "share_name": "mech2"
       }
+    ],
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
   }
 }
