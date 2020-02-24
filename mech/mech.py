@@ -817,7 +817,9 @@ class Mech(MechCommand):
         inst = MechInstance(instance_name)
 
         if inst.created:
-            utils.scp(inst, src, dst, dst_is_host, extra)
+            _, _, stderr = utils.scp(inst, src, dst, dst_is_host, extra)
+            if stderr != '':
+                print(stderr)
         else:
             print(colored.red('VM not created.'))
 

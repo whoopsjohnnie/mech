@@ -786,6 +786,7 @@ def ssh(instance, command, plain=None, extra=None, command_args=None):
         else:
             return 1, '', 'VM not ready({})'.format(state)
 
+
 def scp(instance, src, dst, dst_is_host, extra=None):
     """Run scp command.
        Note: May not really need the tempfile if self.use_psk==True.
@@ -794,33 +795,39 @@ def scp(instance, src, dst, dst_is_host, extra=None):
              could be an issue.
     """
     if instance.created:
+        state = instance.get_vm_state()
+        if vm_ready_based_on_state(state):
+            config_ssh = instance.config_ssh()
+            temp_file = tempfile.NamedTemporaryFile(delete=False)
 
-        config_ssh = instance.config_ssh()
-        temp_file = tempfile.NamedTemporaryFile(delete=False)
+            try:
+                temp_file.write(config_ssh_string(config_ssh).encode())
+                temp_file.close()
 
-        try:
-            temp_file.write(config_ssh_string(config_ssh).encode())
-            temp_file.close()
+                cmds = ['scp']
+                cmds.extend(('-F', temp_file.name))
+                if extra:
+                    cmds.extend(extra)
 
-            cmds = ['scp']
-            cmds.extend(('-F', temp_file.name))
-            if extra:
-                cmds.extend(extra)
+                host = config_ssh['Host']
+                dst = '{}:{}'.format(host, dst) if dst_is_host else dst
+                src = '{}:{}'.format(host, src) if not dst_is_host else src
+                cmds.extend((src, dst))
 
-            host = config_ssh['Host']
-            dst = '{}:{}'.format(host, dst) if dst_is_host else dst
-            src = '{}:{}'.format(host, src) if not dst_is_host else src
-            cmds.extend((src, dst))
-
-            LOGGER.debug(
-                " ".join(
-                    "'{}'".format(
-                        c.replace(
-                            "'",
-                            "\\'")) if ' ' in c else c for c in cmds))
-            return subprocess.run(cmds, capture_output=True)
-        finally:
-            os.unlink(temp_file.name)
+                LOGGER.debug(
+                    " ".join(
+                        "'{}'".format(
+                            c.replace(
+                                "'",
+                                "\\'")) if ' ' in c else c for c in cmds))
+                result = subprocess.run(cmds, capture_output=True)
+                stdout = result.stdout.decode('utf-8').strip()
+                stderr = result.stderr.decode('utf-8').strip()
+                return result.returncode, stdout, stderr
+            finally:
+                os.unlink(temp_file.name)
+        else:
+            return 1, '', 'VM not ready({})'.format(state)
 
 
 def del_user(instance, username):

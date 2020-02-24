@@ -618,7 +618,6 @@ def test_mech_ssh_not_created(mock_locate, mock_load_mechfile,
         '<extra-ssh-args>': None,
     }
     a_mech.ssh(arguments)
-    # Note: Could not figure out how to capture output from subprocess.call.
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     out, _ = capfd.readouterr()
@@ -1904,7 +1903,7 @@ def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
     assert re.search(r'not created', out, re.MULTILINE)
 
 
-@patch('subprocess.run', return_value=True)
+@patch('subprocess.run')
 @patch('os.chmod', return_value=True)
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
@@ -1925,17 +1924,25 @@ def test_mech_scp_host_to_guest(mock_locate,
     }
     filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
     a_mock = mock_open()
-    with patch('builtins.open', a_mock, create=True):
-        a_mech.scp(arguments)
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_subprocess_run.assert_called()
-        mock_get_ip.assert_called()
-        mock_chmod.assert_called()
-        a_mock.assert_called_once_with(filename, 'w')
+
+    mock_subprocess_run.return_value.returncode = 0
+    mock_subprocess_run.stdout = b''
+    mock_subprocess_run.stderr = b''
+
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_vm_state', return_value="running") as mock_get_vm_state:
+        with patch('builtins.open', a_mock, create=True):
+            a_mech.scp(arguments)
+            mock_locate.assert_called()
+            mock_load_mechfile.assert_called()
+            mock_subprocess_run.assert_called()
+            mock_get_ip.assert_called()
+            mock_chmod.assert_called()
+            mock_get_vm_state.assert_called()
+            a_mock.assert_called_once_with(filename, 'w')
 
 
-@patch('subprocess.run', return_value=True)
+@patch('subprocess.run')
 @patch('os.chmod', return_value=True)
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.load_mechfile')
@@ -1946,6 +1953,10 @@ def test_mech_scp_guest_to_host(mock_locate,
                                 mock_subprocess_run,
                                 mechfile_two_entries):
     """Test 'mech scp'."""
+    mock_subprocess_run.return_value.returncode = 0
+    mock_subprocess_run.stdout = b''
+    mock_subprocess_run.stderr = b''
+
     mock_load_mechfile.return_value = mechfile_two_entries
     global_arguments = {'--debug': False}
     a_mech = mech.mech.Mech(arguments=global_arguments)
@@ -1956,15 +1967,17 @@ def test_mech_scp_guest_to_host(mock_locate,
     }
     filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
     a_mock = mock_open()
-    with patch('builtins.open', a_mock, create=True):
-        a_mech.scp(arguments)
-        # Note: Could not figure out how to capture output from subprocess.call.
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_subprocess_run.assert_called()
-        mock_get_ip.assert_called()
-        mock_chmod.assert_called()
-        a_mock.assert_called_once_with(filename, 'w')
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_vm_state', return_value="running") as mock_get_vm_state:
+        with patch('builtins.open', a_mock, create=True):
+            a_mech.scp(arguments)
+            mock_locate.assert_called()
+            mock_load_mechfile.assert_called()
+            mock_subprocess_run.assert_called()
+            mock_get_ip.assert_called()
+            mock_chmod.assert_called()
+            mock_get_vm_state.assert_called()
+            a_mock.assert_called_once_with(filename, 'w')
 
 
 @patch('mech.utils.load_mechfile')
@@ -1984,7 +1997,6 @@ def test_mech_scp_guest_to_host_not_created(mock_locate,
     a_mock = mock_open()
     with patch('builtins.open', a_mock, create=True):
         a_mech.scp(arguments)
-        # Note: Could not figure out how to capture output from subprocess.call.
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
 
