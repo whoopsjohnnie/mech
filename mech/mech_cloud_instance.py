@@ -44,7 +44,7 @@ class MechCloudInstance():
         if not name or name == "":
             raise AttributeError("Must provide a name for the cloud instance.")
         self.name = name
-        self.host = None
+        self.hostname = None
         self.directory = None
 
     def read_config(self, name):
@@ -57,49 +57,36 @@ class MechCloudInstance():
             sys.exit(colored.red("Instance ({}) was not found in the "
                                  "Mechcloudfile".format(name)))
 
-        self.host = clouds[name].get('host')
+        self.hostname = clouds[name].get('hostname')
         self.directory = clouds[name].get('directory')
 
     def set_hostname(self, hostname):
-        # TODO: add validation
+        if hostname is None or hostname == '':
+            sys.exit(colored.red("A non-blank hostname is required."))
         self.hostname = hostname
 
     def set_directory(self, directory):
-        # TODO: add validation
+        if directory is None or directory == '':
+            sys.exit(colored.red("A non-blank directory is required."))
         self.directory = directory
 
     def __repr__(self):
         """Return a representation of a Mech Cloud instance."""
         sep = '\n'
-        return ('name:{name}{sep}host:{host}{sep}directory:{directory}'.
-                format(name=self.name, host=self.host, directory=self.directory,
+        return ('name:{name}{sep}host:{hostname}{sep}directory:{directory}'.
+                format(name=self.name, hostname=self.hostname, directory=self.directory,
                        sep=sep))
 
     def config(self):
         """Return the configuration for this mech clould instance."""
         entry = {}
         entry['name'] = self.name
-        entry['host'] = self.hostname
+        entry['hostname'] = self.hostname
         entry['directory'] = self.directory
         return {self.name: entry}
 
     def init(self):
         """Initialize the cloud instance.
-            On remote instance:
             - add entry to Mechcloudfile
-            - create directory if it does not exist
-            - ensure either vmrun or VBoxManage is available,
-              if not, complain
-            - create python virtual environment
-            - install mech in python virtual environment
         """
-        print('TODO need to run init on cloud instance:{}'.format(self.name))
         utils.save_mechcloudfile(self.config())
-
-    def upgrade(self):
-        """Upgrade the cloud instance.
-           On the remote instance:
-           - upgrade pip
-           - upgrade mech
-        """
-        print('TODO need to run upgrade on cloud instance:{}'.format(self.name))

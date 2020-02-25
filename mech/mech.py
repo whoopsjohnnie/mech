@@ -32,6 +32,7 @@ import sys
 import logging
 import textwrap
 import shutil
+import subprocess
 
 from clint.textui import colored
 
@@ -42,6 +43,7 @@ from .mech_instance import MechInstance
 from .mech_command import MechCommand
 from .mech_box import MechBox
 from .mech_cloud import MechCloud
+from .mech_cloud_instance import MechCloudInstance
 from .mech_snapshot import MechSnapshot
 
 LOGGER = logging.getLogger(__name__)
@@ -56,9 +58,10 @@ class Mech(MechCommand):
         An "instance" is a virtual machine.
 
     Options:
-        -v, --version                    Print the version and exit.
-        -h, --help                       Print this help.
+        --cloud CLOUD                    Cloud to run the mech command on.
         --debug                          Show debug messages.
+        -h, --help                       Print this help.
+        -v, --version                    Print the version and exit.
 
     Common commands:
         box               manages boxes: add, list remove, etc.
@@ -104,6 +107,7 @@ class Mech(MechCommand):
 
     def __init__(self, arguments):
         super(Mech, self).__init__(arguments)
+        self.cloud_name = None
 
         logger = logging.getLogger()
         handler = logging.StreamHandler(sys.stderr)
@@ -113,10 +117,48 @@ class Mech(MechCommand):
         logger.addHandler(handler)
         if arguments['--debug']:
             logger.setLevel(logging.DEBUG)
+        cloud = arguments['--cloud']
+        if cloud:
+            self.cloud_name = cloud
 
     box = MechBox
     cloud = MechCloud
     snapshot = MechSnapshot
+
+    def cloud_run(self, operations):
+        """Run the command on the cloud instance.
+        """
+        if self.cloud_name and self.cloud_name != '':
+            mci = MechCloudInstance(self.cloud_name)
+            mci.read_config(self.cloud_name)
+
+            # find out what args were used on the command line
+            # any command after the operation will be appended to
+            # the command to run on the remote
+            args_list = []
+            found_operation = False
+            LOGGER.debug('sys.argv:%s', sys.argv)
+            for arg in sys.argv:
+                if arg in operations:
+                    found_operation = True
+                if found_operation:
+                    args_list.append(arg)
+            args_string = ' '.join(args_list)
+            LOGGER.debug('cloud_name:%s operations:%s args_list:%s args_string:%s',
+                         self.cloud_name, operations, args_list, args_string)
+            command = ('''ssh {hostname} -- "source {directory}/venv/bin/activate '''
+                       '''&& mech {args_string}"''').format(hostname=mci.hostname,
+                                                            directory=mci.directory,
+                                                            args_string=args_string)
+            LOGGER.debug('command:%s', command)
+            result = subprocess.run(command, shell=True, capture_output=True)
+            stdout = result.stdout.decode('utf-8')
+            stderr = result.stderr.decode('utf-8')
+            if stdout:
+                print(stdout)
+            if stderr:
+                print(stderr)
+            return result.returncode, stdout, stderr
 
     def init(self, arguments):  # pylint: disable=no-self-use
         """
@@ -168,6 +210,10 @@ class Mech(MechCommand):
 
         LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
                      name, box, box_version, location, provider)
+
+        if self.cloud_name:
+            self.cloud_run(['init'])
+            return
 
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
@@ -226,6 +272,10 @@ class Mech(MechCommand):
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
 
+        if self.cloud_name:
+            self.cloud_run(['add'])
+            return
+
         LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
                      name, box, box_version, location, provider)
 
@@ -254,6 +304,10 @@ class Mech(MechCommand):
 
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name to be removed from the Mechfile."))
+
+        if self.cloud_name:
+            self.cloud_run(['remove', 'delete', 'rm'])
+            return
 
         LOGGER.debug('name:%s', name)
 
@@ -316,6 +370,10 @@ class Mech(MechCommand):
         no_nat = arguments['--no-nat']
 
         instance_name = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['up', 'start'])
+            return
 
         LOGGER.debug('gui:%s disable_shared_folders:%s disable_provisioning:%s '
                      'save:%s numvcpus:%s memsize:%s no_nat:%s', gui,
@@ -384,6 +442,11 @@ class Mech(MechCommand):
         Options:
             -h, --help                       Print this help
         """
+
+        if self.cloud_name:
+            self.cloud_run(['global-status'])
+            return
+
         vmrun = VMrun()
         if vmrun.installed():
             print("===VMware VMs===")
@@ -405,6 +468,10 @@ class Mech(MechCommand):
         """
         instance_name = arguments['<instance>']
 
+        if self.cloud_name:
+            self.cloud_run(['ps', 'process-status'])
+            return
+
         inst = MechInstance(instance_name)
 
         if inst.created:
@@ -413,7 +480,7 @@ class Mech(MechCommand):
         else:
             print("VM {} not created.".format(instance_name))
 
-    # alias "mech process_status" to "mech ps"
+    # alias "mech process-status" to "mech ps"
     process_status = ps
 
     def destroy(self, arguments):
@@ -429,6 +496,10 @@ class Mech(MechCommand):
         force = arguments['--force']
 
         instance_name = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['destroy'])
+            return
 
         if instance_name:
             # single instance
@@ -477,6 +548,10 @@ class Mech(MechCommand):
 
         instance_name = arguments['<instance>']
 
+        if self.cloud_name:
+            self.cloud_run(['down', 'halt', 'stop'])
+            return
+
         if instance_name:
             # single instance
             instances = [instance_name]
@@ -523,6 +598,10 @@ class Mech(MechCommand):
         """
         instance_name = arguments['<instance>']
 
+        if self.cloud_name:
+            self.cloud_run(['pause'])
+            return
+
         if instance_name:
             # single instance
             instances = [instance_name]
@@ -563,6 +642,10 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['upgrade'])
+            return
 
         if instance_name:
             # single instance
@@ -606,6 +689,10 @@ class Mech(MechCommand):
         LOGGER.debug('instance_name:%s '
                      'disable_shared_folders:%s', instance_name, disable_shared_folders)
 
+        if self.cloud_name:
+            self.cloud_run(['resume', 'unpause'])
+            return
+
         if instance_name:
             # single instance
             instances = [instance_name]
@@ -636,6 +723,10 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['suspend'])
+            return
 
         if instance_name:
             # single instance
@@ -671,6 +762,10 @@ class Mech(MechCommand):
         """
         instance_name = arguments['<instance>']
 
+        if self.cloud_name:
+            self.cloud_run(['ssh-config'])
+            return
+
         if instance_name:
             # single instance
             instances = [instance_name]
@@ -702,6 +797,10 @@ class Mech(MechCommand):
 
         instance = arguments['<instance>']
 
+        if self.cloud_name:
+            print(colored.red("Using 'ssh' on cloud instance is not supported."))
+            return
+
         inst = MechInstance(instance)
 
         if inst.created:
@@ -727,6 +826,10 @@ class Mech(MechCommand):
         extra = arguments['<extra-ssh-args>']
         src = arguments['<src>']
         dst = arguments['<dst>']
+
+        if self.cloud_name:
+            self.cloud_run(['scp'])
+            return
 
         dst_instance, dst_is_host, dst = dst.partition(':')
         src_instance, src_is_host, src = src.partition(':')
@@ -765,6 +868,10 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['ip', 'ip_address'])
+            return
 
         inst = MechInstance(instance)
 
@@ -806,6 +913,10 @@ class Mech(MechCommand):
         show = arguments['--show-only']
         instance_name = arguments['<instance>']
 
+        if self.cloud_name:
+            self.cloud_run(['provision'])
+            return
+
         if instance_name:
             # single instance
             instances = [instance_name]
@@ -832,6 +943,10 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
         instance_name = arguments['<instance>']
+
+        if self.cloud_name:
+            self.cloud_run(['port'])
+            return
 
         if platform.system() == 'Linux':
             sys.exit('This command is not supported on this OS.')
@@ -873,6 +988,10 @@ class Mech(MechCommand):
         """
 
         detail = arguments['--detail']
+
+        if self.cloud_name:
+            self.cloud_run(['list', 'ls'])
+            return
 
         self.activate_mechfile()
 

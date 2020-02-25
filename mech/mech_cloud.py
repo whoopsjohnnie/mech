@@ -54,12 +54,10 @@ class MechCloud(MechCommand):
             mech -C top init bento/ubuntu-18.04
             mech -C top up
 
-
     Available subcommands:
         init              initialize the mech cloud instance
         remove            remove a mech cloud instance
         list              list the mech clould instances
-        upgrade           upgrade the mech clould instances
 
     For help on any individual subcommand run `mech cloud <subcommand> -h`
     """
@@ -107,22 +105,3 @@ class MechCloud(MechCommand):
         """
         clouds = utils.load_mechcloudfile(True)
         print(clouds)
-
-    def upgrade(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Upgrade Mech Clouds
-
-        Usage: mech cloud upgrade [options] [<cloud-instance>]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        cloud_instance = arguments['<cloud-instance>']
-        if cloud_instance:
-            instances = [cloud_instance]
-        else:
-            instances = self.cloud_instances()
-
-        # TODO: do upgrade
-        for instance in instances:
-            print('instance:{}'.format(instance))
