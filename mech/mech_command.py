@@ -37,6 +37,7 @@ LOGGER = logging.getLogger(__name__)
 class MechCommand(Command):
     """Class for the mech commands from help doc (as python object)."""
     mechfile = None
+    mechcloudfile = None
 
     def activate_mechfile(self):
         """Load the Mechfile."""
@@ -48,3 +49,14 @@ class MechCommand(Command):
         if not self.mechfile:
             self.activate_mechfile()
         return list(self.mechfile)
+
+    def activate_mechcloudfile(self):
+        """Load the Mechcloudfile."""
+        self.mechcloudfile = utils.load_mechcloudfile(should_exist=False)
+        LOGGER.debug("loaded mechcloudfile:%s", self.mechcloudfile)
+
+    def cloud_instances(self):
+        """Returns a list of the cloud instances from the Mechcloudfile."""
+        if not self.mechcloudfile:
+            self.activate_mechcloudfile()
+        return list(self.mechcloudfile)

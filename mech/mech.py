@@ -41,6 +41,7 @@ from .vbm import VBoxManage
 from .mech_instance import MechInstance
 from .mech_command import MechCommand
 from .mech_box import MechBox
+from .mech_cloud import MechCloud
 from .mech_snapshot import MechSnapshot
 
 LOGGER = logging.getLogger(__name__)
@@ -61,6 +62,7 @@ class Mech(MechCommand):
 
     Common commands:
         box               manages boxes: add, list remove, etc.
+        cloud             manages mech cloud
         destroy           stops and deletes all traces of the instance(s)
         (down|stop|halt)  stops the instance(s)
         global-status     outputs status of all virutal machines on this host
@@ -113,6 +115,7 @@ class Mech(MechCommand):
             logger.setLevel(logging.DEBUG)
 
     box = MechBox
+    cloud = MechCloud
     snapshot = MechSnapshot
 
     def init(self, arguments):  # pylint: disable=no-self-use
