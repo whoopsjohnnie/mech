@@ -11,75 +11,90 @@ There is `--help` on every operation.
 
 # mech --help
 ```
-Usage: mech [options] <command> [<args>...]
+    Usage: mech [options] <command> [<args>...]
 
-Options:
-    -v, --version                    Print the version and exit.
-    -h, --help                       Print this help.
-    --debug                          Show debug messages.
+    Notes:
+        "mech" provides an easy way to control virtual machines.
+        An "instance" is a virtual machine.
 
-Common commands:
+    Options:
+        -v, --version                    Print the version and exit.
+        -h, --help                       Print this help.
+        --debug                          Show debug messages.
+
+    Common commands:
         box               manages boxes: add, list remove, etc.
-        destroy           stops and deletes all traces of the instances
-        (down|stop|halt)  stops the instances
+        destroy           stops and deletes all traces of the instance(s)
+        (down|stop|halt)  stops the instance(s)
         global-status     outputs status of all virutal machines on this host
-        init              initializes a new Mech environment by creating a Mechfile
+        init              initializes a new Mech environment (creates Mechfile)
         ip                outputs ip of an instance
-        (list|ls)         lists all available boxes
-        pause             pauses the instances
-        port              displays information about guest port mappings
-        provision         provisions the Mech machine
-        ps                list running processes for an instance
-        reload            restarts Mech machine, loads new Mechfile configuration
-        resume            resume a paused/suspended Mech machine
-        scp               copies files to/from the machine via SCP
+        (list|ls)         lists instances
+        pause             pauses the instance(s)
+        port              displays guest port mappings (not fully implemented)
+        provision         provisions the instance(s)
+        ps                list running processes in guest
+        (resume|unpause)  resume paused/suspended instance(s)
+        scp               copies files to/from an instance via SCP
         snapshot          manages snapshots: save, list, remove, etc.
-        ssh               connects to an instance via SSH
-        ssh-config        outputs OpenSSH valid configuration to connect to the instances
-        status            outputs status of the instances
-        suspend           suspends the instances
-        (up|start)        starts instances (aka virtual machines)
-        upgrade           upgrade the instances
+        ssh               connects to an instance via SSH (or run a command)
+        ssh-config        outputs OpenSSH valid configuration to connect to instance
+        suspend           suspends the instance(s)
+        (up|start)        starts instance(s)
+        upgrade           upgrade the instance(s) - vmware only
 
-For help on any individual command run `mech <command> -h`
+    For help on any individual command run `mech <command> -h`
 
-Example:
+    All "state" will be saved in .mech directory. (boxes and instances)
 
-    mech up --help
+    Examples:
+
+    Initializing and using a box from HashiCorp's Vagrant Cloud:
+
+        mech init bento/ubuntu-18.04
+        mech up
+        mech ssh
+
+    Having a problem with a command, add the "--debug" option like this:
+
+        mech --debug up
 ```
 
 # mech up --help
 ```
 % mech up --help
-Starts and provisions the mech environment.
+        Starts and provisions the mech environment.
 
-Usage: mech up [options] [<instance>]
+        Usage: mech up [options] [<instance>]
 
-Notes:
-   - If no instance is specified, all instances will be started.
-   - The options (memsize, numvcpus, and no-nat) will only be applied
-     upon first run of the 'up' command.
-   - The 'no-nat' option will only be applied if there is no network
-     interface supplied in the box file.
-   - Unless 'disable-shared-folders' is used, a default read/write
-     share called "mech" will be mounted from the current directory.
-     (ex: '/mnt/hgfs/mech' on guest will have the file "Mechfile".)
-     To change shared folders, modify the Mechfile directly.
-   - The 'remove-vagrant' option will remove the vagrant account from the
-     guest VM which is what 'mech' uses to communicate with the VM.
-     Be sure you can connect/admin the instance before using this option.
+        Notes:
+           - If no instance is specified, all instances will be started.
+           - The options (memsize, numvcpus, and no-nat) will only be applied
+             upon first run of the 'up' command.
+           - The 'no-nat' option will only be applied if there is no network
+             interface supplied in the box file for 'vmware'. For 'virtualbox',
+             if you need internet access from the vm, then you will want to
+             use 'no-nat'. Interface 'en0' will be used for bridge.
+           - Unless 'disable-shared-folders' is used, a default read/write
+             share called "mech" will be mounted from the current directory.
+             '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
+             To add/change shared folders, modify the Mechfile directly, then
+             stop/start the VM.
+           - The 'remove-vagrant' option will remove the vagrant account from the
+             guest VM which is what 'mech' uses to communicate with the VM.
+             Be sure you can connect/admin the instance before using this option.
+             Be sure to check that root cannot ssh, or change the root password.
 
-Options:
-        --disable-provisioning       Do not provision
-        --disable-shared-folders     Do not share folders with VM
-        --gui                        Start GUI
-        --memsize 1024               Specify the size of memory for VM
-        --no-cache                   Do not save the downloaded box
-        --no-nat                     Do not use NAT network (i.e., bridged)
-        --numvcpus 1                 Specify the number of vcpus for VM
-    -h, --help                       Print this help
-    -r, --remove-vagrant             Remove vagrant user
-
+        Options:
+                --disable-provisioning       Do not provision
+                --disable-shared-folders     Do not share folders with VM
+                --gui                        Start GUI
+                --memsize 1024               Specify memory size in MB
+                --no-cache                   Do not save the downloaded box
+                --no-nat                     Do not use NAT network (i.e., bridged)
+                --numvcpus 1                 Specify number of vcpus
+            -h, --help                       Print this help
+            -r, --remove-vagrant             Remove vagrant user
 ```
 
 # Example using mech
@@ -104,36 +119,35 @@ Here is the help info for adding a new instance:
 # mech add --help
 ```
 % mech add -h
-Add instance to the Mechfile.
 
-Usage: mech add [options] <name> <location>
+        Add instance to the Mechfile.
 
-Example box: bento/ubuntu-18.04
+        Usage: mech add [options] <name> <location>
 
-Notes:
-- The 'add-me' option will add the currently logged in user to the guest,
-  add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
-  for that user.
+        Example box: bento/ubuntu-18.04
 
-Options:
-    -a, --add-me                     Add the current host user/pubkey to guest
-        --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
-        --box-version VERSION        Constrain version of the added box
-    -h, --help                       Print this help
-    -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
-    -u, --use-me                     Use the current user for mech interactions
+        Notes:
+        - The 'add-me' option will add the currently logged in user to the guest,
+          add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+          for that user.
+
+        Options:
+            -a, --add-me                     Add the current host user/pubkey to guest
+                --box BOXNAME                Name of the box (ex: bento/ubuntu-18.04)
+                --box-version VERSION        Constrain version of the added box
+            -h, --help                       Print this help
+            -p, --provider PROVIDER          Provider ('vmware' or 'virtualbox')
+            -u, --use-me                     Use the current user for mech interactions
 ```
 
 # mech list
 Here is what it would look like having multiple instance with different providers:
 ```
 % mech list
-                NAME	        ADDRESS	                                BOX	     VERSION	    PROVIDER
-               fifth	     notcreated	                 bento/ubuntu-18.04	 202002.04.0	  virtualbox
-               first	  192.168.3.231	                 bento/ubuntu-18.04	 201912.04.0	      vmware
-              fourth	 192.168.56.134	                 bento/ubuntu-18.04	 202002.04.0	  virtualbox
-              second	     notcreated	              mrlesmithjr/alpine311	  1578437753	      vmware
-               third	     notcreated	                 bento/ubuntu-18.04	 201912.04.0	      vmware
+                NAME	        ADDRESS	                                BOX	     VERSION	    PROVIDER	       STATE
+               first	  192.168.3.134	                 bento/ubuntu-18.04	 201912.04.0	      vmware	     started
+              second	 192.168.56.194	                 bento/ubuntu-18.04	 202002.04.0	  virtualbox	     running
+               third	     notcreated	              mrlesmithjr/alpine311	  1578437753	  virtualbox	  notcreated
 ```
 
 # Installation
@@ -150,7 +164,7 @@ or for the latest:
 
 If the box you init was created properly, you will be able to access
 the host's current working directory in `/mnt/hgfs/mech`. If you are
-having trouble try running:
+having trouble with an Ubuntu guest, try running:
 
 ```bash
 sudo apt-get update
@@ -168,14 +182,6 @@ or
 ```bash
 vmhgfs-fuse .host:/mech /mnt/hgfs
 ```
-
-# Changing vcpus and/or memory size (vmware only)
-
-If you do not specify how many vcpus or memory, then the values
-in the .box file will be used. To override, use appropriate settings:
-
-`mech up --numvcpus 2 --memsize 1024`
-
 
 # Want zsh completion for commands/options (aka "tab completion")?
 1. add these lines to ~/.zshrc
