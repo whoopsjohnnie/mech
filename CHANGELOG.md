@@ -1,3 +1,7 @@
+# v0.8.6
+
++ bugfixes for 'mech cloud init' and 'mech cloud upgrade'
+
 # v0.8.5
 
 + This release provides initial functionality for mech cloud

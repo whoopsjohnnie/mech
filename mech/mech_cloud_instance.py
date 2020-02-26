@@ -114,8 +114,7 @@ class MechCloudInstance():
                  .format(directory=self.directory))
         # create virtualenv, if not already created
         print(colored.blue("Creating python virtual environment (if necessary)..."))
-        self.ssh('if ! [ -d {directory}/venv ]; then '
-                 ' cd {directory}; virtualenv -p python3 venv ; fi'
+        self.ssh('cd {directory}; virtualenv -p python3 venv'
                  .format(directory=self.directory))
         # install mikemech into that python virtual environment using pip
         print(colored.blue("Installing mikemech into that python virtual environment..."))
@@ -139,13 +138,9 @@ class MechCloudInstance():
         """Upgrade the cloud instance.
         """
         print(colored.blue("Updating pip on cloud instance:({})...".format(self.name)))
-        self.ssh('if ! [ -d {directory}/venv ]; then '
-                 ' cd {directory}; pip install -U pip ; fi'
-                 .format(directory=self.directory))
+        self.ssh('source {}/venv/bin/activate && pip install -U pip'.format(self.directory))
         print(colored.blue("Updating mikemech..."))
-        self.ssh('if ! [ -d {directory}/venv ]; then '
-                 ' cd {directory}; pip install -U mikemech ; fi'
-                 .format(directory=self.directory))
+        self.ssh('source {}/venv/bin/activate && pip install -U mikemech'.format(self.directory))
         print("Done.")
 
     def ssh(self, command, print_output_on_error=True):
@@ -158,6 +153,7 @@ class MechCloudInstance():
         return_code, stdout, stderr = utils.ssh_with_username(hostname=self.hostname,
                                                               username=self.username,
                                                               command="'" + command + "'")
+        LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
         if print_output_on_error:
             if return_code != 0:
                 print(colored.red('Warning: Command did not complete successfully.'
