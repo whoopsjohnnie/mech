@@ -2,10 +2,13 @@
 
 set -e
 
-echo "***Be sure you are on master branch.***"
 echo "Change mech/__init__.py version."
 echo "Update the CHANGELOG.md file."
+echo "Update the README.md file, if applicable."
 echo "Commit those changes before running this script."
+echo "Create/merge the pull request."
+
+echo "***Be sure you are on master branch.***"
 
 VERSION=`python setup.py --version`
 

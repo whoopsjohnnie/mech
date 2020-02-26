@@ -4,8 +4,13 @@
 [![codecov](https://codecov.io/gh/mkinney/mech/branch/master/graph/badge.svg)](https://codecov.io/gh/mkinney/mech)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/mikemech)
 
-*Newly added virtualbox functionality.* Please test and provide any feedback/issues.
-By default, the provider will be `vmware`.
+Please test and provide any feedback/issues.
+
+*Newly added virtualbox functionality.* By default, the provider will be `vmware`.
+
+Did you know you can now *provision* using `pyinfra`? See `mech provision --help` for more info.
+
+*Newly added `mech cloud` capability.* See `mech cloud --help` for more info.
 
 There is `--help` on every operation.
 
