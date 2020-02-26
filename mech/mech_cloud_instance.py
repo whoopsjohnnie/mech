@@ -27,6 +27,7 @@
 from __future__ import print_function, absolute_import
 
 import sys
+import re
 import logging
 
 from clint.textui import colored
@@ -45,6 +46,7 @@ class MechCloudInstance():
             raise AttributeError("Must provide a name for the cloud instance.")
         self.name = name
         self.hostname = None
+        self.username = None
         self.directory = None
 
     def read_config(self, name):
@@ -59,6 +61,7 @@ class MechCloudInstance():
 
         self.hostname = clouds[name].get('hostname')
         self.directory = clouds[name].get('directory')
+        self.username = clouds[name].get('username')
 
     def set_hostname(self, hostname):
         if hostname is None or hostname == '':
@@ -68,14 +71,22 @@ class MechCloudInstance():
     def set_directory(self, directory):
         if directory is None or directory == '':
             sys.exit(colored.red("A non-blank directory is required."))
+            if re.search(' ', directory) is not None:
+                sys.exit(colored.red("A directory cannot contain spaces."))
         self.directory = directory
+
+    def set_username(self, username):
+        if username is None or username == '':
+            sys.exit(colored.red("A non-blank username is required."))
+        self.username = username
 
     def __repr__(self):
         """Return a representation of a Mech Cloud instance."""
         sep = '\n'
-        return ('name:{name}{sep}host:{hostname}{sep}directory:{directory}'.
+        return ('name:{name}{sep}host:{hostname}{sep}directory:{directory}'
+                '{sep}username:{username}'.
                 format(name=self.name, hostname=self.hostname, directory=self.directory,
-                       sep=sep))
+                       username=self.username, sep=sep))
 
     def config(self):
         """Return the configuration for this mech clould instance."""
@@ -83,10 +94,61 @@ class MechCloudInstance():
         entry['name'] = self.name
         entry['hostname'] = self.hostname
         entry['directory'] = self.directory
+        entry['username'] = self.username
         return {self.name: entry}
 
     def init(self):
         """Initialize the cloud instance.
             - add entry to Mechcloudfile
         """
+        print(colored.blue("Writing entry to Mechcloudfile..."))
         utils.save_mechcloudfile(self.config())
+        # create remote directory, if it does not exist
+        # Note: If using ~/mike for the directory, then ~ will not be expanded
+        # when surrounded by quotes. For this reason, directory should not have
+        # any spaces in it.
+        print(colored.blue("Creating directory (if necessary)..."))
+        self.ssh('if ! [ -d {directory} ]; then mkdir {directory} ; fi'
+                 .format(directory=self.directory))
+        # create virtualenv, if not already created
+        print(colored.blue("Creating python virtual environment (if necessary)..."))
+        self.ssh('if ! [ -d {directory}/venv ]; then '
+                 ' cd {directory}; virtualenv -p python3 venv ; fi'
+                 .format(directory=self.directory))
+        # install mikemech into that python virtual environment using pip
+        print(colored.blue("Installing mikemech into that python virtual environment..."))
+        self.ssh('source {}/venv/bin/activate && pip install mikemech'.format(self.directory))
+        vmrun_found, _, _ = self.ssh('which vmrun', False)
+        if vmrun_found == 0:
+            print(colored.green("VMware vmrun was found."))
+        else:
+            print(colored.yellow("VMware vmrun was not found."))
+        vbm_found, _, _ = self.ssh('which VBoxManage', False)
+        if vbm_found == 0:
+            print(colored.green("Oracle VBoxManage was found."))
+        else:
+            print(colored.yellow("Oracle VBoxManage was not found."))
+        if vmrun_found != 0 and vbm_found != 0:
+            print(colored.red("Neither VMware vmrun nor Oracle VBoxManage was found."))
+            print(colored.red("The 'mech' command will not be very useful."))
+        print("Done.")
+
+    def ssh(self, command, print_output_on_error=True):
+        """Run ssh command using internal variables (like username and hostname) and print output.
+
+           Parameters:
+              command(str): command to execute (ex: 'chmod +x /tmp/file')
+
+        """
+        return_code, stdout, stderr = utils.ssh_with_username(hostname=self.hostname,
+                                                              username=self.username,
+                                                              command="'" + command + "'")
+        if print_output_on_error:
+            if return_code != 0:
+                print(colored.red('Warning: Command did not complete successfully.'
+                                  '(return_code:{})'.format(return_code)))
+                if stdout:
+                    print(stdout)
+                if stderr:
+                    print(stderr)
+        return return_code, stdout, stderr

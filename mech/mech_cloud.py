@@ -48,14 +48,16 @@ class MechCloud(MechCommand):
         that host as a mech "cloud-instance".
         This would allow you to spin up/down virtual machines on that
         computer. For instance, if you have a could-instance called "top",
-        from this computer, you could init and start a VM on the remote
-        computer using these commands:
-        The host's directory needs to have a virtual environment setup in
-        "venv" and "mech" needs to be installed under that virtual
-        environment, such as: "pip install mikemech".
-
+        you could init and start a VM on the remote computer using
+        these commands:
             mech -C top init bento/ubuntu-18.04
             mech -C top up
+        The host's directory needs to have a virtual environment setup in
+        "venv" and "mech" needs to be installed under that virtual
+        environment, such as: "pip install mikemech". The 'mech cloud init'
+        takes care of this for you.
+        Virtualbox instances are "global". So, you can have only one
+        instance named "first".
 
     Available subcommands:
         init              initialize the mech cloud instance
@@ -72,21 +74,27 @@ class MechCloud(MechCommand):
         Usage: mech cloud init [options] --hostname HOST --directory DIR <cloud-instance>
 
         Notes:
+           The directory will be created with a python virtual environment (venv)
+           and mikemech will be installed into it.
            Can be run again with same cloud-instance. (The values would be
            updated in the Mechcloudfile).
+           The directory should not contain spaces.
 
         Options:
             --hostname HOST                  Hostname (resolvable hostname or ip)
             --directory DIR                  Directory on remote host where mech will be installed
+            --username USER                  Username to use for ssh
             -h, --help                       Print this help
         """
         hostname = arguments['--hostname']
         directory = arguments['--directory']
+        username = arguments['--username']
         cloud_instance = arguments['<cloud-instance>']
 
         inst = MechCloudInstance(cloud_instance)
         inst.set_hostname(hostname)
         inst.set_directory(directory)
+        inst.set_username(username)
         inst.init()
 
     def remove(self, arguments):  # pylint: disable=no-self-use,unused-argument
@@ -100,6 +108,8 @@ class MechCloud(MechCommand):
         """
         cloud_instance = arguments['<cloud-instance>']
         utils.remove_mechcloudfile_entry(name=cloud_instance)
+    # allow 'mech cloud delete' as alias to 'mech cloud remove'
+    delete = remove
 
     def list(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
@@ -113,3 +123,5 @@ class MechCloud(MechCommand):
         clouds = utils.load_mechcloudfile(True)
         # TODO: impove the output
         print(clouds)
+    # allow 'mech cloud ls' as alias to 'mech cloud list'
+    ls = list

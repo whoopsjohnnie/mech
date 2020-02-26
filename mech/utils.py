@@ -1434,3 +1434,18 @@ def load_mechcloudfile(should_exist=True):
                      "Run `mech cloud init` to create a new Mech Cloud environment.")))
         else:
             return {}
+
+
+def ssh_with_username(hostname, username, command):
+    """Run the command on a host using the username.
+    """
+    if hostname != '' and username != '' and command != '':
+        command = 'ssh {username}@{hostname} -- {command}'.format(username=username,
+                                                                  hostname=hostname,
+                                                                  command=command)
+
+        LOGGER.debug('command:%s', command)
+        result = subprocess.run(command, shell=True, capture_output=True)
+        stdout = result.stdout.decode('utf-8')
+        stderr = result.stderr.decode('utf-8')
+        return result.returncode, stdout, stderr

@@ -1,3 +1,8 @@
+# TBD
+
++ This release provides initial functionality for mech cloud
+  See "mech cloud -h" for more info.
+
 # v0.8.4
 
 + This release provides most functionality for virtualbox and vmware

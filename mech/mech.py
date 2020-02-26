@@ -146,10 +146,12 @@ class Mech(MechCommand):
             args_string = ' '.join(args_list)
             LOGGER.debug('cloud_name:%s operations:%s args_list:%s args_string:%s',
                          self.cloud_name, operations, args_list, args_string)
-            command = ('''ssh {hostname} -- "source {directory}/venv/bin/activate '''
-                       '''&& mech {args_string}"''').format(hostname=mci.hostname,
-                                                            directory=mci.directory,
-                                                            args_string=args_string)
+            command = ('''ssh {username}@{hostname} -- "cd {directory}; '''
+                       '''source {directory}/venv/bin/activate && '''
+                       '''mech {args_string}"''').format(hostname=mci.hostname,
+                                                         directory=mci.directory,
+                                                         username=mci.username,
+                                                         args_string=args_string)
             LOGGER.debug('command:%s', command)
             result = subprocess.run(command, shell=True, capture_output=True)
             stdout = result.stdout.decode('utf-8')
