@@ -120,8 +120,33 @@ class MechCloud(MechCommand):
         Options:
             -h, --help                       Print this help
         """
-        clouds = utils.load_mechcloudfile(True)
-        # TODO: impove the output
-        print(clouds)
+        print('=== mech clouds: ===')
+        clouds = self.cloud_instances()
+        for cloud in clouds:
+            mci = MechCloudInstance(cloud)
+            mci.read_config(cloud)
+            print(mci)
+            print()
     # allow 'mech cloud ls' as alias to 'mech cloud list'
     ls = list
+
+    def upgrade(self, arguments):  # pylint: disable=no-self-use,unused-argument
+        """
+        Upgrade pip and mikemech on the cloud instances.
+
+        Usage: mech cloud upgrade [options] [<cloud-instance>]
+
+        Options:
+            -h, --help                       Print this help
+        """
+        cloud_instance = arguments['<cloud-instance>']
+
+        if cloud_instance:
+            instances = [cloud_instance]
+        else:
+            instances = self.cloud_instances()
+
+        for cloud_name in instances:
+            mci = MechCloudInstance(cloud_name)
+            mci.read_config(cloud_name)
+            mci.upgrade()

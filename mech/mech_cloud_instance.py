@@ -83,7 +83,7 @@ class MechCloudInstance():
     def __repr__(self):
         """Return a representation of a Mech Cloud instance."""
         sep = '\n'
-        return ('name:{name}{sep}host:{hostname}{sep}directory:{directory}'
+        return ('name:{name}{sep}hostname:{hostname}{sep}directory:{directory}'
                 '{sep}username:{username}'.
                 format(name=self.name, hostname=self.hostname, directory=self.directory,
                        username=self.username, sep=sep))
@@ -95,14 +95,16 @@ class MechCloudInstance():
         entry['hostname'] = self.hostname
         entry['directory'] = self.directory
         entry['username'] = self.username
-        return {self.name: entry}
+        return entry
 
     def init(self):
         """Initialize the cloud instance.
             - add entry to Mechcloudfile
         """
         print(colored.blue("Writing entry to Mechcloudfile..."))
-        utils.save_mechcloudfile(self.config())
+        clouds = utils.load_mechcloudfile(False)
+        clouds[self.name] = self.config()
+        utils.save_mechcloudfile(clouds)
         # create remote directory, if it does not exist
         # Note: If using ~/mike for the directory, then ~ will not be expanded
         # when surrounded by quotes. For this reason, directory should not have
@@ -131,6 +133,19 @@ class MechCloudInstance():
         if vmrun_found != 0 and vbm_found != 0:
             print(colored.red("Neither VMware vmrun nor Oracle VBoxManage was found."))
             print(colored.red("The 'mech' command will not be very useful."))
+        print("Done.")
+
+    def upgrade(self):
+        """Upgrade the cloud instance.
+        """
+        print(colored.blue("Updating pip on cloud instance:({})...".format(self.name)))
+        self.ssh('if ! [ -d {directory}/venv ]; then '
+                 ' cd {directory}; pip install -U pip ; fi'
+                 .format(directory=self.directory))
+        print(colored.blue("Updating mikemech..."))
+        self.ssh('if ! [ -d {directory}/venv ]; then '
+                 ' cd {directory}; pip install -U mikemech ; fi'
+                 .format(directory=self.directory))
         print("Done.")
 
     def ssh(self, command, print_output_on_error=True):

@@ -58,5 +58,5 @@ class MechCommand(Command):
     def cloud_instances(self):
         """Returns a list of the cloud instances from the Mechcloudfile."""
         if not self.mechcloudfile:
-            self.activate_mechcloudfile()
+            self.mechcloudfile = utils.load_mechcloudfile(False)
         return list(self.mechcloudfile)
