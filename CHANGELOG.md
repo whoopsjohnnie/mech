@@ -1,4 +1,4 @@
-# TBD
+# v0.8.5
 
 + This release provides initial functionality for mech cloud
   See "mech cloud -h" for more info.
