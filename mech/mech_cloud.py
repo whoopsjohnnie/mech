@@ -50,6 +50,9 @@ class MechCloud(MechCommand):
         computer. For instance, if you have a could-instance called "top",
         from this computer, you could init and start a VM on the remote
         computer using these commands:
+        The host's directory needs to have a virtual environment setup in
+        "venv" and "mech" needs to be installed under that virtual
+        environment, such as: "pip install mikemech".
 
             mech -C top init bento/ubuntu-18.04
             mech -C top up
@@ -68,6 +71,10 @@ class MechCloud(MechCommand):
 
         Usage: mech cloud init [options] --hostname HOST --directory DIR <cloud-instance>
 
+        Notes:
+           Can be run again with same cloud-instance. (The values would be
+           updated in the Mechcloudfile).
+
         Options:
             --hostname HOST                  Hostname (resolvable hostname or ip)
             --directory DIR                  Directory on remote host where mech will be installed
@@ -84,7 +91,7 @@ class MechCloud(MechCommand):
 
     def remove(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
-        Remove a Mech Cloud configuration.
+        Remove a Mech Cloud instance
 
         Usage: mech cloud remove [options] <cloud-instance>
 
@@ -104,4 +111,5 @@ class MechCloud(MechCommand):
             -h, --help                       Print this help
         """
         clouds = utils.load_mechcloudfile(True)
+        # TODO: impove the output
         print(clouds)
