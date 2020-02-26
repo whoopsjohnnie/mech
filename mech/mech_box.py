@@ -46,6 +46,8 @@ class MechBox(MechCommand):
     """
     Usage: mech box <subcommand> [<args>...]
 
+    Note: Cloud operations are not yet operational/supported.
+
     Available subcommands:
         add               add a box to the catalog of available boxes
         (list|ls)         list available boxes in the catalog

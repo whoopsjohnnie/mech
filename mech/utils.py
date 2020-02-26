@@ -188,10 +188,8 @@ def save_mechfile_entry(mechfile_entry, name, mechfile_should_exist=False):
     LOGGER.debug('mechfile_entry:%s name:%s mechfile_should_exist:%s',
                  mechfile_entry, name, mechfile_should_exist)
     mechfile = load_mechfile(mechfile_should_exist)
-
     mechfile[name] = mechfile_entry
-
-    LOGGER.debug("after adding name:%s mechfile:%s", name, mechfile)
+    LOGGER.debug("name:%s mechfile:%s", name, mechfile)
     return save_mechfile(mechfile)
 
 
@@ -1391,3 +1389,63 @@ def get_provider(vmrun_executable):
         map(b2s, proc.communicate())
         if proc.returncode == 0:
             return provider
+
+
+def save_mechcloudfile(inst):
+    """Save the inst (which is a dict) to a file called 'Mechcloudfile'.
+       Return True if save was successful.
+    """
+    LOGGER.debug('inst:%s', inst)
+    with open(os.path.join(main_dir(), 'Mechcloudfile'), 'w+') as the_file:
+        json.dump(inst, the_file, sort_keys=True, indent=2, separators=(',', ': '))
+    return True
+
+
+def remove_mechcloudfile_entry(name, should_exist=True):
+    """Remove an entry from the Mechcloudfile."""
+    LOGGER.debug('name:%s should_exist:%s', name, should_exist)
+    clouds = load_mechcloudfile(should_exist)
+
+    if clouds.get(name):
+        del clouds[name]
+
+    LOGGER.debug("after removing name:%s clouds:%s", name, clouds)
+    return save_mechcloudfile(clouds)
+
+
+def load_mechcloudfile(should_exist=True):
+    """Load the Mechcloudfile from disk and return as a dictionary."""
+    fullpath = os.path.join(main_dir(), 'Mechcloudfile')
+    LOGGER.debug("fullpath:%s", fullpath)
+    if os.path.isfile(fullpath):
+        with open(fullpath) as the_file:
+            try:
+                clouds = json.loads(the_file.read())
+                LOGGER.debug('clouds:%s', clouds)
+                return clouds
+            except ValueError:
+                print(colored.red("Invalid Mechcloudfile." + os.linesep))
+                return {}
+    else:
+        if should_exist:
+            sys.exit(colored.red(textwrap.fill(
+                     "Could not find a Mechcloudfile in the current directory. "
+                     "A Mech Cloud configuration is required to run this command."
+                     "Run `mech cloud init` to create a new Mech Cloud environment.")))
+        else:
+            return {}
+
+
+def ssh_with_username(hostname, username, command):
+    """Run the command on a host using the username.
+    """
+    if hostname != '' and username != '' and command != '':
+        command = 'ssh {username}@{hostname} -- {command}'.format(username=username,
+                                                                  hostname=hostname,
+                                                                  command=command)
+
+        LOGGER.debug('command:%s', command)
+        result = subprocess.run(command, shell=True, capture_output=True)
+        stdout = result.stdout.decode('utf-8')
+        stderr = result.stderr.decode('utf-8')
+        return result.returncode, stdout, stderr

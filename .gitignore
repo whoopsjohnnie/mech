@@ -11,3 +11,4 @@ Mechfile
 .*swp
 venv/
 mikemech.egg-info/
+tmp/

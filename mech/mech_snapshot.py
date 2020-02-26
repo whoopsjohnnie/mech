@@ -42,6 +42,8 @@ class MechSnapshot(MechCommand):
     """
     Usage: mech snapshot <subcommand> [<args>...]
 
+    Note: Cloud operations are not yet operational/supported.
+
     Available subcommands:
         (delete|remove)   delete a snapshot taken previously with snapshot save
         (list|ls)         list all snapshots taken for a machine

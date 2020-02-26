@@ -19,7 +19,7 @@ def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd,
                             mechfile_one_entry):
     """Test 'mech list' with one entry."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': False}
     a_mech.list(list_arguments)
@@ -35,7 +35,7 @@ def test_mech_list_with_one_witout_box_version(mock_locate, mock_load_mechfile, 
                                                mechfile_one_entry_without_box_version):
     """Test 'mech list' with one entry."""
     mock_load_mechfile.return_value = mechfile_one_entry_without_box_version
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': False}
     a_mech.list(list_arguments)
@@ -51,7 +51,7 @@ def test_mech_list_with_one_and_debug(mock_locate, mock_load_mechfile, capfd,
                                       mechfile_one_entry):
     """Test 'mech list' with one entry."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': True}
+    global_arguments = {'--debug': True, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': True}
     a_mech.list(list_arguments)
@@ -67,7 +67,7 @@ def test_mech_list_with_two_not_created(mock_locate, mock_load_mechfile, capfd,
                                         mechfile_two_entries):
     """Test 'mech list' with two entries."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     list_arguments = {'--detail': False}
     a_mech.list(list_arguments)
@@ -85,7 +85,7 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
                               mechfile_two_entries):
     """Test 'mech list' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
     with patch.object(mech.mech_instance.MechInstance,
@@ -104,7 +104,7 @@ def test_mech_list_powered_on_cannot_get_ip(mock_locate, mock_load_mechfile,
                                             capfd, mechfile_two_entries):
     """Test 'mech list' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
     with patch.object(mech.mech_instance.MechInstance,
@@ -123,7 +123,7 @@ def test_mech_list_powered_off(mock_locate, mock_load_mechfile,
                                capfd, mechfile_two_entries):
     """Test 'mech list' powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {'<instance>': 'first', '--detail': None}
     with patch.object(mech.mech_instance.MechInstance,
@@ -150,7 +150,7 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
     """Test 'mech destroy' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_rmtree.return_value = True
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -177,7 +177,7 @@ def test_mech_destroy_prompted_and_answered_no(mock_locate, mock_load_mechfile,
                                                capfd, mechfile_two_entries):
     """Test 'mech destroy' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -200,7 +200,7 @@ def test_mech_destroy_not_created(mock_locate, mock_load_mechfile,
                                   capfd, mechfile_two_entries):
     """Test 'mech destroy' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -222,7 +222,7 @@ def test_mech_down(mock_locate, mock_load_mechfile,
                    capfd, mechfile_two_entries):
     """Test 'mech down' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -246,7 +246,7 @@ def test_mech_down_no_vmware_tools_and_stopped_fails(mock_locate, mock_load_mech
                                                      capfd, mechfile_two_entries):
     """Test 'mech down' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -267,7 +267,7 @@ def test_mech_down_not_created(mock_locate, mock_load_mechfile,
                                capfd, mechfile_two_entries):
     """Test 'mech down' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -286,7 +286,7 @@ def test_mech_ip(mock_locate, mock_load_mechfile,
                  capfd, mechfile_two_entries):
     """Test 'mech ip' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -308,7 +308,7 @@ def test_mech_ip_unknown(mock_locate, mock_load_mechfile,
                          capfd, mechfile_two_entries):
     """Test 'mech ip' but cannot get ip address."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -329,7 +329,7 @@ def test_mech_ip_not_created(mock_locate, mock_load_mechfile,
                              capfd, mechfile_two_entries):
     """Test 'mech ip' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -419,7 +419,7 @@ versions/1578437753/providers/vmware_desktop.box",
 def test_mech_provision_file(mock_locate, mock_load_mechfile,
                              mock_provision_file, capfd):
     """Test 'mech provision' (using file provisioning)."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -438,7 +438,7 @@ def test_mech_provision_file(mock_locate, mock_load_mechfile,
 def test_mech_provision_with_pyinfra_show(mock_locate, mock_load_mechfile,
                                           capfd):
     """Test 'mech provision' (using file provisioning)."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'fourth',
@@ -458,7 +458,7 @@ def test_mech_provision_with_pyinfra_show(mock_locate, mock_load_mechfile,
 def test_mech_provision_with_pyinfra_fails(mock_locate, mock_load_mechfile,
                                            mock_provision_pyinfra, capfd):
     """Test 'mech provision' (using file provisioning)."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'fourth',
@@ -476,7 +476,7 @@ def test_mech_provision_with_pyinfra_fails(mock_locate, mock_load_mechfile,
 @patch('mech.utils.locate', return_value=None)
 def test_mech_provision_not_started(mock_locate, mock_load_mechfile, capfd):
     """Test 'mech provision' (using file provisioning)."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -495,7 +495,7 @@ def test_mech_provision_not_started(mock_locate, mock_load_mechfile, capfd):
 def test_mech_provision_shell(mock_locate, mock_load_mechfile,
                               mock_provision_shell, capfd):
     """Test 'mech provision' (using shell provisioning)."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'second',
@@ -516,7 +516,7 @@ def test_mech_suspend(mock_locate, mock_load_mechfile,
                       mock_vmrun_suspend, capfd, mechfile_two_entries):
     """Test 'mech suspend' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -536,7 +536,7 @@ def test_mech_suspend_fails(mock_locate, mock_load_mechfile,
                             mock_vmrun_suspend, capfd, mechfile_two_entries):
     """Test 'mech suspend' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -555,7 +555,7 @@ def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
                                   capfd, mechfile_two_entries):
     """Test 'mech suspend' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -581,7 +581,7 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
     mock_subprocess_run.return_value.returncode = 0
     mock_subprocess_run.stdout = b'00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00\n'
     mock_subprocess_run.stderr = b''
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -609,7 +609,7 @@ def test_mech_ssh_not_created(mock_locate, mock_load_mechfile,
                               mechfile_two_entries, capfd):
     """Test 'mech ssh'"""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -631,7 +631,7 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
                     mock_vmrun_pause, capfd, mechfile_two_entries):
     """Test 'mech pause' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -652,7 +652,7 @@ def test_mech_pause_not_paused(mock_locate, mock_load_mechfile,
                                mock_vmrun_pause, capfd, mechfile_two_entries):
     """Test 'mech pause' powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -672,7 +672,7 @@ def test_mech_pause_not_created(mock_locate, mock_load_mechfile,
                                 capfd, mechfile_two_entries):
     """Test 'mech pause' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -695,7 +695,7 @@ def test_mech_upgrade_created_powered_off_upgrade_fails(mock_locate, mock_load_m
                                                         capfd, mechfile_two_entries):
     """Test 'mech upgrade' with vm created and powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -720,7 +720,7 @@ def test_mech_upgrade_created_powered_off_upgrade_works(mock_locate, mock_load_m
                                                         capfd, mechfile_two_entries):
     """Test 'mech upgrade' with vm created and powered off."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -743,7 +743,7 @@ def test_mech_upgrade_created__powered_on(mock_locate, mock_load_mechfile,
                                           capfd, mechfile_two_entries):
     """Test 'mech upgrade' with vm created and powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -763,7 +763,7 @@ def test_mech_upgrade_not_created(mock_locate, mock_load_mechfile,
                                   capfd, mechfile_two_entries):
     """Test 'mech upgrade' not created."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -785,7 +785,7 @@ def test_mech_resume(mock_locate, mock_load_mechfile,
                      mock_vmrun_disable_shared_folders, capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -813,7 +813,7 @@ def test_mech_resume_unknown_ip(mock_locate, mock_load_mechfile,
                                 mock_vmrun_disable_shared_folders, capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -838,7 +838,7 @@ def test_mech_resume_not_created(mock_locate, mock_load_mechfile,
                                  capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -862,7 +862,7 @@ def test_mech_resume_unpause_unsuccessful_start_fails(mock_locate, mock_load_mec
                                                       capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -889,7 +889,7 @@ def test_mech_resume_shared_folders(mock_locate, mock_load_mechfile,
                                     capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -922,7 +922,7 @@ def test_mech_resume_unpause_fails_starts_successfully_with_shared_folders(
         capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -953,7 +953,7 @@ def test_mech_resume_unpause_fails_starts_successfully_unknown_ip(
         capfd, mechfile_two_entries):
     """Test 'mech resume'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -986,7 +986,7 @@ MECHFILE_BAD_ENTRY = {
 def test_mech_up_without_name(mock_load_mechfile):
     """Test 'mech up' (overriding name to be '') to test exception."""
     mock_load_mechfile.return_value = MECHFILE_BAD_ENTRY
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--detail': False,
@@ -1009,7 +1009,7 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
                                            mechfile_one_entry):
     """Test 'mech up' with a name that is not in the Mechfile."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--detail': False,
@@ -1037,7 +1037,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
                                  mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1075,7 +1075,7 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
                                              mechfile_one_entry_with_auth):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry_with_auth
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1111,7 +1111,7 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
                                                       capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1143,7 +1143,7 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
                                                     mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1175,7 +1175,7 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile,
                          mechfile_one_entry):
     """Test 'mech up' when issue with starting VM"""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1205,7 +1205,7 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
                                    mock_provision, capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1241,7 +1241,7 @@ def test_mech_up_without_provisioning_without_shared_not_created(mock_locate,
                                                                  mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1277,7 +1277,7 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile,
                                     capfd, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '--gui': False,
@@ -1308,7 +1308,7 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile, capfd,
                                      mechfile_one_entry):
     """Test 'mech ssh-config' when vm is not created."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': None,
@@ -1329,7 +1329,7 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
     mock_locate.return_value = '/tmp/first/some.vmx'
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -1351,7 +1351,7 @@ def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-a
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
     mock_chmod.return_value = 0
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -1378,7 +1378,7 @@ def test_mech_port_with_nat_from_linux(mock_locate, mock_load_mechfile,
                                        mechfile_one_entry):
     """Test 'mech port' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
@@ -1404,7 +1404,7 @@ def test_mech_port_with_nat_from_mac(mock_locate, mock_load_mechfile, mock_list_
                                      mechfile_one_entry):
     """Test 'mech port' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
@@ -1433,7 +1433,7 @@ def test_mech_port_with_nat_and_instance_from_mac(mock_locate, mock_load_mechfil
                                                   mechfile_one_entry):
     """Test 'mech port first' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': 'first'}
@@ -1467,7 +1467,7 @@ def test_mech_port_with_nat_two_hosts_from_mac(mock_locate, mock_load_mechfile,
                                                mechfile_two_entries):
     """Test 'mech port' with nat networking and two instances."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
@@ -1498,7 +1498,7 @@ def test_mech_port_without_nat_from_mac(mock_locate, mock_load_mechfile,
                                         mechfile_one_entry):
     """Test 'mech port' without nat."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     port_arguments = {}
     port_arguments = {'<instance>': None}
@@ -1523,7 +1523,7 @@ def test_mech_init(mock_os_getcwd, mock_os_path_exists,
     """Test 'mech init' from Hashicorp'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = False
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     mock_requests_get.return_value.status_code = 200
     mock_requests_get.return_value.json.return_value = catalog_as_json
 
@@ -1543,7 +1543,7 @@ def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists,
     """Test 'mech init' when Mechfile exists'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = True
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = mech_init_arguments
     arguments['<location>'] = 'bento/ubuntu-18.04'
@@ -1557,7 +1557,7 @@ def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists, me
     """Test if we do not have a valid location. (must be in form of 'hashiaccount/boxname')."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = False
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = mech_add_arguments
     arguments['<location>'] = 'bento'
@@ -1574,7 +1574,7 @@ def test_mech_add_mechfile_exists(mock_os_getcwd,
     mock_os_getcwd.return_value = '/tmp'
     mock_requests_get.return_value.status_code = 200
     mock_requests_get.return_value.json.return_value = catalog_as_json
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = mech_add_arguments
     arguments['<location>'] = 'bento/ubuntu-18.04'
@@ -1587,7 +1587,7 @@ def test_mech_add_mechfile_exists(mock_os_getcwd,
 
 def test_mech_add_mechfile_exists_no_name(mech_add_arguments):
     """Test 'mech add' when Mechfile exists but no name provided'."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = mech_add_arguments
     arguments['<location>'] = 'bento/ubuntu-18.04'
@@ -1603,7 +1603,7 @@ def test_mech_remove(mock_os_getcwd, mock_load_mechfile, capfd,
     """Test 'mech remove'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<name>': 'first',
@@ -1622,7 +1622,7 @@ def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile,
     """Test 'mech remove'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<name>': 'second',
@@ -1633,7 +1633,7 @@ def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile,
 
 def test_mech_remove_no_name():
     """Test 'mech remove' no name provided'."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<name>': None,
@@ -1646,7 +1646,7 @@ def test_mech_remove_no_name():
 @patch('mech.vmrun.VMrun.list', return_value="Total running VMs: 0")
 def test_mech_global_status(mock_list, mock_vmrun_installed, capfd):
     """Test 'mech global-status'."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {}
     a_mech.global_status(arguments)
@@ -1676,7 +1676,7 @@ def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_ssh, capfd,
     mock_ssh.return_value = 0, PROCESSES, ''
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'first',
@@ -1699,7 +1699,7 @@ def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
     """Test 'mech ps'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<instance>': 'second',
@@ -1724,7 +1724,7 @@ def test_mech_scp_host_to_guest(mock_locate,
                                 mechfile_two_entries):
     """Test 'mech scp'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<extra-ssh-args>': 'foo',
@@ -1767,7 +1767,7 @@ def test_mech_scp_guest_to_host(mock_locate,
     mock_subprocess_run.stderr = b''
 
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<extra-ssh-args>': None,
@@ -1796,7 +1796,7 @@ def test_mech_scp_guest_to_host_not_created(mock_locate,
                                             mechfile_two_entries):
     """Test 'mech scp'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<extra-ssh-args>': None,
@@ -1812,7 +1812,7 @@ def test_mech_scp_guest_to_host_not_created(mock_locate,
 
 def test_mech_scp_both_are_guests():
     """Test 'mech scp'."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<extra-ssh-args>': None,
@@ -1825,7 +1825,7 @@ def test_mech_scp_both_are_guests():
 
 def test_mech_scp_no_guests():
     """Test 'mech scp'."""
-    global_arguments = {'--debug': False}
+    global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
     arguments = {
         '<extra-ssh-args>': None,
