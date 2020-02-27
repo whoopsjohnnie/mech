@@ -114,7 +114,7 @@ class MechCloudInstance():
                  .format(directory=self.directory))
         # create virtualenv, if not already created
         print(colored.blue("Creating python virtual environment (if necessary)..."))
-        self.ssh('cd {directory}; virtualenv -p python3 venv'
+        self.ssh('cd {directory}; virtualenv -p python3.7 venv'
                  .format(directory=self.directory))
         # install mikemech into that python virtual environment using pip
         print(colored.blue("Installing mikemech into that python virtual environment..."))

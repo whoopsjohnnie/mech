@@ -75,6 +75,10 @@ class VBoxManage():
         else:
             return False
 
+    def get_executable(self):
+        """Return the executable value. (could be None or a string)."""
+        return self.executable
+
     def run(self, cmd, *args, **kwargs):
         """Execute a command."""
         quiet = kwargs.pop('quiet', False)

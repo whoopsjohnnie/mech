@@ -43,9 +43,11 @@ setup(
         "Operating System :: OS Independent",
         "Topic :: System :: Emulators",
         "Topic :: Utilities",
-        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
     ],
     install_requires=['requests', 'clint', 'docopt', 'filelock', 'pyinfra'],
+    python_requires='>=3.7',
     packages=['mech'],
     entry_points={
         'console_scripts': [

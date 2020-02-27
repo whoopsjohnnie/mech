@@ -79,6 +79,10 @@ class VMrun():  # pylint: disable=too-many-public-methods
         else:
             return False
 
+    def get_executable(self):
+        """Return the executable value. (could be None or a string)."""
+        return self.executable
+
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""
         quiet = kwargs.pop('quiet', False)

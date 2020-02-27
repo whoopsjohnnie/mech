@@ -42,20 +42,32 @@ class MechCloud(MechCommand):
     Usage: mech cloud <subcommand> [<args>...]
 
     Notes:
+
         Mech Cloud is an easy way to expose resources for non-local use.
-        For instance, if you have a spare desktop/laptop, install
-        VMware Workstation and/or Oracle VirtualBox and add
-        that host as a mech "cloud-instance".
+
+        If you have a spare desktop/laptop, install:
+            1. VMware Workstation and/or Oracle VirtualBox
+            2. For Ubuntu (as root):
+               apt-get install python3.7 python3-pip
+               pip3 install virtualenv
+
+        See https://github.com/Fizzadar/pyinfra/tree/master/examples/virtualbox
+        to install virtualbox using `pyinfra`.
+
+        Then add that host as a mech "cloud-instance" using the
+        "mech cloud init" command.
+
         This would allow you to spin up/down virtual machines on that
         computer. For instance, if you have a could-instance called "top",
-        you could init and start a VM on the remote computer using
-        these commands:
+        you could init and start a VM on the remote computer using:
             mech -C top init bento/ubuntu-18.04
             mech -C top up
+
         The host's directory needs to have a virtual environment setup in
         "venv" and "mech" needs to be installed under that virtual
         environment, such as: "pip install mikemech". The 'mech cloud init'
         takes care of this for you.
+
         Virtualbox instances are "global". So, you can have only one
         instance named "first".
 
@@ -79,6 +91,7 @@ class MechCloud(MechCommand):
            Can be run again with same cloud-instance. (The values would be
            updated in the Mechcloudfile).
            The directory should not contain spaces.
+           The host is assumed to be Ubuntu and have pre-requisites installed.
 
         Options:
             --hostname HOST                  Hostname (resolvable hostname or ip)
@@ -108,6 +121,8 @@ class MechCloud(MechCommand):
         """
         cloud_instance = arguments['<cloud-instance>']
         utils.remove_mechcloudfile_entry(name=cloud_instance)
+        print("Removed ({}) from mech cloud.".format(cloud_instance))
+        print("Be sure to remove any running virtual machines.")
     # allow 'mech cloud delete' as alias to 'mech cloud remove'
     delete = remove
 
@@ -132,7 +147,7 @@ class MechCloud(MechCommand):
 
     def upgrade(self, arguments):  # pylint: disable=no-self-use,unused-argument
         """
-        Upgrade pip and mikemech on the cloud instances.
+        Upgrade 'pip' and 'mikemech' on the cloud instances.
 
         Usage: mech cloud upgrade [options] [<cloud-instance>]
 

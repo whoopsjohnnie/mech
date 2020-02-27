@@ -536,6 +536,8 @@ def add_box(name=None, box=None, box_version=None, location=None,
         box_version=box_version,
         provider=provider)
 
+    report_provider(provider)
+
     return add_mechfile(
         mechfile_entry,
         name=name,
@@ -1449,3 +1451,40 @@ def ssh_with_username(hostname, username, command):
         stdout = result.stdout.decode('utf-8')
         stderr = result.stderr.decode('utf-8')
         return result.returncode, stdout, stderr
+
+
+def vmrun_installed():
+    """Return True if the utility 'vmrun' is installed, otherwise return False.
+    """
+    vmrun = VMrun()
+    if vmrun.get_executable() is None:
+        return False
+    else:
+        return True
+
+
+def vbm_installed():
+    """Return True if the utility 'VBoxManage' is installed, otherwise return False.
+    """
+    vbm = mech.vbm.VBoxManage()
+    if vbm.get_executable() is None:
+        return False
+    else:
+        return True
+
+
+def report_provider(provider):
+    """Check if this provider is available."""
+    ok = True
+    if not valid_provider(provider):
+        print(colored.red("Invalid provider ({})".format(provider)))
+        ok = False
+    if provider == 'vmware':
+        if not vmrun_installed():
+            print(colored.red("Provider is not available. Install VMware or change provider."))
+            ok = False
+    elif provider == 'virtualbox':
+        if not vbm_installed():
+            print(colored.red("Provider is not available. Install Virtualbox or change provider."))
+            ok = False
+    return ok
