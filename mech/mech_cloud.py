@@ -45,11 +45,19 @@ class MechCloud(MechCommand):
 
         Mech Cloud is an easy way to expose resources for non-local use.
 
-        If you have a spare desktop/laptop, install:
-            1. VMware Workstation and/or Oracle VirtualBox
-            2. For Ubuntu (as root):
-               apt-get install python3.7 python3-pip
-               pip3 install virtualenv
+        If you have a spare desktop/laptop:
+
+            1. Install VMware Workstation and/or Oracle VirtualBox, and
+
+            2. Install pre-requisites ("python3.7+" and "virtualenv")
+
+               For Ubuntu:
+                 sudo apt-get install python3.7 python3-pip
+                 sudo pip3 install virtualenv
+
+               For Fedora:
+                 sudo dnf install python37 python3-pip
+                 sudo pip3 install virtualenv
 
         See https://github.com/Fizzadar/pyinfra/tree/master/examples/virtualbox
         to install virtualbox using `pyinfra`.
@@ -87,11 +95,10 @@ class MechCloud(MechCommand):
 
         Notes:
            The directory will be created with a python virtual environment (venv)
-           and mikemech will be installed into it.
-           Can be run again with same cloud-instance. (The values would be
-           updated in the Mechcloudfile).
+           and "mikemech" will be installed into it.
+           The "mech init" operation can be run again with same cloud-instance.
+           (The values would be updated in the Mechcloudfile).
            The directory should not contain spaces.
-           The host is assumed to be Ubuntu and have pre-requisites installed.
 
         Options:
             --hostname HOST                  Hostname (resolvable hostname or ip)

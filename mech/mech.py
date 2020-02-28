@@ -220,7 +220,7 @@ class Mech(MechCommand):
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
                 "`Mechfile` already exists in this directory. Remove it "
-                "before running `mech init`.")))
+                "before running `mech init` or use `mech add`.")))
 
         utils.report_provider(provider)
 
