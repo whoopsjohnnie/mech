@@ -1408,43 +1408,16 @@ def test_vm_ready_based_on_state():
     assert not mech.utils.vm_ready_based_on_state('power off')
 
 
-@patch('mech.utils.vmrun_installed', return_value=True)
-def test_report_provider_when_vmware_is_installed(mock_vmrun_installed):
+def test_report_provider_when_vmware_is_installed():
     """Test report_provider."""
-    assert not mech.utils.report_provider('atari')
-    assert mech.utils.report_provider('vmware')
-
-
-@patch('mech.utils.vbm_installed', return_value=True)
-def test_report_provider_when_virtualbox_is_installed(mock_vbm_installed):
-    """Test report_provider."""
-    assert mech.utils.report_provider('virtualbox')
-
-
-def test_vmrun_installed_when_no_executable():
-    """Test vmrun_installed."""
-    with patch.object(mech.vmrun.VMrun, 'get_executable', return_value=None) as mock_vmrun:
-        assert not mech.utils.vmrun_installed()
+    with patch.object(mech.vmrun.VMrun, 'installed', return_value=True) as mock_vmrun:
+        assert not mech.utils.report_provider('atari')
+        assert mech.utils.report_provider('vmware')
         mock_vmrun.assert_called()
 
 
-def test_vmrun_installed_when_installed():
-    """Test vmrun_installed."""
-    with patch.object(mech.vmrun.VMrun, 'get_executable', return_value='/bin/vmrun') as mock_vmrun:
-        assert mech.utils.vmrun_installed()
-        mock_vmrun.assert_called()
-
-
-def test_vbm_installed_when_no_executable():
-    """Test vbm_installed."""
-    with patch.object(mech.vbm.VBoxManage, 'get_executable', return_value=None) as mock_vbm:
-        assert not mech.utils.vbm_installed()
-        mock_vbm.assert_called()
-
-
-def test_vbm_installed_when_installed():
-    """Test vbm_installed."""
-    with patch.object(mech.vbm.VBoxManage, 'get_executable',
-                      return_value='/bin/VBoxManage') as mock_vbm:
-        assert mech.utils.vbm_installed()
+def test_report_provider_when_virtualbox_is_installed():
+    """Test report_provider."""
+    with patch.object(mech.vbm.VBoxManage, 'installed', return_value=True) as mock_vbm:
+        assert mech.utils.report_provider('virtualbox')
         mock_vbm.assert_called()
