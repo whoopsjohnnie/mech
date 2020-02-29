@@ -32,6 +32,97 @@ def test_mech_dir(mock_os_getcwd):
     assert mechdir == '/tmp/.mech'
 
 
+@patch('mech.utils.virtualbox_share_folder_post_boot')
+def test_start_vm_vbm_no_nat(mock_share_folder, mechfile_one_entry):
+    """Test start_vm()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.no_nat = True
+    inst.provider = 'virtualbox'
+    inst.disable_shared_folders = False
+    inst.disable_provisioning = True
+    print('inst:{}'.format(inst))
+    with patch.object(mech.vbm.VBoxManage, 'bridged', return_value=None) as mock_bridged:
+        with patch.object(mech.vbm.VBoxManage, 'start', return_value=None) as mock_start:
+            with patch.object(mech.vbm.VBoxManage, 'list_running',
+                              return_value=['first']) as mock_list_running:
+                with patch.object(inst, 'get_ip',
+                                  return_value='192.168.1.200') as mock_get_ip:
+                    mech.utils.start_vm(inst)
+                    mock_get_ip.assert_called()
+                    mock_list_running.assert_called()
+                    mock_start.assert_called()
+                    mock_bridged.assert_called()
+                    mock_share_folder.assert_called()
+
+
+def test_start_vm_vbm(mechfile_one_entry):
+    """Test start_vm()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.no_nat = False
+    inst.provider = 'virtualbox'
+    inst.disable_shared_folders = True
+    inst.disable_provisioning = True
+    print('inst:{}'.format(inst))
+    with patch.object(mech.vbm.VBoxManage,
+                      'create_hostonly', return_value=None) as mock_create_hostonly:
+        with patch.object(mech.vbm.VBoxManage, 'hostonly', return_value=None) as mock_hostonly:
+            with patch.object(mech.vbm.VBoxManage, 'start', return_value=None) as mock_start:
+                with patch.object(mech.vbm.VBoxManage, 'list_running',
+                                  return_value=['first']) as mock_list_running:
+                    with patch.object(inst, 'get_ip', return_value='192.168.1.200') as mock_get_ip:
+                        mech.utils.start_vm(inst)
+                        mock_get_ip.assert_called()
+                        mock_list_running.assert_called()
+                        mock_start.assert_called()
+                        mock_hostonly.assert_called()
+                        mock_create_hostonly.assert_called()
+
+
+def test_unpause_vm_vbm(mechfile_one_entry):
+    """Test unpause_vm()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.no_nat = False
+    inst.provider = 'virtualbox'
+    inst.disable_shared_folders = True
+    inst.disable_provisioning = True
+    print('inst:{}'.format(inst))
+    with patch.object(mech.vbm.VBoxManage, 'resume', return_value=True) as mock_resume:
+        with patch.object(inst, 'get_ip', return_value='192.168.1.200') as mock_get_ip:
+            mech.utils.unpause_vm(inst)
+            mock_get_ip.assert_called()
+            mock_resume.assert_called()
+
+
+@patch('mech.utils.start_vm')
+def test_unpause_vm_unsuccessful_vbm(mock_start_vm, mechfile_one_entry):
+    """Test unpause_vm()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.no_nat = False
+    inst.provider = 'virtualbox'
+    inst.disable_shared_folders = True
+    inst.disable_provisioning = True
+    print('inst:{}'.format(inst))
+    with patch.object(mech.vbm.VBoxManage, 'resume', return_value=None) as mock_resume:
+        mech.utils.unpause_vm(inst)
+        mock_resume.assert_called()
+        mock_start_vm.assert_called()
+
+
+def test_unpause_vm_vbm_unknown_ip(mechfile_one_entry):
+    """Test unpause_vm()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.no_nat = False
+    inst.provider = 'virtualbox'
+    inst.disable_shared_folders = True
+    inst.disable_provisioning = True
+    print('inst:{}'.format(inst))
+    with patch.object(mech.vbm.VBoxManage, 'resume', return_value=True) as mock_resume:
+        with patch.object(inst, 'get_ip', return_value=None) as mock_get_ip:
+            mech.utils.unpause_vm(inst)
+            mock_get_ip.assert_called()
+            mock_resume.assert_called()
+
+
 @patch('os.makedirs')
 def test_makedirs(mock_os_makedirs):
     """Test makedirs()."""

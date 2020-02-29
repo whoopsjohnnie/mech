@@ -72,7 +72,10 @@ def makedirs(name, mode=0o777):
 
 
 def start_vm(inst):
-    """Start VM."""
+    """Start VM.
+       inst is a MechInstance
+    """
+    LOGGER.debug('inst:%s', inst)
     started = None
     if inst.provider == 'vmware':
         # Note: user/password is needed for provisioning
