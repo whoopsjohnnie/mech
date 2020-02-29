@@ -1555,16 +1555,18 @@ def test_init_box_success_virtualbox(mock_locate, mock_add_box, mock_makedirs,
                                '/tmp/first/some.ovf', '/tmp/first/some.vbox']
     mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
     expected = '/tmp/first/some.vbox'
-    with patch('mech.utils.rmtree') as mock_rmtree:
-        got = mech.utils.init_box(name='first', box='bento/ubuntu',
-                                  box_version='1.23', provider='virtualbox',
-                                  instance_path='/tmp/first', save=False)
-        mock_locate.assert_called()
-        mock_add_box.assert_called()
-        mock_makedirs.assert_called()
-        mock_popen.assert_called()
-        mock_rmtree.assert_called()
-        assert got == expected
+    with patch.object(mech.vbm.VBoxManage, 'importvm') as mock_import:
+        with patch('mech.utils.rmtree') as mock_rmtree:
+            got = mech.utils.init_box(name='first', box='bento/ubuntu',
+                                      box_version='1.23', provider='virtualbox',
+                                      instance_path='/tmp/first', save=False)
+            mock_locate.assert_called()
+            mock_add_box.assert_called()
+            mock_makedirs.assert_called()
+            mock_popen.assert_called()
+            mock_rmtree.assert_called()
+            mock_import.assert_called()
+            assert got == expected
 
 
 @patch('subprocess.Popen')
@@ -1585,9 +1587,10 @@ def test_init_box_virtualbox_no_vbox(mock_locate, mock_add_box, mock_makedirs,
                                '/tmp/first/some.ovf', None]
     mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
     with raises(SystemExit, match=r"Cannot locate a vbox file"):
-        mech.utils.init_box(name='first', box='bento/ubuntu',
-                            box_version='1.23', provider='virtualbox',
-                            instance_path='/tmp/first', save=False)
+        with patch.object(mech.vbm.VBoxManage, 'importvm'):
+            mech.utils.init_box(name='first', box='bento/ubuntu',
+                                box_version='1.23', provider='virtualbox',
+                                instance_path='/tmp/first', save=False)
 
 
 @patch('subprocess.Popen')
