@@ -25,6 +25,7 @@ def test_vbm_installed(mock_path_exists):
     vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage')
     assert vbm.installed()
     mock_path_exists.assert_called()
+    assert vbm.get_executable() == '/bin/VBoxManage'
 
 
 @patch('os.path.exists', return_value=False)
@@ -51,6 +52,42 @@ def test_vbm_start_headless():
     expected = ['/bin/VBoxManage', 'startvm', 'first', '--type', 'headless']
     got = vbm.start(vmname='first')
     assert got == expected
+
+
+def test_vbm__ip_no_ip():
+    """Test _ip method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = None
+    with patch.object(mech.vbm.VBoxManage, 'run', return_value='No value set!'):
+        got = vbm._ip(vmname='first')
+        assert got == expected
+
+
+def test_vbm__ip():
+    """Test _ip method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = '192.168.56.195'
+    with patch.object(mech.vbm.VBoxManage, 'run', return_value='Value: 192.168.56.195'):
+        got = vbm._ip(vmname='first')
+        assert got == expected
+
+
+def test_vbm_ip_with_wait():
+    """Test ip method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = '192.168.56.195'
+    with patch.object(mech.vbm.VBoxManage, '_ip', return_value='192.168.56.195'):
+        got = vbm.ip(vmname='first', wait=True)
+        assert got == expected
+
+
+def test_vbm_ip_with_no_wait():
+    """Test ip method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = '192.168.56.195'
+    with patch.object(mech.vbm.VBoxManage, '_ip', return_value='192.168.56.195'):
+        got = vbm.ip(vmname='first', wait=False)
+        assert got == expected
 
 
 def test_vbm_start_gui():
@@ -85,11 +122,69 @@ def test_vbm_stop():
     assert got == expected
 
 
+def test_vbm_resume():
+    """Test resume method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'controlvm', 'first', 'resume']
+    got = vbm.resume('first')
+    assert got == expected
+
+
+def test_vbm_reset():
+    """Test reset method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'controlvm', 'first', 'reset']
+    got = vbm.reset('first')
+    assert got == expected
+
+
 def test_vbm_pause():
     """Test pause method."""
     vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
     expected = ['/bin/VBoxManage', 'controlvm', 'first', 'pause']
     got = vbm.pause('first')
+    assert got == expected
+
+
+def test_vbm_cpus_using_int():
+    """Test cpus method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'modifyvm', 'first', '--cpus', '3']
+    got = vbm.cpus('first', 3)
+    assert got == expected
+
+
+def test_vbm_cpus_using_string():
+    """Test cpus method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'modifyvm', 'first', '--cpus', '3']
+    got = vbm.cpus('first', "3")
+    assert got == expected
+
+
+def test_vbm_memory():
+    """Test memory method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'modifyvm', 'first', '--memory', '2048']
+    got = vbm.memory('first', 2048)
+    assert got == expected
+
+
+def test_vbm_sharedfolder_add():
+    """Test sharedfolder_add method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'sharedfolder', 'add', 'first', '--name',
+                'some_share', '--hostpath', '~/foo']
+    got = vbm.sharedfolder_add('first', 'some_share', '~/foo')
+    assert got == expected
+
+
+def test_vbm_sharedfolder_remove():
+    """Test sharedfolder_remove method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'sharedfolder', 'remove', 'first', '--name',
+                'some_share']
+    got = vbm.sharedfolder_remove('first', 'some_share')
     assert got == expected
 
 
@@ -99,6 +194,18 @@ def test_vbm_list_hostonly_ifs():
     expected = ['/bin/VBoxManage', 'list', 'hostonlyifs']
     got = vbm.list_hostonly_ifs()
     assert got == expected
+
+
+def test_vbm_create_hostonly():
+    """Test create_hostonly method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = None
+    with patch.object(mech.vbm.VBoxManage, 'list_hostonly_ifs', return_value='some output'):
+        with patch.object(mech.vbm.VBoxManage, 'list_dhcpservers', return_value='some output'):
+            with patch.object(mech.vbm.VBoxManage, 'create_hostonly_if', return_value=None):
+                with patch.object(mech.vbm.VBoxManage, 'add_hostonly_dhcp', return_value=None):
+                    got = vbm.create_hostonly()
+                    assert got == expected
 
 
 def test_vbm_create_hostonly_if():
@@ -153,9 +260,70 @@ def test_vbm_hostonly():
     assert got == expected
 
 
+def test_vbm_bridged():
+    """Test bridged method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'modifyvm', 'first', '--nic1', 'bridged',
+                '--bridgeadapter1', 'en0']
+    got = vbm.bridged('first')
+    assert got == expected
+
+
 def test_vbm_list():
     """Test list method."""
     vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
     expected = ['/bin/VBoxManage', 'list', 'vms']
     got = vbm.list()
     assert got == expected
+
+
+def test_vbm_get_vm_info():
+    """Test get_vm_info method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    expected = ['/bin/VBoxManage', 'showvminfo', 'first']
+    got = vbm.get_vm_info('first')
+    assert got == expected
+
+
+def test_vbm_vm_state_running():
+    """Test vm_state method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    output = """VT-x Unrestricted Exec.:     enabled
+Paravirt. Provider:          Default
+Effective Paravirt. Prov.:   KVM
+State:                       running (since 2020-02-28T00:24:40.461000000)
+Graphics Controller:         VBoxVGA
+
+Monitor count:               1
+"""
+    expected = 'running'
+    with patch.object(mech.vbm.VBoxManage, 'get_vm_info', return_value=output):
+        got = vbm.vm_state('first')
+        assert got == expected
+
+
+def test_vbm_vm_state_unknown():
+    """Test vm_state method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    output = None
+    expected = None
+    with patch.object(mech.vbm.VBoxManage, 'get_vm_info', return_value=output):
+        got = vbm.vm_state('first')
+        assert got == expected
+
+
+def test_vbm_vm_state_powered_off():
+    """Test vm_state method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    output = """VT-x Unrestricted Exec.:     enabled
+Paravirt. Provider:          Default
+Effective Paravirt. Prov.:   KVM
+State:                       powered off (since 2020-02-28T00:24:40.461000000)
+Graphics Controller:         VBoxVGA
+
+Monitor count:               1
+"""
+    expected = 'powered off'
+    with patch.object(mech.vbm.VBoxManage, 'get_vm_info', return_value=output):
+        got = vbm.vm_state('first')
+        assert got == expected
