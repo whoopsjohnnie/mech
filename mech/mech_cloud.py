@@ -127,9 +127,12 @@ class MechCloud(MechCommand):
             -h, --help                       Print this help
         """
         cloud_instance = arguments['<cloud-instance>']
-        utils.remove_mechcloudfile_entry(name=cloud_instance)
-        print("Removed ({}) from mech cloud.".format(cloud_instance))
-        print("Be sure to remove any running virtual machines.")
+        if utils.cloud_exists(cloud_instance):
+            utils.remove_mechcloudfile_entry(name=cloud_instance)
+            print("Removed ({}) from mech cloud.".format(cloud_instance))
+            print("Be sure to remove any running virtual machines.")
+        else:
+            print("Cloud ({}) does not exist in the Mechcloudfile.", cloud_instance)
     # allow 'mech cloud delete' as alias to 'mech cloud remove'
     delete = remove
 

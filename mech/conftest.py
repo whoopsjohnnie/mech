@@ -14,9 +14,9 @@ from shutil import rmtree
 def mechcloudfile_one_entry():
     """Return one mechcloudfile entry."""
     return {
-        'top': {
-            'name': 'top',
-            'hostname': 'top.example.com',
+        'tophat': {
+            'name': 'tophat',
+            'hostname': 'tophat.example.com',
             'directory': '~/test1',
             'username': 'bob'
         }

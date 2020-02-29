@@ -27,7 +27,6 @@
 from __future__ import print_function, absolute_import
 
 import sys
-import re
 import logging
 
 from clint.textui import colored
@@ -71,8 +70,8 @@ class MechCloudInstance():
     def set_directory(self, directory):
         if directory is None or directory == '':
             sys.exit(colored.red("A non-blank directory is required."))
-            if re.search(' ', directory) is not None:
-                sys.exit(colored.red("A directory cannot contain spaces."))
+        if ' ' in directory:
+            sys.exit(colored.red("A directory cannot contain spaces."))
         self.directory = directory
 
     def set_username(self, username):

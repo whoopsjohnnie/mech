@@ -1436,6 +1436,17 @@ def load_mechcloudfile(should_exist=True):
             return {}
 
 
+def cloud_exists(cloud_name):
+    """Return True if the cloud exists in the Mechcloudfile."""
+    if cloud_name is None or cloud_name == '':
+        return False
+    clouds = load_mechcloudfile(False)
+    if clouds.get(cloud_name) is not None:
+        return True
+    else:
+        return False
+
+
 def ssh_with_username(hostname, username, command):
     """Run the command on a host using the username.
     """
