@@ -1,3 +1,9 @@
+# v0.8.7
+
++ make python3.7+ requirement
++ documenting cloud pre-reqs
++ minor fixes; adding unittests
+
 # v0.8.6
 
 + bugfixes for 'mech cloud init' and 'mech cloud upgrade'
