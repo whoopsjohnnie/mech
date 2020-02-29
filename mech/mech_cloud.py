@@ -91,14 +91,21 @@ class MechCloud(MechCommand):
         """
         Initialize the Mech Cloud configuration.
 
+        The directory will be created with a python virtual environment (venv)
+        and "mikemech" will be installed into it.
+
         Usage: mech cloud init [options] --hostname HOST --directory DIR <cloud-instance>
 
         Notes:
-           The directory will be created with a python virtual environment (venv)
-           and "mikemech" will be installed into it.
            The "mech init" operation can be run again with same cloud-instance.
            (The values would be updated in the Mechcloudfile).
+
            The directory should not contain spaces.
+
+           If you use '~' in the directory value, be sure it is surrounded by
+           single quotes because without quotes or if double quotes (") are used,
+           then the '~' will be expanded locally and will not use the remote value.
+              Example: --directory '~/mikemech'
 
         Options:
             --hostname HOST                  Hostname (resolvable hostname or ip)
