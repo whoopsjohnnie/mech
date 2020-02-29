@@ -29,6 +29,160 @@ def test_mech_list_with_one(mock_locate, mock_load_mechfile, capfd,
     assert re.search(r'first\s+notcreated', out, re.MULTILINE)
 
 
+def test_mech_list_with_cloud():
+    """Test 'mech list' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    list_arguments = {'--detail': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.list(list_arguments)
+
+
+def test_mech_global_status_with_cloud():
+    """Test 'mech global_status' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.global_status(arguments)
+
+
+def test_mech_ps_with_cloud():
+    """Test 'mech ps' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.ps(arguments)
+
+
+def test_mech_pause_with_cloud():
+    """Test 'mech pause' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.pause(arguments)
+
+
+def test_mech_upgrade_with_cloud():
+    """Test 'mech upgrade' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.upgrade(arguments)
+
+
+def test_mech_suspend_with_cloud():
+    """Test 'mech suspend' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.suspend(arguments)
+
+
+def test_mech_ip_with_cloud():
+    """Test 'mech ip' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.ip(arguments)
+
+
+def test_mech_ssh_config_with_cloud():
+    """Test 'mech ssh_config' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.ssh_config(arguments)
+
+
+def test_mech_destroy_with_cloud():
+    """Test 'mech destroy' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--force': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.destroy(arguments)
+
+
+def test_mech_resume_with_cloud():
+    """Test 'mech resume' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--disable-shared-folders': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.resume(arguments)
+
+
+def test_mech_down_with_cloud():
+    """Test 'mech down' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--force': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.down(arguments)
+
+
+def test_mech_provision_with_cloud():
+    """Test 'mech provision' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--show-only': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.provision(arguments)
+
+
+def test_mech_port_with_cloud():
+    """Test 'mech port' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<instance>': 'first', '--guest': False}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.port(arguments)
+
+
+def test_mech_add_with_cloud(mech_add_arguments):
+    """Test 'mech add' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_add_arguments
+    arguments['<name>'] = 'third'
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.add(arguments)
+
+
+def test_mech_up_with_cloud(mech_up_arguments):
+    """Test 'mech up' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_up_arguments
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.up(arguments)
+
+
+def test_mech_start_with_cloud(mech_up_arguments):
+    """Test 'mech start' (alias) with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_up_arguments
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.start(arguments)
+
+
+def test_mech_remove_with_cloud():
+    """Test 'mech remove' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {'<name>': 'third'}
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.remove(arguments)
+
+
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_list_with_one_witout_box_version(mock_locate, mock_load_mechfile, capfd,
@@ -1551,6 +1705,36 @@ def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists,
         a_mech.init(arguments)
 
 
+def test_mech_init_with_cloud(mech_init_arguments):
+    """Test 'mech init' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_init_arguments
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.init(arguments)
+
+
+def test_mech_init_with_invalid_provider(mech_init_arguments):
+    """Test if we do not have a valid provider."""
+    global_arguments = {'--debug': False, '--cloud': None}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_init_arguments
+    arguments['--provider'] = 'atari'
+    with raises(SystemExit, match=r"Need to provide valid provider"):
+        a_mech.init(arguments)
+
+
+def test_mech_add_with_invalid_provider(mech_add_arguments):
+    """Test if we do not have a valid provider."""
+    global_arguments = {'--debug': False, '--cloud': None}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = mech_add_arguments
+    arguments['--provider'] = 'atari'
+    arguments['<name>'] = 'third'
+    with raises(SystemExit, match=r"Need to provide valid provider"):
+        a_mech.add(arguments)
+
+
 @patch('os.path.exists')
 @patch('os.getcwd')
 def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists, mech_add_arguments):
@@ -1749,6 +1933,19 @@ def test_mech_scp_host_to_guest(mock_locate,
             mock_chmod.assert_called()
             mock_get_vm_state.assert_called()
             a_mock.assert_called_once_with(filename, 'w')
+
+
+def test_mech_scp_with_cloud():
+    """Test 'mech scp' with cloud."""
+    global_arguments = {'--debug': False, '--cloud': 'foo'}
+    a_mech = mech.mech.Mech(arguments=global_arguments)
+    arguments = {
+        '<extra-ssh-args>': 'foo',
+        '<src>': 'now',
+        '<dst>': 'first:/tmp/now',
+    }
+    with patch.object(a_mech, 'cloud_run', return_value='some output'):
+        a_mech.scp(arguments)
 
 
 @patch('subprocess.run')

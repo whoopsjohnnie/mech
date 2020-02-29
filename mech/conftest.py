@@ -11,6 +11,35 @@ from shutil import rmtree
 
 
 @pytest.fixture
+def mechcloudfile_one_entry():
+    """Return one mechcloudfile entry."""
+    return {
+        'tophat': {
+            'name': 'tophat',
+            'hostname': 'tophat.example.com',
+            'directory': '~/test1',
+            'username': 'bob'
+        }
+    }
+
+
+@pytest.fixture
+def ssh_config():
+    """Return one ssh_config."""
+    return {
+        "Host": "first",
+        "User": "foo",
+        "Port": "22",
+        "UserKnownHostsFile": "/dev/null",
+        "StrictHostKeyChecking": "no",
+        "PasswordAuthentication": "no",
+        "IdentityFile": 'blah',
+        "IdentitiesOnly": "yes",
+        "LogLevel": "FATAL",
+    }
+
+
+@pytest.fixture
 def mechfile_one_entry():
     """Return one mechfile entry."""
     return {
@@ -207,6 +236,22 @@ def mech_add_arguments():
         '--use-me': None,
         '--provider': None,
         '<location>': None,
+    }
+
+
+@pytest.fixture
+def mech_up_arguments():
+    """Return the default 'mech up' arguments."""
+    return {
+        '--disable-provisioning': None,
+        '--disable-shared-folders': None,
+        '--gui': None,
+        '--memsize': None,
+        '--no-cache': None,
+        '--no-nat': None,
+        '--numvcpus': None,
+        '--remove-vagrant': None,
+        '<instance>': 'first',
     }
 
 

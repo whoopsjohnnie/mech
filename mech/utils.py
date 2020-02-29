@@ -72,7 +72,10 @@ def makedirs(name, mode=0o777):
 
 
 def start_vm(inst):
-    """Start VM."""
+    """Start VM.
+       inst is a MechInstance
+    """
+    LOGGER.debug('inst:%s', inst)
     started = None
     if inst.provider == 'vmware':
         # Note: user/password is needed for provisioning
@@ -456,7 +459,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         vbox_path = locate(instance_path, '*.vbox')
         # need to extract the files somewhere, then we will
         # remove them after importing to virtualbox
-        if vbox_path != '':
+        if vbox_path is not None and vbox_path != '':
             instance_path += '_tmp'
 
     # if we do not find the vmx file nor is the already imported files in place
@@ -516,7 +519,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         LOGGER.debug('import_results:%s', import_results)
         vbox_path = locate(instance_path_save, '*.vbox')
         if not vbox_path:
-            sys.exit(colored.red("Cannot locate an vbox file"))
+            sys.exit(colored.red("Cannot locate a vbox file"))
         # remove the extracted files
         rmtree(instance_path)
         return vbox_path
@@ -1436,6 +1439,17 @@ def load_mechcloudfile(should_exist=True):
             return {}
 
 
+def cloud_exists(cloud_name):
+    """Return True if the cloud exists in the Mechcloudfile."""
+    if cloud_name is None or cloud_name == '':
+        return False
+    clouds = load_mechcloudfile(False)
+    if clouds.get(cloud_name) is not None:
+        return True
+    else:
+        return False
+
+
 def ssh_with_username(hostname, username, command):
     """Run the command on a host using the username.
     """
@@ -1449,3 +1463,24 @@ def ssh_with_username(hostname, username, command):
         stdout = result.stdout.decode('utf-8')
         stderr = result.stderr.decode('utf-8')
         return result.returncode, stdout, stderr
+
+
+def report_provider(provider):
+    """Check if this provider is available."""
+    ok = True
+    if not valid_provider(provider):
+        print(colored.red("Invalid provider ({})".format(provider)))
+        ok = False
+    if provider == 'vmware':
+        vmrun = VMrun()
+        if not vmrun.installed():
+            print(colored.red("Warning: Provider is not available."))
+            print(colored.red("Install VMware or change provider."))
+            ok = False
+    elif provider == 'virtualbox':
+        vbm = mech.vbm.VBoxManage()
+        if not vbm.installed():
+            print(colored.red("Warning: Provider is not available."))
+            print(colored.red("Install Virtualbox or change provider."))
+            ok = False
+    return ok

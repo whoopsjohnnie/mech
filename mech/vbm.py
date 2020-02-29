@@ -75,6 +75,10 @@ class VBoxManage():
         else:
             return False
 
+    def get_executable(self):
+        """Return the executable value. (could be None or a string)."""
+        return self.executable
+
     def run(self, cmd, *args, **kwargs):
         """Execute a command."""
         quiet = kwargs.pop('quiet', False)
@@ -294,9 +298,10 @@ class VBoxManage():
     def vm_state(self, vmname, quiet=False):
         '''Return the first word from the showvminfo output line that starts with "State:".'''
         vm_info = self.get_vm_info(vmname, quiet=quiet)
-        matches = re.search(r'State:(.*)\(', vm_info)
-        if matches:
-            return matches.group(1).strip()
+        if vm_info is not None and vm_info != '':
+            matches = re.search(r'State:(.*)\(', vm_info)
+            if matches:
+                return matches.group(1).strip()
 
     def list_running(self, quiet=False):
         '''List all running VMs'''

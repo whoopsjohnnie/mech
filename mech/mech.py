@@ -220,7 +220,9 @@ class Mech(MechCommand):
         if os.path.exists('Mechfile') and not force:
             sys.exit(colored.red(textwrap.fill(
                 "`Mechfile` already exists in this directory. Remove it "
-                "before running `mech init`.")))
+                "before running `mech init` or use `mech add`.")))
+
+        utils.report_provider(provider)
 
         print(colored.green("Initializing mech"))
         utils.init_mechfile(
@@ -264,12 +266,10 @@ class Mech(MechCommand):
         provider = arguments['--provider']
         location = arguments['<location>']
 
-        print('before provider:{}'.format(provider))
         if provider is None:
             provider = 'vmware'
         if not utils.valid_provider(provider):
             sys.exit(colored.red("Need to provide valid provider."))
-        print('after provider:{}'.format(provider))
 
         if not name or name == "":
             sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
@@ -277,6 +277,8 @@ class Mech(MechCommand):
         if self.cloud_name:
             self.cloud_run(['add'])
             return
+
+        utils.report_provider(provider)
 
         LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
                      name, box, box_version, location, provider)

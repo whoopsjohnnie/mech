@@ -64,9 +64,9 @@ class VMrun():  # pylint: disable=too-many-public-methods
                 self.executable = utils.get_fallback_executable()
         if self.provider is None:
             if self.executable is not None:
-                self.provider = utils.get_provider(self.executable)
-                LOGGER.debug('self.executable:%s self.provider:%s',
-                             self.executable, self.provider)
+                self.provider = utils.get_provider(self.get_executable())
+                LOGGER.debug('self.get_executable():%s self.provider:%s',
+                             self.get_executable(), self.provider)
         # If test_mode is True, then do not perform the action
         # just return the command info
         self.test_mode = test_mode
@@ -74,10 +74,14 @@ class VMrun():  # pylint: disable=too-many-public-methods
     def installed(self):
         """Returns True if vmware is installed (based on whether we
            could find the vmrun command."""
-        if self.executable is not None and os.path.exists(self.executable):
+        if self.get_executable() is not None and os.path.exists(self.get_executable()):
             return True
         else:
             return False
+
+    def get_executable(self):
+        """Return the executable value. (could be None or a string)."""
+        return self.executable
 
     def vmrun(self, cmd, *args, **kwargs):
         """Execute a 'vmrun' command."""
