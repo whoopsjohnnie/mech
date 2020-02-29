@@ -24,6 +24,22 @@ def mechcloudfile_one_entry():
 
 
 @pytest.fixture
+def ssh_config():
+    """Return one ssh_config."""
+    return {
+        "Host": "first",
+        "User": "foo",
+        "Port": "22",
+        "UserKnownHostsFile": "/dev/null",
+        "StrictHostKeyChecking": "no",
+        "PasswordAuthentication": "no",
+        "IdentityFile": 'blah',
+        "IdentitiesOnly": "yes",
+        "LogLevel": "FATAL",
+    }
+
+
+@pytest.fixture
 def mechfile_one_entry():
     """Return one mechfile entry."""
     return {

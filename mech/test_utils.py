@@ -4,6 +4,7 @@
 import os
 import re
 import sys
+import requests
 import subprocess
 
 from unittest.mock import patch, mock_open, MagicMock
@@ -482,6 +483,15 @@ def test_add_auth_no_vmx(mechfile_one_entry_with_auth_and_mech_use):
         mech.utils.add_auth(inst)
 
 
+def test_add_auth_virtualbox_no_vbox(mechfile_one_entry_with_auth_and_mech_use):
+    """Test add_auth."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
+    inst.vbox = None
+    inst.provider = 'virtualbox'
+    with raises(SystemExit, match=r"Need to provide vbox"):
+        mech.utils.add_auth(inst)
+
+
 def test_add_auth_blank_user(mechfile_one_entry_with_auth_and_mech_use):
     """Test add_auth."""
     inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_with_auth_and_mech_use)
@@ -575,20 +585,9 @@ def test_config_ssh_string_empty():
     assert ssh_string == "Host \n"
 
 
-def test_config_ssh_string_simple():
+def test_config_ssh_string_simple(ssh_config):
     """Test config_ssh_string with a simple configuration."""
-    config = {
-        "Host": "first",
-        "User": "foo",
-        "Port": "22",
-        "UserKnownHostsFile": "/dev/null",
-        "StrictHostKeyChecking": "no",
-        "PasswordAuthentication": "no",
-        "IdentityFile": 'blah',
-        "IdentitiesOnly": "yes",
-        "LogLevel": "FATAL",
-    }
-    ssh_string = mech.utils.config_ssh_string(config)
+    ssh_string = mech.utils.config_ssh_string(ssh_config)
     assert ssh_string == 'Host first\n  User foo\n  Port 22\n  UserKnownHostsFile /dev/null\n  StrictHostKeyChecking no\n  PasswordAuthentication no\n  IdentityFile blah\n  IdentitiesOnly yes\n  LogLevel FATAL\n'  # noqa: E501  pylint: disable=line-too-long
 
 
@@ -906,6 +905,16 @@ def test_provision_no_vbox():
         mech.utils.provision(instance=mock_inst, show=None)
 
 
+def test_provision_no_user():
+    """Test provisioning."""
+    mock_inst = MagicMock()
+    mock_inst.vbox = '/tmp/first/foo.vbox'
+    mock_inst.provider = 'virtualbox'
+    mock_inst.user = None
+    with raises(SystemExit, match=r"Need to provide user.*"):
+        mech.utils.provision(instance=mock_inst, show=None)
+
+
 @patch('mech.utils.scp', return_value='')
 def test_provision_file(mock_scp):
     """Test provision_file"""
@@ -1030,6 +1039,22 @@ def test_provision_shell(mock_create_tempfile, mock_isfile,
     assert re.search(r'Executing program', out, re.MULTILINE)
 
 
+@patch('mech.utils.create_tempfile_in_guest', return_value=None)
+def test_provision_shell_cannot_create_temp_file_in_guest(mock_create_tempfile,
+                                                          capfd,
+                                                          mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_shell(inst, inline=False, script_path='file1.sh', args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    assert re.search(r'Could not create tempfile in guest', out, re.MULTILINE)
+
+
 @patch('mech.utils.ssh', return_value=None)
 @patch('mech.utils.scp', return_value=True)
 @patch('os.path.isfile', return_value=True)
@@ -1083,6 +1108,88 @@ def test_provision_shell_from_http(mock_create_tempfile, mock_isfile,
     assert re.search(r'Configuring script', out, re.MULTILINE)
     assert re.search(r'Configuring environment', out, re.MULTILINE)
     assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('os.path.isfile', return_value=False)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_response_none(mock_create_tempfile, mock_isfile,
+                                                 mock_requests_get,
+                                                 capfd,
+                                                 mechfile_one_entry_with_auth_and_mech_use):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry_with_auth_and_mech_use)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = None
+    mech.utils.provision_shell(inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    out, _ = capfd.readouterr()
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_requests_get.assert_called()
+    assert re.search(r'No script to execute', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('os.path.isfile', return_value=False)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_connection_error(mock_create_tempfile, mock_isfile,
+                                                    mock_requests_get,
+                                                    mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mock_requests_get.side_effect = requests.HTTPError
+    mech.utils.provision_shell(inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_requests_get.assert_called()
+
+
+@patch('requests.get')
+@patch('os.path.isfile', return_value=False)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_from_http_error(mock_create_tempfile, mock_isfile,
+                                         mock_requests_get,
+                                         mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mock_requests_get.side_effect = requests.ConnectionError
+    mech.utils.provision_shell(inst, inline=False, script_path='http://example.com/file1.sh',
+                               args=None)
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    mock_requests_get.assert_called()
+
+
+@patch('os.path.isfile', return_value=False)
+@patch('mech.utils.create_tempfile_in_guest', return_value='/tmp/foo')
+def test_provision_shell_cannot_find_script(mock_create_tempfile, mock_isfile,
+                                            capfd,
+                                            mechfile_one_entry):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first',
+                                           mechfile_one_entry)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_shell(inst, inline=False, script_path='somescript', args=None)
+    mock_create_tempfile.assert_called()
+    mock_isfile.assert_called()
+    out, _ = capfd.readouterr()
+    assert re.search(r'Cannot open ', out, re.MULTILINE)
 
 
 @patch('mech.utils.ssh', return_value=[True, True, True])
@@ -1200,6 +1307,75 @@ def test_run_pyinfra_script_pyinfra_failed(mock_path_exists, mock_pyinfra_instal
         mock_path_exists.assert_called()
         mock_pyinfra_installed.assert_called()
         mock_subprocess.assert_called()
+
+
+@patch('mech.utils.run_pyinfra_script')
+@patch('os.path.isfile')
+def test_provision_pyinfra(mock_os_path_isfile, mock_run_pyinfra_script, mechfile_one_entry):
+    """Test provision_pyinfra()."""
+    mock_os_path_isfile.return_value = True
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    mech.utils.provision_pyinfra(inst, '/tmp/foo')
+    mock_os_path_isfile.assert_called()
+    mock_run_pyinfra_script.assert_called()
+
+
+@patch('requests.get')
+@patch('mech.utils.run_pyinfra_script')
+@patch('os.path.isfile')
+def test_provision_pyinfra_script_is_http(mock_os_path_isfile, mock_run_pyinfra_script,
+                                          mock_requests_get, mechfile_one_entry):
+    """Test provision_pyinfra()."""
+    mock_os_path_isfile.return_value = False
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'some pyinfra script'
+    mock_requests_get.return_value.text = 'some pyinfra script'
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    mech.utils.provision_pyinfra(inst, 'http://example.com/foo')
+    mock_os_path_isfile.assert_called()
+    mock_run_pyinfra_script.assert_called()
+
+
+@patch('requests.get')
+@patch('os.path.isfile')
+def test_provision_pyinfra_script_is_http_connection_error(mock_os_path_isfile,
+                                                           mock_requests_get,
+                                                           mechfile_one_entry):
+    """Test provision_pyinfra()."""
+    mock_os_path_isfile.return_value = False
+    mock_requests_get.side_effect = requests.ConnectionError
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    mech.utils.provision_pyinfra(inst, 'http://example.com/foo')
+    mock_os_path_isfile.assert_called()
+    mock_requests_get.assert_called()
+
+
+@patch('requests.get')
+@patch('os.path.isfile')
+def test_provision_pyinfra_script_is_http_error(mock_os_path_isfile,
+                                                mock_requests_get,
+                                                mechfile_one_entry):
+    """Test provision_pyinfra()."""
+    mock_os_path_isfile.return_value = False
+    mock_requests_get.side_effect = requests.HTTPError
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    mech.utils.provision_pyinfra(inst, 'http://example.com/foo')
+    mock_os_path_isfile.assert_called()
+    mock_requests_get.assert_called()
+
+
+@patch('os.path.isfile')
+def test_provision_pyinfra_script_cannot_find(mock_os_path_isfile,
+                                              capfd,
+                                              mechfile_one_entry):
+    """Test provision_pyinfra()."""
+    mock_os_path_isfile.return_value = False
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    mech.utils.provision_pyinfra(inst, 'some_script')
+    out, _ = capfd.readouterr()
+    mock_os_path_isfile.assert_called()
+    assert re.search(r'Cannot open', out, re.MULTILINE)
 
 
 def test_pyinfra_installed():
@@ -1337,8 +1513,8 @@ def test_init_box_when_no_vmx_after_extraction(mock_locate, mock_add_box,
 @patch('mech.utils.makedirs', return_value=True)
 @patch('mech.utils.add_box')
 @patch('mech.utils.locate')
-def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
-                          mock_tarfile_open, mock_update_vmx):
+def test_init_box_success_vmware(mock_locate, mock_add_box, mock_makedirs,
+                                 mock_tarfile_open, mock_update_vmx):
     """Test init_box."""
     mock_subprocess_popen = MagicMock()
     mock_tarfile_open = MagicMock()
@@ -1359,6 +1535,81 @@ def test_init_box_success(mock_locate, mock_add_box, mock_makedirs,
         mock_add_box.assert_called()
         mock_makedirs.assert_called()
         mock_update_vmx.assert_called()
+
+
+@patch('subprocess.Popen')
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_success_virtualbox(mock_locate, mock_add_box, mock_makedirs,
+                                     mock_tarfile_open, mock_popen):
+    """Test init_box."""
+    process_mock = MagicMock()
+    attrs = {'communicate.return_value': ('output', 'error')}
+    process_mock.configure_mock(**attrs)
+    mock_popen.return_value = process_mock
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_locate.side_effect = [None, None, '/tmp/boxes/some.box',
+                               '/tmp/first/some.ovf', '/tmp/first/some.vbox']
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    expected = '/tmp/first/some.vbox'
+    with patch('mech.utils.rmtree') as mock_rmtree:
+        got = mech.utils.init_box(name='first', box='bento/ubuntu',
+                                  box_version='1.23', provider='virtualbox',
+                                  instance_path='/tmp/first', save=False)
+        mock_locate.assert_called()
+        mock_add_box.assert_called()
+        mock_makedirs.assert_called()
+        mock_popen.assert_called()
+        mock_rmtree.assert_called()
+        assert got == expected
+
+
+@patch('subprocess.Popen')
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_virtualbox_no_vbox(mock_locate, mock_add_box, mock_makedirs,
+                                     mock_tarfile_open, mock_popen):
+    """Test init_box."""
+    process_mock = MagicMock()
+    attrs = {'communicate.return_value': ('output', 'error')}
+    process_mock.configure_mock(**attrs)
+    mock_popen.return_value = process_mock
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_locate.side_effect = [None, None, '/tmp/boxes/some.box',
+                               '/tmp/first/some.ovf', None]
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot locate a vbox file"):
+        mech.utils.init_box(name='first', box='bento/ubuntu',
+                            box_version='1.23', provider='virtualbox',
+                            instance_path='/tmp/first', save=False)
+
+
+@patch('subprocess.Popen')
+@patch('tarfile.open')
+@patch('mech.utils.makedirs', return_value=True)
+@patch('mech.utils.add_box')
+@patch('mech.utils.locate')
+def test_init_box_virtualbox_no_ovf(mock_locate, mock_add_box, mock_makedirs,
+                                    mock_tarfile_open, mock_popen):
+    """Test init_box."""
+    process_mock = MagicMock()
+    attrs = {'communicate.return_value': ('output', 'error')}
+    process_mock.configure_mock(**attrs)
+    mock_popen.return_value = process_mock
+    mock_tarfile_open = MagicMock()
+    mock_tarfile_open.returncode = 0
+    mock_locate.side_effect = [None, None, '/tmp/boxes/some.box', None]
+    mock_add_box.return_value = 'bento', '1.23', 'ubuntu'
+    with raises(SystemExit, match=r"Cannot locate an OVF file"):
+        mech.utils.init_box(name='first', box='bento/ubuntu',
+                            box_version='1.23', provider='virtualbox',
+                            instance_path='/tmp/first', save=False)
 
 
 @patch('mech.utils.mech_dir')
@@ -1497,6 +1748,34 @@ def test_vm_ready_based_on_state():
     assert not mech.utils.vm_ready_based_on_state('unkown')
     assert not mech.utils.vm_ready_based_on_state('paused')
     assert not mech.utils.vm_ready_based_on_state('power off')
+
+
+@patch('mech.utils.vm_ready_based_on_state', return_value=True)
+def test_ssh(mock_ready_based_on_state, mechfile_one_entry, ssh_config):
+    """Test ssh."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.created = True
+    some_ssh_config = ssh_config
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=0,
+                                                               stdout=b'some output',
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        with patch.object(inst, 'config_ssh', return_value=some_ssh_config) as mock_config_ssh:
+            mech.utils.ssh(inst, 'uptime', extra='foo', command_args='bar')
+            mock_ready_based_on_state.assert_called()
+            mock_subprocess.assert_called()
+            mock_config_ssh.assert_called()
+
+
+def test_scp_vm_not_ready(mechfile_one_entry):
+    """Test scp."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
+    inst.created = True
+    with patch.object(inst, 'get_vm_state', return_value=False) as mock_get_vm_state:
+        mech.utils.scp(inst, 'somefile', 'first:/tmp', True)
+        mock_get_vm_state.assert_called()
 
 
 def test_report_provider_when_vmware_is_installed():

@@ -459,7 +459,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         vbox_path = locate(instance_path, '*.vbox')
         # need to extract the files somewhere, then we will
         # remove them after importing to virtualbox
-        if vbox_path != '':
+        if vbox_path is not None and vbox_path != '':
             instance_path += '_tmp'
 
     # if we do not find the vmx file nor is the already imported files in place
@@ -519,7 +519,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         LOGGER.debug('import_results:%s', import_results)
         vbox_path = locate(instance_path_save, '*.vbox')
         if not vbox_path:
-            sys.exit(colored.red("Cannot locate an vbox file"))
+            sys.exit(colored.red("Cannot locate a vbox file"))
         # remove the extracted files
         rmtree(instance_path)
         return vbox_path
