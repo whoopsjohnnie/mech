@@ -71,8 +71,8 @@ def test_int_provision_virtualbox():
     assert re.search("No such file or directory", stdout)
     assert results.returncode != 0
 
-    # ensure there is no file on second (testing shell non-inline shell provisioning)
-    command = 'mech ssh -c "ls -al /tmp/file1.sh.out" second'
+    # ensure there is no file on secondvb (testing shell non-inline shell provisioning)
+    command = 'mech ssh -c "ls -al /tmp/file1.sh.out" secondvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -80,8 +80,8 @@ def test_int_provision_virtualbox():
     assert re.search("No such file or directory", stdout)
     assert results.returncode != 0
 
-    # ensure there is no file on second (testing shell inline shell provisioning)
-    command = 'mech ssh -c "ls -al /tmp/inline_test.out" second'
+    # ensure there is no file on secondvb (testing shell inline shell provisioning)
+    command = 'mech ssh -c "ls -al /tmp/inline_test.out" secondvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -89,8 +89,8 @@ def test_int_provision_virtualbox():
     assert re.search("No such file or directory", stdout)
     assert results.returncode != 0
 
-    # ensure the package 'npm' is not installed on fourth
-    command = 'mech ssh -c "dpkg -l npm" fourth'
+    # ensure the package 'npm' is not installed on fourthvb
+    command = 'mech ssh -c "dpkg -l npm" fourthvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -122,8 +122,8 @@ def test_int_provision_virtualbox():
     assert re.search("/tmp/file1.txt", stdout)
     assert results.returncode == 0
 
-    # ensure file exists now on second from non-inline shell provisioning
-    command = 'mech ssh -c "ls -al /tmp/file1.sh.out" second'
+    # ensure file exists now on secondvb from non-inline shell provisioning
+    command = 'mech ssh -c "ls -al /tmp/file1.sh.out" secondvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -132,7 +132,7 @@ def test_int_provision_virtualbox():
     assert results.returncode == 0
 
     # ensure file1.sh.out has the args
-    command = """mech ssh -c "grep 'a=1 b=true' /tmp/file1.sh.out" second"""
+    command = """mech ssh -c "grep 'a=1 b=true' /tmp/file1.sh.out" secondvb"""
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -140,8 +140,8 @@ def test_int_provision_virtualbox():
     assert re.search("a=1 b=true", stdout)
     assert results.returncode == 0
 
-    # ensure file exists now on second from inline shell provisioning
-    command = 'mech ssh -c "ls -al /tmp/inline_test.out" second'
+    # ensure file exists now on secondvb from inline shell provisioning
+    command = 'mech ssh -c "ls -al /tmp/inline_test.out" secondvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -149,9 +149,9 @@ def test_int_provision_virtualbox():
     assert re.search("/tmp/inline_test.out", stdout)
     assert results.returncode == 0
 
-    # ensure package 'npm' *is* installed on fourth (should have been installed
+    # ensure package 'npm' *is* installed on fourthvb (should have been installed
     # as part of the pyinfra provisioning)
-    command = 'mech ssh -c "dpkg -l npm" fourth'
+    command = 'mech ssh -c "dpkg -l npm" fourthvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
