@@ -455,7 +455,7 @@ class Mech(MechCommand):
             return
 
         if purge:
-            utils.cleanup_dir_and_vms_from_dir('')
+            utils.cleanup_dir_and_vms_from_dir('', all_vms=True)
         else:
             vmrun = VMrun()
             if vmrun.installed():

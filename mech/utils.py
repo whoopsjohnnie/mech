@@ -1513,14 +1513,14 @@ def find_pids(search_string):
     return pids
 
 
-def cleanup_dir_and_vms_from_dir(a_dir, names=['first']):
+def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
     """Kill processes and remove directory and re-create the directory.
        For VMware VMs, look for the .vmx part_of_dir matches the full path.
        For virtualbox look 'VBoxHeadless --comment <name of the instance>'
        Note: Unfortunately, the name is global, so you can only have one
        'first' instance. Make instance name unique for int tests that use
        virtualbox.
-       Use a_dir to '' to kill all.
+       Use a_dir to '' and all_vms=True to kill and remove all.
    """
     # remove from virtualbox
     for name in names:
@@ -1538,13 +1538,18 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first']):
     results = subprocess.run(args="VBoxManage list vms", shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     vms = stdout.split('\n')
-    # print('vms:{}'.format(vms))
+    LOGGER.debug('vms:%s', vms)
     for line in vms:
         # print('line:{}'.format(line))
         parts = line.split(' ')
-        if len(parts) > 1 and parts[0] == '"<inaccessible>"':
-            results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
-                                     shell=True, capture_output=True)
+        if all_vms:
+            if len(parts) > 1:
+                results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
+                                         shell=True, capture_output=True)
+        else:
+            if len(parts) > 1 and parts[0] == '"<inaccessible>"':
+                results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
+                                         shell=True, capture_output=True)
             # print('results:{}'.format(results))
     # print('results:{}'.format(results))
     # re-create the directory to start afresh
