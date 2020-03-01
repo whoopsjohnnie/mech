@@ -11,6 +11,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.virtualbox
 @pytest.mark.int
 def test_int_provision(helpers):
     """Provision testing."""

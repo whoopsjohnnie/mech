@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_multiple_instances(helpers):
     """Test with multiple instances."""

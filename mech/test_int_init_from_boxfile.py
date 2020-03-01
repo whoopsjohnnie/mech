@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_init_from_boxfile(helpers):
     """Test mech init from .box file."""

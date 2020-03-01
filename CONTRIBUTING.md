@@ -78,6 +78,15 @@ pytest -m"int"
 pytest -m"int or not int" -vv -l
 # or just run "./full_test"
 
+# To run only vmware
+pytest -m"vmware" -vv -l
+
+# To run only virtualbox
+pytest -m"virtualbox" -vv -l
+
+# To run either virtualbox or vmware
+pytest -m"either" -vv -l
+
 # Or, just one run int test like this (with verbose and show local variables):
 pytest -m"int" -k"provision" -v -l
 ```

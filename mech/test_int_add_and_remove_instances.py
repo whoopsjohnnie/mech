@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_add_and_remove_instances_using_add_first(helpers):
     """Test adding/removing of instances from Mechfile starting off with add."""
@@ -92,6 +93,7 @@ def test_int_add_and_remove_instances_using_add_first(helpers):
     assert re.search(expected, stdout)
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_add_and_remove_instances_using_init_first(helpers):
     """Test adding/removing of instances from Mechfile starting off with init."""

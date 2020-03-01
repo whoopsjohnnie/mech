@@ -7,6 +7,8 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
+@pytest.mark.virtualbox
 @pytest.mark.int
 def test_int_shared_folders(helpers):
     """Shared folders testing."""

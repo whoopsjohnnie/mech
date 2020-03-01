@@ -43,6 +43,7 @@ def test_int_no_mechfile(helpers):
     assert return_value == 1
 
 
+@pytest.mark.either
 @pytest.mark.int
 def test_int_smoke(helpers):
     """Smoke test most options."""

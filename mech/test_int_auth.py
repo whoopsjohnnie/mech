@@ -7,6 +7,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_auth(helpers):
     """Auth testing."""

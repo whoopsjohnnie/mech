@@ -8,6 +8,7 @@ import platform
 import pytest
 
 
+@pytest.mark.virtualbox
 @pytest.mark.int
 def test_int_smoke_virtualbox(helpers):
     """Smoke test most options using virtualbox."""

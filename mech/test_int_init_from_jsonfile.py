@@ -8,6 +8,7 @@ import subprocess
 import pytest
 
 
+@pytest.mark.vmware
 @pytest.mark.int
 def test_int_init_from_jsonfile(helpers):
     """Test mech init from .json file."""
