@@ -8,6 +8,9 @@ import platform
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.int
 def test_int_no_args():
     """Test without any args"""
@@ -33,10 +36,10 @@ def test_int_help():
 
 
 @pytest.mark.int
-def test_int_no_mechfile(helpers):
+def test_int_no_mechfile():
     """Test when no Mechfile."""
     test_dir = "tests/int/no_mechfile"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
     command = "mech ls"
     return_value, out = subprocess.getstatusoutput(command)
     assert re.search(r'Could not find a Mechfile', out)
@@ -45,11 +48,11 @@ def test_int_no_mechfile(helpers):
 
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_smoke(helpers):
+def test_int_smoke():
     """Smoke test most options."""
 
     test_dir = "tests/int/simple"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     # ensure we need to provide more args
     commands = ["mech box", "mech init", "mech ip", "mech ps", "mech scp", "mech snapshot",
@@ -371,4 +374,4 @@ def test_int_smoke(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)

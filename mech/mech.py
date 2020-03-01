@@ -445,21 +445,27 @@ class Mech(MechCommand):
 
         Options:
             -h, --help                       Print this help
+            -p, --purge                      Kill and remove any virtual machines
         """
+
+        purge = arguments['--purge']
 
         if self.cloud_name:
             self.cloud_run(['global-status'])
             return
 
-        vmrun = VMrun()
-        if vmrun.installed():
-            print("===VMware VMs===")
-            print(vmrun.list())
+        if purge:
+            utils.cleanup_dir_and_vms_from_dir('')
+        else:
+            vmrun = VMrun()
+            if vmrun.installed():
+                print("===VMware VMs===")
+                print(vmrun.list())
 
-        vbm = VBoxManage()
-        if vbm.installed():
-            print("===VirtualBox VMs===")
-            print(vbm.list())
+            vbm = VBoxManage()
+            if vbm.installed():
+                print("===VirtualBox VMs===")
+                print(vbm.list())
 
     def ps(self, arguments):  # pylint: disable=invalid-name,no-self-use
         """

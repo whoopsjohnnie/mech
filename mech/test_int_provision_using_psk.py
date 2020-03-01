@@ -7,13 +7,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_provision_using_psk(helpers):
+def test_int_provision_using_psk():
     """Provision testing using psk."""
 
     test_dir = "tests/int/provision_using_psk/tmp"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     # copy files from parent dir
     command = "cp ../file* .; cp ../Mechfile ."
@@ -63,4 +66,4 @@ def test_int_provision_using_psk(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)

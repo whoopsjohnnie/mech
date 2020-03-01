@@ -7,13 +7,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_auth(helpers):
+def test_int_auth():
     """Auth testing."""
 
     test_dir = "tests/int/auth"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     # "up" with "add-me" and "use-me" options
     command = "mech init -a -u bento/ubuntu-18.04"
@@ -77,4 +80,4 @@ def test_int_auth(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)

@@ -42,7 +42,7 @@ def test_mech_global_status_with_cloud():
     """Test 'mech global_status' with cloud."""
     global_arguments = {'--debug': False, '--cloud': 'foo'}
     a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {}
+    arguments = {'--purge': None}
     with patch.object(a_mech, 'cloud_run', return_value='some output'):
         a_mech.global_status(arguments)
 
@@ -1832,7 +1832,7 @@ def test_mech_global_status(mock_list, mock_vmrun_installed, capfd):
     """Test 'mech global-status'."""
     global_arguments = {'--debug': False, '--cloud': None}
     a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {}
+    arguments = {'--purge': None}
     a_mech.global_status(arguments)
     out, _ = capfd.readouterr()
     mock_list.assert_called()

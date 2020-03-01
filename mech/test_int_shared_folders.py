@@ -7,13 +7,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.both
 @pytest.mark.int
-def test_int_shared_folders(helpers):
+def test_int_shared_folders():
     """Shared folders testing."""
 
     test_dir = "tests/int/shared_folders/tmp"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     # copy file from parent dir
     command = "cp ../Mechfile ."
@@ -178,4 +181,4 @@ def test_int_shared_folders(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
