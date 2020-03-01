@@ -8,13 +8,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_init_from_jsonfile(helpers):
+def test_int_init_from_jsonfile():
     """Test mech init from .json file."""
 
     test_dir = "tests/int/init_from_jsonfile"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     ubuntu = "ubuntu-18.04"
 
@@ -85,4 +88,4 @@ versions/201912.04.0/providers/vmware_desktop.box",
     assert re.search(expected, stdout)
 
     # clean up file
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)

@@ -8,13 +8,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_init_from_boxfile(helpers):
+def test_int_init_from_boxfile():
     """Test mech init from .box file."""
 
     test_dir = "tests/int/init_from_boxfile"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     ubuntu = "ubuntu-18.04"
     box_file = "/tmp/{}.box".format(ubuntu)

@@ -8,13 +8,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_multiple_instances(helpers):
+def test_int_multiple_instances():
     """Test with multiple instances."""
 
     test_dir = "tests/int/multiple_instances"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     mechfile_contents = """{
   "first": {

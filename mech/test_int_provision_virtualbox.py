@@ -11,14 +11,17 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.virtualbox
 @pytest.mark.int
-def test_int_provision(helpers):
+def test_int_provision():
     """Provision testing."""
 
     test_dir = "tests/int/provision_virtualbox/tmp"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir, names=['first', 'second',
-                                                          'third', 'fourth'])
+    utils.cleanup_dir_and_vms_from_dir(test_dir, names=['first', 'second',
+                                                        'third', 'fourth'])
 
     # copy files from parent dir
     command = "cp ../file* .; cp ../Mechfile ."
@@ -182,4 +185,4 @@ def test_int_provision(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)

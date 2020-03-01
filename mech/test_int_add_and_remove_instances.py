@@ -8,13 +8,16 @@ import subprocess
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_add_and_remove_instances_using_add_first(helpers):
+def test_int_add_and_remove_instances_using_add_first():
     """Test adding/removing of instances from Mechfile starting off with add."""
 
     test_dir = "tests/int/add_and_remove_instances_add_first"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     command = "mech add apple bento/ubuntu-18.04"
     expected_lines = ["Adding", "Added"]
@@ -95,11 +98,11 @@ def test_int_add_and_remove_instances_using_add_first(helpers):
 
 @pytest.mark.vmware
 @pytest.mark.int
-def test_int_add_and_remove_instances_using_init_first(helpers):
+def test_int_add_and_remove_instances_using_init_first():
     """Test adding/removing of instances from Mechfile starting off with init."""
 
     test_dir = "tests/int/add_and_remove_instances_init_first"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     command = "mech init --name apple bento/ubuntu-18.04"
     expected_lines = ["Initializing", "has been init"]
