@@ -16,12 +16,12 @@ from . import utils
 
 @pytest.mark.virtualbox
 @pytest.mark.int
-def test_int_provision():
+def test_int_provision_virtualbox():
     """Provision testing."""
 
     test_dir = "tests/int/provision_virtualbox/tmp"
-    utils.cleanup_dir_and_vms_from_dir(test_dir, names=['first', 'second',
-                                                        'third', 'fourth'])
+    utils.cleanup_dir_and_vms_from_dir(test_dir, names=['firstvb', 'secondvb',
+                                                        'thirdvb', 'fourthvb'])
 
     # copy files from parent dir
     command = "cp ../file* .; cp ../Mechfile ."
@@ -62,8 +62,8 @@ def test_int_provision():
         print(line)
         assert re.search(line, stdout, re.MULTILINE)
 
-    # ensure there is no file on first
-    command = 'mech ssh -c "ls -al /tmp/file1.txt" first'
+    # ensure there is no file on firstvb
+    command = 'mech ssh -c "ls -al /tmp/file1.txt" firstvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -113,8 +113,8 @@ def test_int_provision():
         print(line)
         assert re.search(line, stdout, re.MULTILINE)
 
-    # ensure file exists now on first
-    command = 'mech ssh -c "ls -al /tmp/file1.txt" first'
+    # ensure file exists now on firstvb
+    command = 'mech ssh -c "ls -al /tmp/file1.txt" firstvb'
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')

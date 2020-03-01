@@ -1,8 +1,8 @@
 {
-  "first": {
+  "firstvb": {
     "box": "bento/ubuntu-18.04",
     "box_version": "202002.04.0",
-    "name": "first",
+    "name": "firstvb",
     "provider": "virtualbox",
     "provision": [
       {
@@ -18,10 +18,10 @@
     ],
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
   },
-  "fourth": {
+  "fourthvb": {
     "box": "bento/ubuntu-18.04",
     "box_version": "202002.04.0",
-    "name": "fourth",
+    "name": "fourthvb",
     "provider": "virtualbox",
     "provision": [
       {
@@ -32,10 +32,10 @@
     ],
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
   },
-  "second": {
+  "secondvb": {
     "box": "bento/ubuntu-18.04",
     "box_version": "202002.04.0",
-    "name": "second",
+    "name": "secondvb",
     "provider": "virtualbox",
     "provision": [
       {
@@ -58,10 +58,10 @@
     ],
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
   },
-  "third": {
+  "thirdvb": {
     "box": "bento/ubuntu-18.04",
     "box_version": "202002.04.0",
-    "name": "third",
+    "name": "thirdvb",
     "provider": "virtualbox",
     "provision": [],
     "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/202002.04.0/providers/virtualbox.box"
