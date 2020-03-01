@@ -459,7 +459,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         vbox_path = locate(instance_path, '*.vbox')
         # need to extract the files somewhere, then we will
         # remove them after importing to virtualbox
-        if vbox_path is not None and vbox_path != '':
+        if vbox_path != '':
             instance_path += '_tmp'
 
     # if we do not find the vmx file nor is the already imported files in place
