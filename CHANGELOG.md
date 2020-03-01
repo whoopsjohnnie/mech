@@ -2,6 +2,8 @@
 
 + Fix virtualbox int tests
 + Fix bug in "up" operation for virtualbox
++ Guess which network interface to use for bridge interface ("no-nat")
++ Add "purge" option to "mech global-status"
 
 # v0.8.7
 
