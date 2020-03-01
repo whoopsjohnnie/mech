@@ -1,3 +1,8 @@
+# TBD
+
++ Fix virtualbox int tests
++ Fix bug in "up" operation for virtualbox
+
 # v0.8.7
 
 + make python3.7+ requirement
