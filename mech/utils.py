@@ -85,7 +85,9 @@ def start_vm(inst):
     else:
         vbm = mech.vbm.VBoxManage()
         if inst.no_nat:
-            vbm.bridged(inst.name, quiet=False)
+            bridge_adapter = preferred_interface()
+            LOGGER.debug("bridge_adapter:%s", bridge_adapter)
+            vbm.bridged(inst.name, bridge_adapter=bridge_adapter, quiet=False)
         else:
             vbm.create_hostonly(quiet=True)
             vbm.hostonly(inst.name, quiet=True)
@@ -1555,3 +1557,51 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
     # re-create the directory to start afresh
     if a_dir != '':
         os.mkdir(a_dir)
+
+
+def get_interfaces():
+    """Get the network interfaces.
+       We may have 'ifconfig' or 'ip' installed.
+    """
+    interfaces = []
+
+    # first try "ifconfig"
+    results = subprocess.run(args='ifconfig', shell=True, capture_output=True)
+    if results.returncode == 0:
+        each_line = results.stdout.decode('utf-8').split('\n')
+        for line in each_line:
+            parts = line.split()
+            if len(parts) > 1:
+                if parts[0].endswith(':'):
+                    interfaces.append(parts[0][:-1])
+        return interfaces
+    else:
+        # try "ip"
+        results = subprocess.run(args='ip addr', shell=True, capture_output=True)
+        if results.returncode == 0:
+            each_line = results.stdout.decode('utf-8').split('\n')
+            for line in each_line:
+                parts = line.split()
+                if len(parts) > 2:
+                    if parts[1].endswith(':'):
+                        interfaces.append(parts[1][:-1])
+            return interfaces
+    return interfaces
+
+
+def preferred_interface():
+    """Guess the preferred network interface to use as bridge.
+       This is a hack.
+    """
+    interfaces = get_interfaces()
+    LOGGER.debug('interfaces:%s', interfaces)
+    for interface in interfaces:
+        if interface == 'en0':
+            return 'en0'
+        if interface == 'eno1':
+            return 'eno1'
+        if interface == 'eth0':
+            return 'eth0'
+        if interface == 'enp5s0':
+            return 'enp5s0'
+    return "en0"

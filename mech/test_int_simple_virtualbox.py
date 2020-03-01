@@ -8,16 +8,19 @@ import platform
 import pytest
 
 
+from . import utils
+
+
 @pytest.mark.virtualbox
 @pytest.mark.int
-def test_int_smoke_virtualbox(helpers):
+def test_int_smoke_virtualbox():
     """Smoke test most options using virtualbox."""
 
     test_dir = "tests/int/simple_virtualbox"
-    helpers.cleanup_dir_and_vms_from_dir(test_dir, names=['first'])
+    utils.cleanup_dir_and_vms_from_dir(test_dir, names=['firstvbsmoke'])
 
     # should init
-    command = "mech init --provider virtualbox bento/ubuntu-18.04"
+    command = "mech init --provider virtualbox --name firstvbsmoke bento/ubuntu-18.04"
     expected_lines = ["Initializing", "Loading metadata", "has been initialized", "mech up"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
@@ -30,8 +33,8 @@ def test_int_smoke_virtualbox(helpers):
 
     # should start
     command = "mech up"
-    expected_lines = ["virtualbox", "Extracting", "Getting IP", "started",
-                      "Not yet implemented"]
+    expected_lines = ["virtualbox", "Extracting", "Sharing folders",
+                      "Getting IP", "started", "Provisioning"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -55,8 +58,8 @@ def test_int_smoke_virtualbox(helpers):
             assert re.search(line, stdout, re.MULTILINE)
 
     # test 'mech ps'
-    command = "mech ps first"
-    expected_lines = ["Not yet implemented"]
+    command = "mech ps firstvbsmoke"
+    expected_lines = ["/sbin/init"]
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -68,7 +71,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech global-status'
     command = "mech global-status"
-    expected_lines = ['first']
+    expected_lines = ['firstvbsmoke']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -80,7 +83,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech list'
     commands = ["mech ls", "mech list"]
-    expected_lines = ['first', 'ubuntu', 'virtualbox']
+    expected_lines = ['firstvbsmoke', 'ubuntu', 'virtualbox']
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
@@ -117,7 +120,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech start'
     command = "mech start"
-    expected_lines = ['started']
+    expected_lines = ['started', 'Nothing to provision']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -129,7 +132,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech pause'
     command = "mech pause"
-    expected_lines = ['Not yet implemented']
+    expected_lines = ['Paused']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -141,7 +144,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech resume'
     command = "mech resume"
-    expected_lines = ['Not yet implemented']
+    expected_lines = ['resumed']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -153,7 +156,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech suspend'
     command = "mech suspend"
-    expected_lines = ['Not yet implemented']
+    expected_lines = ['Not sure equivalent command on this platform']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -165,7 +168,7 @@ def test_int_smoke_virtualbox(helpers):
 
     # test 'mech resume' after suspend
     command = "mech resume"
-    expected_lines = ['Not yet implemented']
+    expected_lines = ['started', 'Nothing to provision']
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -176,7 +179,7 @@ def test_int_smoke_virtualbox(helpers):
         assert re.search(line, stdout, re.MULTILINE)
 
     # test 'mech ssh' (different forms)
-    commands = ["mech ssh -c 'uptime' first", "mech ssh --command 'uptime' first"]
+    commands = ["mech ssh -c 'uptime' firstvbsmoke", "mech ssh --command 'uptime' firstvbsmoke"]
     expected_lines = ['load average']
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
@@ -189,7 +192,7 @@ def test_int_smoke_virtualbox(helpers):
             assert re.search(line, stdout, re.MULTILINE)
 
     # test 'mech scp' to guest
-    command = "date > now; mech scp now first:/tmp"
+    command = "date > now; mech scp now firstvbsmoke:/tmp"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -198,7 +201,7 @@ def test_int_smoke_virtualbox(helpers):
     assert results.returncode == 0
 
     # test 'mech scp' from guest
-    command = "mech scp first:/tmp/now ."
+    command = "mech scp firstvbsmoke:/tmp/now ."
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
     stderr = results.stderr.decode('utf-8')
@@ -206,8 +209,8 @@ def test_int_smoke_virtualbox(helpers):
     assert stderr == ''
     assert results.returncode == 0
 
-    # test 'mech ip first'
-    command = "mech ip first"
+    # test 'mech ip firstvbsmoke'
+    command = "mech ip firstvbsmoke"
     expected = r"[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
@@ -228,7 +231,7 @@ def test_int_smoke_virtualbox(helpers):
     else:
         # test "mech port"
         command = "mech port"
-        expected = "Not yet implemented"
+        expected = "This command is not supported on this OS"
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
@@ -259,7 +262,7 @@ def test_int_smoke_virtualbox(helpers):
         assert re.search(expected, stdout, re.MULTILINE)
 
     # test "mech snapshot save"
-    command = "mech snapshot save snap1 first"
+    command = "mech snapshot save snap1 firstvbsmoke"
     expected = "Not yet implemented"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
@@ -269,7 +272,7 @@ def test_int_smoke_virtualbox(helpers):
     assert re.search(expected, stdout)
 
     # test "mech snapshot save" with same args again
-    # command = "mech snapshot save snap1 first"
+    # command = "mech snapshot save snap1 firstvbsmoke"
     # results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     # stdout = results.stdout.decode('utf-8')
     # stderr = results.stderr.decode('utf-8')
@@ -289,7 +292,7 @@ def test_int_smoke_virtualbox(helpers):
     #     assert re.search(expected, stdout, re.MULTILINE)
 
     # test "mech snapshot delete"
-    command = "mech snapshot delete snap1 first"
+    command = "mech snapshot delete snap1 firstvbsmoke"
     expected = "Not yet implemented"
     results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
     stdout = results.stdout.decode('utf-8')
@@ -309,4 +312,4 @@ def test_int_smoke_virtualbox(helpers):
     assert re.search(expected, stdout)
 
     # clean up at the end
-    helpers.cleanup_dir_and_vms_from_dir(test_dir)
+    utils.cleanup_dir_and_vms_from_dir(test_dir)
