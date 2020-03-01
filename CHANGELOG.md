@@ -1,4 +1,4 @@
-# TBD
+# v0.8.8
 
 + Fix virtualbox int tests
 + Fix bug in "up" operation for virtualbox
