@@ -29,7 +29,7 @@ from __future__ import print_function, absolute_import
 import sys
 import logging
 
-from clint.textui import colored
+import click
 
 from .vmrun import VMrun
 from .mech_instance import MechInstance
@@ -69,11 +69,11 @@ class MechSnapshot(MechCommand):
         if inst.provider == 'vmware':
             vmrun = VMrun(inst.vmx)
             if vmrun.delete_snapshot(name) is None:
-                print(colored.red("Cannot delete name"))
+                click.secho("Cannot delete name", fg="red")
             else:
-                print(colored.green("Snapshot {} deleted".format(name)))
+                click.secho("Snapshot {} deleted".format(name), fg="green")
         else:
-            print(colored.red("Not yet implemented on this platform."))
+            click.secho("Not yet implemented on this platform.", fg="red")
 
     # add alias for 'mech snapshot remove'
     remove = delete
@@ -98,15 +98,15 @@ class MechSnapshot(MechCommand):
 
         for instance in instances:
             inst = MechInstance(instance)
-            print('Snapshots for instance:{}'.format(instance))
+            click.echo('Snapshots for instance:{}'.format(instance))
             if inst.created:
                 if inst.provider == 'vmware':
                     vmrun = VMrun(inst.vmx)
-                    print(vmrun.list_snapshots())
+                    click.echo(vmrun.list_snapshots())
                 else:
-                    print(colored.red("Not yet implemented on this platform."))
+                    click.secho("Not yet implemented on this platform.", fg="red")
             else:
-                print(colored.red('Instance ({}) is not created.'.format(instance)))
+                click.secho('Instance ({}) is not created.'.format(instance), fg="red")
 
     # add alias for 'mech snapshot ls'
     ls = list
@@ -134,10 +134,10 @@ class MechSnapshot(MechCommand):
             if inst.provider == 'vmware':
                 vmrun = VMrun(inst.vmx)
                 if vmrun.snapshot(name) is None:
-                    sys.exit(colored.red("Warning: Could not take snapshot."))
+                    sys.exit(click.style("Warning: Could not take snapshot.", fg="red"))
                 else:
-                    print(colored.green("Snapshot ({}) on VM ({}) taken".format(name, instance)))
+                    click.secho("Snapshot ({}) on VM ({}) taken".format(name, instance), fg="green")
             else:
-                print(colored.red("Not yet implemented on this platform."))
+                click.secho("Not yet implemented on this platform.", fg="red")
         else:
-            print(colored.red('Instance ({}) is not created.'.format(instance)))
+            click.secho('Instance ({}) is not created.'.format(instance), fg="red")

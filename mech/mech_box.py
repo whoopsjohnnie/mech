@@ -33,7 +33,7 @@ import logging
 import shutil
 
 
-from clint.textui import colored
+import click
 
 
 from . import utils
@@ -84,7 +84,7 @@ class MechBox(MechCommand):
         if provider is None:
             provider = 'vmware'
         if not utils.valid_provider(provider):
-            sys.exit(colored.red("Need to provide valid provider."))
+            sys.exit(click.style("Need to provide valid provider.", fg="red"))
 
         utils.add_box(name=None, box=None, location=location, box_version=box_version,
                       force=force, provider=provider)
@@ -132,7 +132,7 @@ class MechBox(MechCommand):
         provider = arguments['<provider>']
 
         if not utils.valid_provider(provider):
-            sys.exit(colored.red("Need to provide valid provider."))
+            sys.exit(click.style("Need to provide valid provider.", fg="red"))
 
         path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', provider, name, box_version))
         if os.path.exists(path):

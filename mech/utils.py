@@ -37,14 +37,12 @@ import tarfile
 import fnmatch
 import logging
 import tempfile
-import textwrap
 import subprocess
 import collections
 from shutil import copyfile, rmtree
 
 import requests
-from clint.textui import colored
-from clint.textui import progress
+import click
 
 from .vmrun import VMrun
 import mech.vbm
@@ -80,7 +78,7 @@ def start_vm(inst):
     if inst.provider == 'vmware':
         # Note: user/password is needed for provisioning
         vmrun = VMrun(inst.vmx, user=inst.user, password=inst.password)
-        print(colored.blue("Bringing machine ({}) up...".format(inst.name)))
+        click.secho("Bringing machine ({}) up...".format(inst.name), fg="blue")
         started = vmrun.start(gui=inst.gui)
     else:
         vbm = mech.vbm.VBoxManage()
@@ -98,9 +96,9 @@ def start_vm(inst):
             started = True
 
     if started is None:
-        print(colored.red("VM not started"))
+        click.secho("VM not started", fg="red")
     else:
-        print(colored.blue("Getting IP address..."))
+        click.secho("Getting IP address...", fg="blue")
         ip_address = inst.get_ip(wait=True)
 
         if not inst.disable_shared_folders:
@@ -114,10 +112,10 @@ def start_vm(inst):
                 virtualbox_share_folder_post_boot(inst)
 
         if ip_address:
-            print(colored.green("VM ({})started on {}".format(inst.name, ip_address)))
+            click.secho("VM ({})started on {}".format(inst.name, ip_address), fg="green")
         else:
-            print(colored.green("VM ({}) started on an unknown "
-                                "IP address".format(inst.name)))
+            click.secho("VM ({}) started on an unknown "
+                        "IP address".format(inst.name), fg="green")
 
         # if not already using preshared key, switch to it
         if not inst.use_psk and inst.auth:
@@ -159,30 +157,30 @@ def unpause_vm(inst):
     if inst.provider == 'vmware':
         vmrun = VMrun(inst.vmx)
         if vmrun.unpause(quiet=True) is not None:
-            print(colored.blue("Getting IP address..."))
+            click.secho("Getting IP address...", fg="blue")
             ip_address = inst.get_ip(wait=True)
             if not inst.disable_shared_folders:
                 share_folders(inst)
             else:
-                print(colored.blue("Disabling shared folders..."))
+                click.secho("Disabling shared folders...", fg="blue")
                 vmrun.disable_shared_folders(quiet=False)
             if ip_address:
-                print(colored.green("VM resumed on {}".format(ip_address)))
+                click.secho("VM resumed on {}".format(ip_address), fg="green")
             else:
-                print(colored.green("VM resumed on an unknown IP address"))
+                click.secho("VM resumed on an unknown IP address", fg="green")
         else:
             # Otherwise try starting
             start_vm(inst)
     else:
         vbm = mech.vbm.VBoxManage()
         if vbm.resume(inst.name, quiet=True) is not None:
-            print(colored.blue("Getting IP address..."))
+            click.secho("Getting IP address...", fg="blue")
             ip_address = inst.get_ip(wait=True)
             # Note: disable_shared_folders is not really an option here
             if ip_address:
-                print(colored.green("VM resumed on {}".format(ip_address)))
+                click.secho("VM resumed on {}".format(ip_address), fg="green")
             else:
-                print(colored.green("VM resumed on an unknown IP address"))
+                click.secho("VM resumed on an unknown IP address", fg="green")
         else:
             # Otherwise try starting
             start_vm(inst)
@@ -267,7 +265,7 @@ def update_vmx(path, numvcpus=None, memsize=None, no_nat=False):
         vmx["ethernet0.present"] = "TRUE"
         vmx["ethernet0.virtualdev"] = "e1000"
         vmx["ethernet0.wakeonpcktrcv"] = "FALSE"
-        print(colored.yellow("Added network interface to vmx file"))
+        click.secho("Added network interface to vmx file", fg="yellow")
         updated = True
 
     # write out vmx file if memsize or numvcpus was specified
@@ -298,16 +296,17 @@ def load_mechfile(should_exist=True):
                 LOGGER.debug('mechfile:%s', mechfile)
                 return mechfile
             except ValueError:
-                print(colored.red("Invalid Mechfile." + os.linesep))
+                click.secho("Invalid Mechfile.", fg="red")
                 return {}
     else:
         if should_exist:
-            sys.exit(colored.red(textwrap.fill(
-                     "Could not find a Mechfile in the current directory. "
-                     "A Mech environment is required to run this command. Run `mech init` "
-                     "to create a new Mech environment. Or specify the name of the VM you would "
-                     "like to start with `mech up <name>`. A final option is to change to a "
-                     "directory with a Mechfile and to try again.")))
+            sys.exit(
+                click.style(
+                    "Could not find a Mechfile in the current directory. \n"
+                    "A Mech environment is required to run this command. Run `mech init` \n"
+                    "to create a new Mech environment. Or specify the name of the VM you would \n"
+                    "like to start with `mech up <name>`. A final option is to change to a \n"
+                    "directory with a Mechfile and to try again.", fg="red"))
         else:
             return {}
 
@@ -362,25 +361,25 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
             return mechfile_entry
         except IOError:
             # cannot open file
-            sys.exit('Error: Cannot open file:({})'.format(location))
+            sys.exit(click.style('Error: Cannot open file:({})'.format(location), fg="red"))
     else:
         try:
             account, box, ver = (location.split('/', 2) + ['', ''])[:3]
             if not account or not box:
-                sys.exit(colored.red("Provided box name is not valid"))
+                sys.exit(click.style("Provided box name is not valid", fg="red"))
             if ver:
                 box_version = ver
-            print(
-                colored.blue("Loading metadata for box '{}'{}".format(
-                    location, " ({})".format(box_version) if box_version else "")))
+            click.secho("Loading metadata for box '{}'{}".format(
+                location, " ({})".format(box_version) if box_version else ""), fg="blue")
             url = 'https://app.vagrantup.com/{}/boxes/{}'.format(account, box)
             response = requests.get(url)
             response.raise_for_status()
             catalog = response.json()
         except (requests.HTTPError, ValueError) as exc:
-            sys.exit(colored.red("Bad response from HashiCorp's Vagrant Cloud API: %s" % exc))
+            sys.exit(click.style("Bad response from HashiCorp's Vagrant "
+                                 "Cloud API: %s" % exc), fg="red")
         except requests.ConnectionError:
-            sys.exit(colored.red("Couldn't connect to HashiCorp's Vagrant Cloud API"))
+            sys.exit(click.style("Couldn't connect to HashiCorp's Vagrant Cloud API", fg="red"))
 
     LOGGER.debug("catalog:%s name:%s box_version:%s", catalog, name, box_version)
     return catalog_to_mechfile(catalog, name=name, box=box,
@@ -406,7 +405,8 @@ def catalog_to_mechfile(catalog, name=None, box=None, box_version=None, provider
                     mechfile['url'] = a_provider['url']
                     mechfile['shared_folders'] = default_shared_folders()
                     return mechfile
-    sys.exit(colored.red("Couldn't find a compatible VM using catalog:{}".format(catalog)))
+    sys.exit(click.style("Couldn't find a compatible VM using "
+                         "catalog:{}".format(catalog), fg="red"))
 
 
 def tar_cmd(*args, **kwargs):
@@ -476,14 +476,15 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             save=save,
             provider=provider)
         if not name_version_box:
-            sys.exit(colored.red("Cannot find a valid box with a VMX/OVF file in boxfile"))
+            sys.exit(click.style("Cannot find a valid box with a VMX/OVF "
+                                 "file in boxfile", fg="red"))
 
         box_parts = box.split('/')
         box_dir = os.path.join(*filter(None, (mech_dir(), 'boxes', provider,
                                               box_parts[0], box_parts[1], box_version)))
         box_file = locate(box_dir, '*.box')
 
-        print(colored.blue("Extracting box '{}'...".format(box_file)))
+        click.secho("Extracting box '{}'...".format(box_file), fg="blue")
         makedirs(instance_path)
         if sys.platform == 'win32':
             cmd = tar_cmd('-xf', box_file, force_local=True)
@@ -496,7 +497,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
                 startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
             proc = subprocess.Popen(cmd, cwd=instance_path, startupinfo=startupinfo)
             if proc.wait():
-                sys.exit(colored.red("Cannot extract box"))
+                sys.exit(click.style("Cannot extract box", fg="red"))
         else:
             tar = tarfile.open(box_file, 'r')
             tar.extractall(instance_path)
@@ -507,13 +508,13 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
     if provider == 'vmware':
         vmx_path = locate(instance_path, '*.vmx')
         if not vmx_path:
-            sys.exit(colored.red("Cannot locate a VMX file"))
+            sys.exit(click.style("Cannot locate a VMX file", fg="red"))
         update_vmx(vmx_path, numvcpus=numvcpus, memsize=memsize, no_nat=no_nat)
         return vmx_path
     else:
         ovf_path = locate(instance_path, '*.ovf')
         if not ovf_path:
-            sys.exit(colored.red("Cannot locate an OVF file"))
+            sys.exit(click.style("Cannot locate an OVF file", fg="red"))
         LOGGER.debug('ovf_path:%s', ovf_path)
         vbm = mech.vbm.VBoxManage()
         import_results = vbm.importvm(path_to_ovf=ovf_path, name=name,
@@ -521,7 +522,7 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
         LOGGER.debug('import_results:%s', import_results)
         vbox_path = locate(instance_path_save, '*.vbox')
         if not vbox_path:
-            sys.exit(colored.red("Cannot locate a vbox file"))
+            sys.exit(click.style("Cannot locate a vbox file", fg="red"))
         # remove the extracted files
         rmtree(instance_path)
         return vbox_path
@@ -573,17 +574,14 @@ def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
     if url:
         return add_box_url(name=name, box=box, box_version=box_version,
                            url=url, force=force, save=save, provider=provider)
-    print(
-        colored.red(
-            "Could not find a VMWare compatible VM for '{}'{}".format(
-                name, " ({})".format(box_version) if box_version else "")))
+    click.secho("Could not find a VMWare compatible VM for '{}'{}".format(
+        name, " ({})".format(box_version) if box_version else ""), fg="red")
 
 
 def add_box_url(name, box, box_version, url, force=False, save=True, provider=None):
     """Add a box using the URL."""
     LOGGER.debug('name:%s box:%s box_version:%s url:%s provider:%s',
                  name, box, box_version, url, provider)
-    boxname = os.path.basename(url)
     box_parts = box.split('/')
     first_box_part = box_parts[0]
     second_box_part = ''
@@ -596,61 +594,54 @@ def add_box_url(name, box, box_version, url, force=False, save=True, provider=No
     exists = os.path.exists(box_dir)
     if not exists or force:
         if exists:
-            print(colored.blue("Attempting to download provider:{} box:'{}'...".format(provider,
-                                                                                       box)))
+            click.secho("Attempting to download provider:{} "
+                        "box:'{}'...".format(provider, box), fg="blue")
         else:
-            print(colored.blue("Provider:{} Box:'{}' could not be found. "
-                               "Attempting to download...".format(provider, box)))
+            click.secho("Provider:{} Box:'{}' could not be found. "
+                        "Attempting to download...".format(provider, box), fg="blue")
         try:
-            print(colored.blue("URL: {}".format(url)))
+            click.secho("URL: {}".format(url), fg="blue")
             response = requests.get(url, stream=True)
             response.raise_for_status()
-            try:
-                length = int(response.headers['content-length'])
-                progress_args = dict(expected_size=length // 1024 + 1)
-                progress_type = progress.bar
-            except KeyError:
-                progress_args = dict(every=1024 * 100)
-                progress_type = progress.dots
-            the_file = tempfile.NamedTemporaryFile(delete=False)
-            try:
-                for chunk in progress_type(
-                        response.iter_content(
-                            chunk_size=1024),
-                        label="{} ".format(boxname),
-                        **progress_args):
-                    if chunk:
-                        the_file.write(chunk)
-                the_file.close()
-                if response.headers.get('content-type') == 'application/json':
-                    # Downloaded URL might be a Vagrant catalog if it's json:
-                    catalog = json.load(the_file.name)
-                    mechfile = catalog_to_mechfile(catalog, name, box, box_version)
-                    return add_mechfile(
-                        mechfile,
-                        name=name,
-                        box_version=box_version,
-                        force=force,
-                        save=save)
-                else:
-                    # Otherwise it must be a valid box:
-                    return add_box_file(box=box, box_version=box_version,
-                                        filename=the_file.name, url=url, force=force,
-                                        save=save, provider=provider)
-            finally:
-                os.unlink(the_file.name)
+            length = int(response.headers['content-length'])
+            chunk_size = 1024 * 1024
+            with click.progressbar(length=length, label="Downloading") as bar:
+                the_file = tempfile.NamedTemporaryFile(delete=False)
+                try:
+                    for chunk in response.iter_content(chunk_size=chunk_size):
+                        if chunk:
+                            the_file.write(chunk)
+                            bar.update(chunk_size)
+                    the_file.close()
+                    if response.headers.get('content-type') == 'application/json':
+                        # Downloaded URL might be a Vagrant catalog if it's json:
+                        catalog = json.load(the_file.name)
+                        mechfile = catalog_to_mechfile(catalog, name, box, box_version)
+                        return add_mechfile(
+                            mechfile,
+                            name=name,
+                            box_version=box_version,
+                            force=force,
+                            save=save)
+                    else:
+                        # Otherwise it must be a valid box:
+                        return add_box_file(box=box, box_version=box_version,
+                                            filename=the_file.name, url=url, force=force,
+                                            save=save, provider=provider)
+                finally:
+                    os.unlink(the_file.name)
         except requests.HTTPError as exc:
-            sys.exit(colored.red("Bad response: %s" % exc))
+            sys.exit(click.style(("Bad response: %s" % exc), fg="red"))
         except requests.ConnectionError:
-            sys.exit(colored.red("Couldn't connect to '%s'" % url))
+            sys.exit(click.style(("Couldn't connect to '%s'" % url), fg="red"))
     return name, box_version, box
 
 
 def add_box_file(box=None, box_version=None, filename=None, url=None,
                  force=False, save=True, provider=None):
     """Add a box using a file as the source. Returns box and box_version."""
-    print(colored.blue("Checking integrity of provider:{} box:'{}' "
-                       "filename:{}...".format(provider, box, filename)))
+    click.secho("\nChecking integrity of provider:{} box:'{}' "
+                "\nfilename:{}...".format(provider, box, filename), fg="blue")
 
     valid_endswith = 'vmx'
     look_for = '*.vmx'
@@ -658,6 +649,7 @@ def add_box_file(box=None, box_version=None, filename=None, url=None,
         valid_endswith = 'ovf'
         look_for = '*.ovf'
 
+    click.secho("looking for:{}...".format(look_for), fg="blue")
     if sys.platform == 'win32':
         cmd = tar_cmd('-tf', filename, look_for, wildcards=True, fast_read=True, force_local=True)
     else:
@@ -679,11 +671,12 @@ def add_box_file(box=None, box_version=None, filename=None, url=None,
                 valid_tar = True
                 break
             if i.startswith('/') or i.startswith('..'):
-                sys.exit(colored.red(textwrap.fill(
-                         "This box is comprised of filenames starting with '/' or '..' "
-                         "Exiting for the safety of your files.")))
+                sys.exit(click.style("This box is comprised of filenames "
+                                     "starting with '/' or '..' \n"
+                                     "Exiting for the safety of your files.", fg="red"))
 
     if valid_tar:
+        click.secho("Valid tar", fg="blue")
         if save:
             boxname = os.path.basename(url if url else filename)
             box = os.path.join(*filter(None, (mech_dir(), 'boxes', provider, box,
@@ -748,26 +741,28 @@ def add_auth(instance):
     """Add authentication to VM."""
 
     if not instance:
-        sys.exit(colored.red("Need to provide an instance to before we can add authentication."))
+        sys.exit(click.style("Need to provide an instance to before "
+                             "we can add authentication.", fg="red"))
 
     if instance.provider == 'vmware' and instance.vmx is None:
-        sys.exit(colored.red("Need to provide vmx before we can add authentication."))
+        sys.exit(click.style("Need to provide vmx before we can add authentication.", fg="red"))
 
     if instance.provider == 'virtualbox' and instance.vbox is None:
-        sys.exit(colored.red("Need to provide vbox before we can add authentication."))
+        sys.exit(click.style("Need to provide vbox before we can add authentication.", fg="red"))
 
     if instance.user is None or instance.user == '':
-        sys.exit(colored.red("Need to provide user to add authentication."))
+        sys.exit(click.style("Need to provide user to add authentication.", fg="red"))
 
     if instance.password is None or instance.password == '':
-        sys.exit(colored.red("Need to provide password to add authentication."))
+        sys.exit(click.style("Need to provide password to add authentication.", fg="red"))
 
-    print(colored.green('Adding auth to instance:{}'.format(instance.name)))
+    click.secho('Adding auth to instance:{}'.format(instance.name), fg="green")
 
     vmrun = VMrun(instance.vmx, instance.user, instance.password)
     # cannot run if vmware tools are not installed
     if not vmrun.installed_tools():
-        sys.exit(colored.red("Cannot add authentication if VMware Tools are not installed."))
+        sys.exit(click.style("Cannot add authentication if VMware Tools "
+                             "are not installed.", fg="red"))
 
     if instance.auth:
         username = instance.auth.get('username', None)
@@ -799,16 +794,16 @@ def add_auth(instance):
                 results = vmrun.run_script_in_guest('/bin/sh', cmd, quiet=True)
                 LOGGER.debug('results:%s', results)
                 if results is None:
-                    print(colored.red("Did not add auth"))
+                    click.secho("Did not add auth", fg="red")
                 else:
-                    print(colored.green("Added auth."))
+                    click.secho("Added auth.", fg="red")
             else:
-                print(colored.green("Could not read contents of the pub_key"
-                                    " file:{}".format(pub_key)))
+                click.secho("Could not read contents of the pub_key"
+                            " file:{}".format(pub_key), fg="green")
         else:
-            print(colored.blue("Warning: Need a username and pub_key in auth."))
+            click.secho("Warning: Need a username and pub_key in auth.", fg="blue")
     else:
-        print(colored.blue("No auth to add."))
+        click.secho("No auth to add.", fg="blue")
 
 
 def vm_ready_based_on_state(state):
@@ -926,20 +921,20 @@ def del_user(instance, username):
     """Delete a user in guest VM."""
 
     if not instance:
-        sys.exit(colored.red("Need to provide an instance before "
-                             "we can delete user:{}.".format(username)))
+        sys.exit(click.style("Need to provide an instance before "
+                             "we can delete user:{}.".format(username), fg="red"))
 
     if instance.vmx is None:
-        sys.exit(colored.red("VM must be created."))
+        sys.exit(click.style("VM must be created.", fg="red"))
 
     if instance.user is None:
-        sys.exit(colored.red("A user is required."))
+        sys.exit(click.style("A user is required.", fg="red"))
 
     if username is None or username == '':
-        sys.exit(colored.red("A username to delete is required."))
+        sys.exit(click.style("A username to delete is required.", fg="red"))
 
-    print(colored.green('Removing username ({}) from instance:{}...'.format(username,
-                                                                            instance.name)))
+    click.secho('Removing username ({}) from '
+                'instance:{}...'.format(username, instance.name), fg="green")
 
     cmd = 'sudo userdel -fr {}'.format(username)
     LOGGER.debug('cmd:%s', cmd)
@@ -961,18 +956,18 @@ def provision(instance, show=False):
     """
 
     if not instance:
-        sys.exit(colored.red("Need to provide an instance to provision()."))
+        sys.exit(click.style("Need to provide an instance to provision().", fg="red"))
 
     if instance.provider == 'vmware' and instance.vmx is None:
-        sys.exit(colored.red("Need to provide vmx to provision()."))
+        sys.exit(click.style("Need to provide vmx to provision().", fg="red"))
 
     if instance.provider == 'virtualbox' and instance.vbox is None:
-        sys.exit(colored.red("Need to provide vbox to provision()."))
+        sys.exit(click.style("Need to provide vbox to provision().", fg="red"))
 
     if instance.user is None:
-        sys.exit(colored.red("Need to provide user to provision()."))
+        sys.exit(click.style("Need to provide user to provision().", fg="red"))
 
-    print(colored.green('Provisioning instance:{}'.format(instance.name)))
+    click.secho('Provisioning instance:{}'.format(instance.name), fg="green")
 
     provisioned = 0
     if instance.provision:
@@ -982,14 +977,14 @@ def provision(instance, show=False):
                 source = pro.get('source')
                 destination = pro.get('destination')
                 if show:
-                    print(colored.green(" instance.name:{} provision_type:{} source:{} "
-                                        "destination:{}".format(instance.name, provision_type,
-                                                                source, destination)))
+                    click.secho(" instance.name:{} provision_type:{} source:{} "
+                                "destination:{}".format(instance.name, provision_type,
+                                                        source, destination), fg="green")
                 else:
                     results = provision_file(instance, source, destination)
                     LOGGER.debug('results:%s', results)
                     if results is None:
-                        print(colored.red("Not Provisioned"))
+                        click.secho("Not Provisioned", fg="red")
                         return
                 provisioned += 1
 
@@ -1001,12 +996,12 @@ def provision(instance, show=False):
                 if not isinstance(args, list):
                     args = [args]
                 if show:
-                    print(colored.green(" instance.name:{} provision_type:{} inline:{} path:{} "
-                                        "args:{}".format(instance.name, provision_type,
-                                                         inline, path, args)))
+                    click.secho(" instance.name:{} provision_type:{} inline:{} path:{} "
+                                "args:{}".format(instance.name, provision_type,
+                                                 inline, path, args), fg="green")
                 else:
                     if provision_shell(instance, inline, path, args) is None:
-                        print(colored.red("Not Provisioned"))
+                        click.secho("Not Provisioned", fg="red")
                         return
                 provisioned += 1
 
@@ -1017,25 +1012,25 @@ def provision(instance, show=False):
                 if not isinstance(args, list):
                     args = [args]
                 if show:
-                    print(colored.green(" instance.name:{} provision_type:{} path:{} "
-                                        "args:{}".format(instance.name, provision_type,
-                                                         path, args)))
+                    click.secho(" instance.name:{} provision_type:{} path:{} "
+                                "args:{}".format(instance.name, provision_type,
+                                                 path, args), fg="green")
                 else:
                     return_code, stdout, stderr = provision_pyinfra(instance, path, args)
                     if return_code is None:
-                        print(colored.red("Not Provisioned"))
+                        click.secho("Not Provisioned", fg="red")
                         return
                     LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
                 provisioned += 1
 
             else:
-                print(colored.red("Not Provisioned ({}".format(i)))
+                click.secho("Not Provisioned ({}".format(i), fg="red")
                 return
         else:
-            print(colored.green("VM ({}) Provision {} "
-                                "entries".format(instance.name, provisioned)))
+            click.secho("VM ({}) Provision {} "
+                        "entries".format(instance.name, provisioned), fg="green")
     else:
-        print(colored.blue("Nothing to provision"))
+        click.secho("Nothing to provision", fg="blue")
 
 
 def provision_file(instance, source, destination):
@@ -1050,7 +1045,7 @@ def provision_file(instance, source, destination):
        This function copies a file from host to guest.
 
     """
-    print(colored.blue("Copying ({}) to ({})".format(source, destination)))
+    click.secho("Copying ({}) to ({})".format(source, destination), fg="blue")
     return scp(instance, source, destination, True)
 
 
@@ -1077,20 +1072,20 @@ def provision_shell(instance, inline, script_path, args=None):
     LOGGER.debug('inline:%s script_path:%s args:%s tmp_path:%s',
                  inline, script_path, args, tmp_path)
     if tmp_path is None or tmp_path == '':
-        print(colored.red("Warning: Could not create tempfile in guest."))
+        click.secho("Warning: Could not create tempfile in guest.", fg="red")
         return
 
     try:
         if script_path and os.path.isfile(script_path):
-            print(colored.blue("Configuring script {}...".format(script_path)))
+            click.secho("Configuring script {}...".format(script_path), fg="blue")
             results = scp(instance, script_path, tmp_path, True)
             if results is None:
-                print(colored.red("Warning: Could not copy file to guest."))
+                click.secho("Warning: Could not copy file to guest.", fg="red")
                 return
         else:
             if script_path:
                 if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                    print(colored.blue("Downloading {}...".format(script_path)))
+                    click.secho("Downloading {}...".format(script_path), fg="blue")
                     try:
                         response = requests.get(script_path)
                         response.raise_for_status()
@@ -1100,14 +1095,14 @@ def provision_shell(instance, inline, script_path, args=None):
                     except requests.ConnectionError:
                         return
                 else:
-                    print(colored.red("Cannot open {}".format(script_path)))
+                    click.secho("Cannot open {}".format(script_path), fg="red")
                     return
 
             if not inline:
-                print(colored.red("No script to execute"))
+                click.secho("No script to execute", fg="red")
                 return
 
-            print(colored.blue("Configuring script to run inline..."))
+            click.secho("Configuring script to run inline...", fg="blue")
             the_file = tempfile.NamedTemporaryFile(delete=False)
             try:
                 the_file.write(str.encode(inline))
@@ -1116,14 +1111,14 @@ def provision_shell(instance, inline, script_path, args=None):
             finally:
                 os.unlink(the_file.name)
 
-        print(colored.blue("Configuring environment..."))
+        click.secho("Configuring environment...", fg="blue")
         make_executable = "chmod +x '{}'".format(tmp_path)
         LOGGER.debug('make_executable:%s', make_executable)
         if ssh(instance=instance, command=make_executable) is None:
-            print(colored.red("Warning: Could not configure script in the environment."))
+            click.secho("Warning: Could not configure script in the environment.", fg="red")
             return
 
-        print(colored.blue("Executing program..."))
+        click.secho("Executing program...", fg="blue")
         args_string = ' '.join([str(elem) for elem in args])
         LOGGER.debug('args:%s args_string:%s', args, args_string)
         return ssh(instance=instance, command=tmp_path, command_args=args_string)
@@ -1159,7 +1154,7 @@ def provision_pyinfra(instance, script_path, args=None):
     else:
         if script_path:
             if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                print(colored.blue("Downloading {}...".format(script_path)))
+                click.secho("Downloading {}...".format(script_path), fg="blue")
                 try:
                     response = requests.get(script_path)
                     response.raise_for_status()
@@ -1169,7 +1164,7 @@ def provision_pyinfra(instance, script_path, args=None):
                 except requests.ConnectionError:
                     return
             else:
-                print(colored.red("Cannot open {}".format(script_path)))
+                click.secho("Cannot open {}".format(script_path), fg="red")
                 return
 
         LOGGER.debug('pyinfra_remote_contents:%s', pyinfra_remote_contents)
@@ -1215,33 +1210,33 @@ def run_pyinfra_script(host, username, password=None, script_path=None, args=Non
         args = []
 
     if host is None or host == '':
-        print(colored.red("Warning: A host is required for pyinfra provisioning."))
+        click.secho("Warning: A host is required for pyinfra provisioning.", fg="red")
         return
 
     if username is None or username == '':
-        print(colored.red("Warning: A username is required for pyinfra provisioning."))
+        click.secho("Warning: A username is required for pyinfra provisioning.", fg="red")
         return
 
     if script_path is None or script_path == '':
-        print(colored.red("Warning: A script is required for pyinfra provisioning."))
+        click.secho("Warning: A script is required for pyinfra provisioning.", fg="red")
         return
 
     if not os.path.exists(script_path):
-        print(colored.red("Warning: Could not find the pyinfra script ({}).".format(script_path)))
+        click.secho("Warning: Could not find the pyinfra "
+                    "script ({}).".format(script_path), fg="red")
         return
 
     if not script_path.endswith('.py'):
-        print(colored.red("Warning: A pyinfra provisioning script must end with .py."))
+        click.secho("Warning: A pyinfra provisioning script must end with .py.", fg="red")
         return
 
     is_pyinfra_installed = pyinfra_installed()
     if not is_pyinfra_installed:
-        print(colored.red("Warning: pyinfra must be installed."))
+        click.secho("Warning: pyinfra must be installed.", fg="red")
         return
 
-    print(colored.green("Going to run ({}) using args({}) on host:{} "
-                        "authenticating with username:{}"
-                        .format(script_path, args, host, username)))
+    click.secho("Going to run ({}) using args({}) on host:{} authenticating with username:{}".
+                format(script_path, args, host, username), fg="green")
 
     user_auth = '--user "{}"'.format(username)
     if password is not None:
@@ -1271,7 +1266,7 @@ def share_folders(inst):
 
     """
     if not inst.disable_shared_folders:
-        print(colored.blue("Sharing folders..."))
+        click.secho("Sharing folders...", fg="blue")
 
         if inst.provider == 'vmware':
             vmrun = VMrun(inst.vmx)
@@ -1285,9 +1280,9 @@ def share_folders(inst):
             if host_path == '.':
                 host_path = main_dir()
             absolute_host_path = os.path.abspath(host_path)
-            print(colored.blue("share:{} host_path:{} => "
-                               "absolute_host_path:{}".format(share_name, host_path,
-                                                              absolute_host_path)))
+            click.secho("share:{} host_path:{} => "
+                        "absolute_host_path:{}".format(share_name, host_path,
+                                                       absolute_host_path), fg="blue")
             if inst.provider == 'vmware':
                 vmrun.add_shared_folder(share_name, host_path, quiet=True)
             else:
@@ -1429,14 +1424,15 @@ def load_mechcloudfile(should_exist=True):
                 LOGGER.debug('clouds:%s', clouds)
                 return clouds
             except ValueError:
-                print(colored.red("Invalid Mechcloudfile." + os.linesep))
+                click.secho("Invalid Mechcloudfile.", fg="red")
                 return {}
     else:
         if should_exist:
-            sys.exit(colored.red(textwrap.fill(
-                     "Could not find a Mechcloudfile in the current directory. "
-                     "A Mech Cloud configuration is required to run this command."
-                     "Run `mech cloud init` to create a new Mech Cloud environment.")))
+            sys.exit(
+                click.style(
+                    "Could not find a Mechcloudfile in the current directory. \n"
+                    "A Mech Cloud configuration is required to run this command.\n"
+                    "Run `mech cloud init` to create a new Mech Cloud environment.", fg="red"))
         else:
             return {}
 
@@ -1471,19 +1467,19 @@ def report_provider(provider):
     """Check if this provider is available."""
     ok = True
     if not valid_provider(provider):
-        print(colored.red("Invalid provider ({})".format(provider)))
+        click.secho("Invalid provider ({})".format(provider), fg="red")
         ok = False
     if provider == 'vmware':
         vmrun = VMrun()
         if not vmrun.installed():
-            print(colored.red("Warning: Provider is not available."))
-            print(colored.red("Install VMware or change provider."))
+            click.secho("Warning: Provider is not available.", fg="red")
+            click.secho("Install VMware or change provider.", fg="red")
             ok = False
     elif provider == 'virtualbox':
         vbm = mech.vbm.VBoxManage()
         if not vbm.installed():
-            print(colored.red("Warning: Provider is not available."))
-            print(colored.red("Install Virtualbox or change provider."))
+            click.secho("Warning: Provider is not available.", fg="red")
+            click.secho("Install Virtualbox or change provider.", fg="red")
             ok = False
     return ok
 
@@ -1493,16 +1489,14 @@ def kill_pids(pids):
     for pid in pids:
         results = subprocess.run(args='kill {}'.format(pid), shell=True, capture_output=True)
         if results.returncode != 0:
-            print("Could not kill pid:{}".format(pid))
+            click.secho("Could not kill pid:{}".format(pid))
 
 
 def find_pids(search_string):
     """Return all pids that that match the search_string."""
-    # print('search_string:{}'.format(search_string))
     pids = []
     results = subprocess.run(args="ps -ef | grep '{}' | grep -v grep"
                              .format(search_string), shell=True, capture_output=True)
-    # print('results:{}'.format(results))
     if results.returncode == 0:
         # we found a proc
         stdout = results.stdout.decode('utf-8')
@@ -1511,7 +1505,6 @@ def find_pids(search_string):
             if len(data) > 2:
                 # add pid to the collection
                 pids.append(data[1])
-    # print('pids:{}'.format(pids))
     return pids
 
 
@@ -1528,7 +1521,6 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
     for name in names:
         results = subprocess.run(args="VBoxManage unregistervm {}".format(name),
                                  shell=True, capture_output=True)
-        # print('results:{}'.format(results))
     # kill vmware processes
     kill_pids(find_pids('vmware-vmx.*' + a_dir + '/.mech/'))
     # kill virtualbox processes (if any)
@@ -1542,7 +1534,6 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
     vms = stdout.split('\n')
     LOGGER.debug('vms:%s', vms)
     for line in vms:
-        # print('line:{}'.format(line))
         parts = line.split(' ')
         if all_vms:
             if len(parts) > 1:
@@ -1552,8 +1543,6 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
             if len(parts) > 1 and parts[0] == '"<inaccessible>"':
                 results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
                                          shell=True, capture_output=True)
-            # print('results:{}'.format(results))
-    # print('results:{}'.format(results))
     # re-create the directory to start afresh
     if a_dir != '':
         os.mkdir(a_dir)

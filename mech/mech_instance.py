@@ -30,9 +30,8 @@ import os
 import re
 import sys
 import logging
-import textwrap
 
-from clint.textui import colored
+import click
 
 from . import utils
 from .vmrun import VMrun
@@ -85,8 +84,8 @@ class MechInstance():
         if mechfile.get(name, None):
             self.name = name
         else:
-            sys.exit(colored.red("Instance ({}) was not found in the "
-                                 "Mechfile".format(name)))
+            sys.exit(click.style("Instance ({}) was not found in the "
+                                 "Mechfile".format(name), fg="red"))
         self.box = mechfile[name].get('box', None)
         self.box_version = mechfile[name].get('box_version', None)
         self.url = mechfile[name].get('url', None)
@@ -226,11 +225,11 @@ class MechInstance():
     def config_ssh(self):
         """Configure ssh to work. If needed, create an insecure private key file for ssh/scp."""
         if not self.get_ip():
-            sys.exit(colored.red(textwrap.fill(
+            sys.exit(click.style(
                 "This Mech machine is reporting that it is not yet ready for SSH. "
                 "Make sure your machine is created and running and try again. "
                 "Additionally, check the output of `mech ls` to verify "
-                "that the machine is in the state that you expect.")))
+                "that the machine is in the state that you expect.", fg="red"))
 
         if not self.use_psk:
             key = os.path.abspath(os.path.join(

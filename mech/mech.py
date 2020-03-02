@@ -30,11 +30,10 @@ import os
 import platform
 import sys
 import logging
-import textwrap
 import shutil
 import subprocess
 
-from clint.textui import colored
+import click
 
 from .__init__ import __version__
 from . import utils
@@ -159,9 +158,9 @@ class Mech(MechCommand):
             stdout = result.stdout.decode('utf-8')
             stderr = result.stderr.decode('utf-8')
             if stdout:
-                print(stdout)
+                click.echo(stdout)
             if stderr:
-                print(stderr)
+                click.echo(stderr)
             return result.returncode, stdout, stderr
 
     def init(self, arguments):  # pylint: disable=no-self-use
@@ -205,7 +204,7 @@ class Mech(MechCommand):
         if provider is None:
             provider = 'vmware'
         if not utils.valid_provider(provider):
-            sys.exit(colored.red("Need to provide valid provider."))
+            sys.exit(click.style("Need to provide valid provider.", fg='red'))
 
         if not name or name == "":
             name = "first"
@@ -220,13 +219,12 @@ class Mech(MechCommand):
             return
 
         if os.path.exists('Mechfile') and not force:
-            sys.exit(colored.red(textwrap.fill(
-                "`Mechfile` already exists in this directory. Remove it "
-                "before running `mech init` or use `mech add`.")))
+            sys.exit(click.style("`Mechfile` already exists in this directory. Remove it \n"
+                                 "before running `mech init` or use `mech add`.", fg="red"))
 
         utils.report_provider(provider)
 
-        print(colored.green("Initializing mech"))
+        click.secho("Initializing mech", fg="green")
         utils.init_mechfile(
             location=location,
             box=box,
@@ -235,9 +233,8 @@ class Mech(MechCommand):
             add_me=add_me,
             use_me=use_me,
             provider=provider)
-        print(colored.green(textwrap.fill(
-            "A `Mechfile` has been initialized and placed in this directory. "
-            "You are now ready to `mech up` your first virtual environment!")))
+        click.secho("A `Mechfile` has been initialized and placed in this directory. \n"
+                    "You are now ready to `mech up` your first virtual environment!", fg="green")
 
     def add(self, arguments):  # pylint: disable=no-self-use
         """
@@ -271,10 +268,11 @@ class Mech(MechCommand):
         if provider is None:
             provider = 'vmware'
         if not utils.valid_provider(provider):
-            sys.exit(colored.red("Need to provide valid provider."))
+            sys.exit(click.style("Need to provide valid provider.", fg="red"))
 
         if not name or name == "":
-            sys.exit(colored.red("Need to provide a name for the instance to add to the Mechfile."))
+            sys.exit(click.style("Need to provide a name for the instance "
+                                 "to add to the Mechfile.", fg="red"))
 
         if self.cloud_name:
             self.cloud_run(['add'])
@@ -285,7 +283,7 @@ class Mech(MechCommand):
         LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
                      name, box, box_version, location, provider)
 
-        print(colored.green("Adding ({}) to the Mechfile.".format(name)))
+        click.secho("Adding ({}) to the Mechfile.".format(name), fg='green')
 
         utils.add_to_mechfile(
             location=location,
@@ -295,7 +293,7 @@ class Mech(MechCommand):
             add_me=add_me,
             use_me=use_me,
             provider=provider)
-        print(colored.green("Added to the Mechfile."))
+        click.secho("Added to the Mechfile.", fg="green")
 
     def remove(self, arguments):
         """
@@ -309,7 +307,8 @@ class Mech(MechCommand):
         name = arguments['<name>']
 
         if not name or name == "":
-            sys.exit(colored.red("Need to provide a name to be removed from the Mechfile."))
+            sys.exit(click.style("Need to provide a name to be removed from "
+                                 "the Mechfile.", fg='red'))
 
         if self.cloud_name:
             self.cloud_run(['remove', 'delete', 'rm'])
@@ -320,11 +319,12 @@ class Mech(MechCommand):
         self.activate_mechfile()
         inst = self.mechfile.get(name, None)
         if inst:
-            print(colored.green("Removing ({}) from the Mechfile.".format(name)))
+            click.secho("Removing ({}) from the Mechfile.".format(name), fg="green")
             utils.remove_mechfile_entry(name=name)
-            print(colored.green("Removed from the Mechfile."))
+            click.secho("Removed from the Mechfile.", fg="green")
         else:
-            sys.exit(colored.red("There is no instance called ({}) in the Mechfile.".format(name)))
+            sys.exit(click.style("There is no instance called "
+                                 "({}) in the Mechfile.".format(name), fg="red"))
 
     # add aliases for 'mech delete'
     delete = remove
@@ -464,13 +464,13 @@ class Mech(MechCommand):
         else:
             vmrun = VMrun()
             if vmrun.installed():
-                print("===VMware VMs===")
-                print(vmrun.list())
+                click.echo("===VMware VMs===")
+                click.echo(vmrun.list())
 
             vbm = VBoxManage()
             if vbm.installed():
-                print("===VirtualBox VMs===")
-                print(vbm.list())
+                click.echo("===VirtualBox VMs===")
+                click.echo(vbm.list())
 
     def ps(self, arguments):  # pylint: disable=invalid-name,no-self-use
         """
@@ -491,9 +491,9 @@ class Mech(MechCommand):
 
         if inst.created:
             _, stdout, _ = utils.ssh(inst, "ps -ef")
-            print(stdout)
+            click.echo(stdout)
         else:
-            print("VM {} not created.".format(instance_name))
+            click.echo("VM {} not created.".format(instance_name))
 
     # alias "mech process-status" to "mech ps"
     process_status = ps
@@ -529,7 +529,7 @@ class Mech(MechCommand):
             if os.path.exists(inst.path):
                 if force or utils.confirm("Are you sure you want to delete {} "
                                           "at {}".format(inst.name, inst.path), default='n'):
-                    print(colored.green("Deleting ({})...".format(instance)))
+                    click.secho("Deleting ({})...".format(instance), fg="green")
 
                     if inst.provider == 'vmware':
                         vmrun = VMrun(inst.vmx)
@@ -543,11 +543,11 @@ class Mech(MechCommand):
 
                     if os.path.exists(inst.path):
                         shutil.rmtree(inst.path)
-                    print("Deleted")
+                    click.echo("Deleted")
                 else:
-                    print(colored.red("Delete aborted."))
+                    click.secho("Delete aborted.", fg="red")
             else:
-                print(colored.red("VM ({}) not created.".format(instance)))
+                click.secho("VM ({}) not created.".format(instance), fg="red")
 
     def down(self, arguments):
         """
@@ -585,18 +585,18 @@ class Mech(MechCommand):
                     else:
                         stopped = vmrun.stop(mode='hard')
                     if stopped is None:
-                        print(colored.red("Not stopped", vmrun))
+                        click.secho("Not stopped", fg="red")
                     else:
-                        print(colored.green("Stopped", vmrun))
+                        click.secho("Stopped", fg="green")
                 else:
                     vbm = VBoxManage()
                     stopped = vbm.stop(vmname=inst.name, quiet=True)
                     if stopped is None:
-                        print(colored.red("Not stopped", vbm))
+                        click.secho("Not stopped", fg="red")
                     else:
-                        print(colored.green("Stopped", vbm))
+                        click.secho("Stopped", fg="green")
             else:
-                print(colored.red("VM ({}) not created.".format(instance)))
+                click.secho("VM ({}) not created.".format(instance), fg="red")
 
     # alias 'mech stop' and 'mech halt' to 'mech down'
     stop = down
@@ -632,18 +632,18 @@ class Mech(MechCommand):
                     vmrun = VMrun(inst.vmx)
                     pause_results = vmrun.pause()
                     if pause_results is None:
-                        print(colored.red("Not paused", vmrun))
+                        click.secho("Not paused", fg="red")
                     else:
-                        print(colored.yellow("Paused", vmrun))
+                        click.secho("Paused", fg="yellow")
                 else:
                     vbm = VBoxManage()
                     pause_results = vbm.pause(inst.name)
                     if pause_results is None:
-                        print(colored.red("Not paused", vbm))
+                        click.secho("Not paused", fg="red")
                     else:
-                        print(colored.yellow("Paused", vbm))
+                        click.secho("Paused", fg="yellow")
             else:
-                print(colored.red("VM ({}) not created.".format(instance)))
+                click.secho("VM ({}) not created.".format(instance), fg="red")
 
     def upgrade(self, arguments):
         """
@@ -677,16 +677,16 @@ class Mech(MechCommand):
                     vmrun = VMrun(inst.vmx)
                     state = vmrun.check_tools_state(quiet=True)
                     if state == "running":
-                        print("VM must be stopped before doing upgrade.")
+                        click.secho("VM must be stopped before doing upgrade.")
                     else:
                         if vmrun.upgradevm(quiet=False) is None:
-                            print(colored.red("Not upgraded", vmrun))
+                            click.secho("Not upgraded", fg="red")
                         else:
-                            print(colored.yellow("Upgraded", vmrun))
+                            click.secho("Upgraded", fg="yellow")
                 else:
-                    print(colored.red("Functionality not available on this platform."))
+                    click.secho("Functionality not available on this platform.", fg="red")
             else:
-                print(colored.red("VM ({}) not created.".format(instance)))
+                click.secho("VM ({}) not created.".format(instance), fg="red")
 
     def resume(self, arguments):
         """
@@ -724,7 +724,7 @@ class Mech(MechCommand):
             if inst.created:
                 utils.unpause_vm(inst)
             else:
-                print(colored.red("VM not created"))
+                click.secho("VM not created", fg="red")
     # allow 'mech unpause' as alias to 'mech resume'
     unpause = resume
 
@@ -757,14 +757,14 @@ class Mech(MechCommand):
                 if inst.provider == 'vmware':
                     vmrun = VMrun(inst.vmx)
                     if vmrun.suspend() is None:
-                        print(colored.red("Not suspended", vmrun))
+                        click.secho("Not suspended", fg="red")
                     else:
-                        print(colored.green("Suspended", vmrun))
+                        click.secho("Suspended", fg="green")
                 else:
-                    print(colored.red("Not sure equivalent command on this platform."))
-                    print(colored.red("If you know, please open issue on github."))
+                    click.secho("Not sure equivalent command on this platform.", fg="red")
+                    click.secho("If you know, please open issue on github.", fg="red")
             else:
-                print("VM has not been created.")
+                click.secho("VM has not been created.")
 
     def ssh_config(self, arguments):
         """
@@ -791,9 +791,9 @@ class Mech(MechCommand):
         for instance in instances:
             inst = MechInstance(instance)
             if inst.created:
-                print(utils.config_ssh_string(inst.config_ssh()))
+                click.echo(utils.config_ssh_string(inst.config_ssh()))
             else:
-                print(colored.red("VM ({}) is not created.".format(instance)))
+                click.secho("VM ({}) is not created.".format(instance), fg="red")
 
     def ssh(self, arguments):  # pylint: disable=no-self-use
         """
@@ -813,7 +813,7 @@ class Mech(MechCommand):
         instance = arguments['<instance>']
 
         if self.cloud_name:
-            print(colored.red("Using 'ssh' on cloud instance is not supported."))
+            click.secho("Using 'ssh' on cloud instance is not supported.", fg="red")
             return
 
         inst = MechInstance(instance)
@@ -822,12 +822,12 @@ class Mech(MechCommand):
             rc, stdout, stderr = utils.ssh(inst, command, plain, extra)
             LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
             if stdout:
-                print(stdout)
+                click.echo(stdout)
             if stderr:
-                print(stderr)
+                click.echo(stderr)
             sys.exit(rc)
         else:
-            print("VM not created.")
+            click.echo("VM not created.")
 
     def scp(self, arguments):  # pylint: disable=no-self-use
         """
@@ -851,7 +851,7 @@ class Mech(MechCommand):
 
         instance_name = None
         if dst_is_host and src_is_host:
-            sys.exit(colored.red("Both src and dst are host destinations"))
+            sys.exit(click.style("Both src and dst are host destinations", fg="red"))
         if dst_is_host:
             instance_name = dst_instance
         else:
@@ -862,16 +862,16 @@ class Mech(MechCommand):
             src = src_instance
 
         if instance_name is None:
-            sys.exit(colored.red("Could not determine instance name."))
+            sys.exit(click.style("Could not determine instance name.", fg="red"))
 
         inst = MechInstance(instance_name)
 
         if inst.created:
             _, _, stderr = utils.scp(inst, src, dst, dst_is_host, extra)
             if stderr != '':
-                print(stderr)
+                click.echo(stderr)
         else:
-            print(colored.red('VM not created.'))
+            click.secho('VM not created.', fg="red")
 
     def ip(self, arguments):  # pylint: disable=invalid-name,no-self-use
         """
@@ -893,11 +893,11 @@ class Mech(MechCommand):
         if inst.created:
             ip_address = inst.get_ip()
             if ip_address:
-                print(colored.green(ip_address))
+                click.secho(ip_address, fg="green")
             else:
-                print(colored.red("Unknown IP address"))
+                click.secho("Unknown IP address", fg="red")
         else:
-            print(colored.yellow("VM not created"))
+            click.secho("VM not created", fg="yellow")
 
     # alias 'mech ip_address' to 'mech ip'
     ip_address = ip
@@ -945,7 +945,7 @@ class Mech(MechCommand):
             if inst.created:
                 utils.provision(inst, show)
             else:
-                print("VM not created.")
+                click.echo("VM not created.")
 
     def port(self, arguments):
         """
@@ -964,7 +964,7 @@ class Mech(MechCommand):
             return
 
         if platform.system() == 'Linux':
-            sys.exit('This command is not supported on this OS.')
+            sys.exit(click.style('This command is not supported on this OS.', fg="red"))
 
         if instance_name:
             # single instance
@@ -978,18 +978,18 @@ class Mech(MechCommand):
             inst = MechInstance(instance)
 
             if inst.provider == 'vmware':
-                print('Instance ({}):'. format(instance))
+                click.echo('Instance ({}):'. format(instance))
                 nat_found = False
                 vmrun = VMrun(inst.vmx)
                 for line in vmrun.list_host_networks().split('\n'):
                     network = line.split()
                     if len(network) > 2 and network[2] == 'nat':
-                        print(vmrun.list_port_forwardings(network[1]))
+                        click.echo(vmrun.list_port_forwardings(network[1]))
                         nat_found = True
                 if not nat_found:
-                    print(colored.red("Cannot find a nat network"), file=sys.stderr)
+                    click.secho("Cannot find a nat network", fg="red")
             else:
-                print(colored.red("Not yet implemented on this platform."))
+                click.secho("Not yet implemented on this platform.", fg="red")
 
     def list(self, arguments):
         """
@@ -1011,10 +1011,10 @@ class Mech(MechCommand):
         self.activate_mechfile()
 
         if detail:
-            print('Instance Details')
-            print()
+            click.echo('Instance Details')
+            click.echo()
         else:
-            print("{}\t{}\t{}\t{}\t{}\t{}".format(
+            click.echo("{}\t{}\t{}\t{}\t{}\t{}".format(
                 'NAME'.rjust(20),
                 'ADDRESS'.rjust(15),
                 'BOX'.rjust(35),
@@ -1032,31 +1032,29 @@ class Mech(MechCommand):
                 if vm_state is None:
                     vm_state = "unknown"
                 if ip_address is None:
-                    ip_address = colored.yellow("poweroff")
+                    ip_address = "poweroff"
                 elif not ip_address:
-                    ip_address = colored.green("running")
-                else:
-                    ip_address = colored.green(ip_address)
+                    ip_address = "running"
             else:
                 ip_address = "notcreated"
                 vm_state = "notcreated"
 
             if detail:
-                print('==================================')
-                print('From Mechfile:')
-                print(inst)
-                print()
+                click.echo('==================================')
+                click.echo('From Mechfile:')
+                click.echo(inst)
+                click.echo()
                 if inst.provider == 'virtualbox':
                     if inst.created:
-                        print('From virtualbox:')
-                        print(inst.get_vm_info())
+                        click.echo('From virtualbox:')
+                        click.echo(inst.get_vm_info())
             else:
                 # deal with box_version being none
                 box_version = inst.box_version
                 if inst.box_version is None:
                     box_version = ''
-                print("{}\t{}\t{}\t{}\t{}\t{}".format(
-                    colored.green(name.rjust(20)),
+                click.echo("{}\t{}\t{}\t{}\t{}\t{}".format(
+                    name.rjust(20),
                     ip_address.rjust(15),
                     inst.box.rjust(35),
                     box_version.rjust(12),
@@ -1078,17 +1076,17 @@ class Mech(MechCommand):
             -h, --help                       Print this help
         """
 
-        print('If you are having issues with mikemech or wish to make feature requests, please')
-        print('check out the GitHub issues at https://github.com/mkinney/mech/issues .')
-        print('')
-        print('When adding an issue, be sure to include the following:')
-        print(' System: {0}'.format(platform.system()))
-        print('   Platform: {0}'.format(platform.platform()))
-        print('   Release: {0}'.format(platform.uname().release))
-        print('   Machine: {0}'.format(platform.uname().machine))
-        print(' mikemech: v{0}'.format(__version__))
-        print(' Executable: {0}'.format(sys.argv[0]))
-        print(' Python: {0} ({1}, {2})'.format(
+        click.echo('If you are having issues with mikemech or wish to make feature requests, ')
+        click.echo('please check out the GitHub issues at https://github.com/mkinney/mech/issues .')
+        click.echo('')
+        click.echo('When adding an issue, be sure to include the following:')
+        click.echo(' System: {0}'.format(platform.system()))
+        click.echo('   Platform: {0}'.format(platform.platform()))
+        click.echo('   Release: {0}'.format(platform.uname().release))
+        click.echo('   Machine: {0}'.format(platform.uname().machine))
+        click.echo(' mikemech: v{0}'.format(__version__))
+        click.echo(' Executable: {0}'.format(sys.argv[0]))
+        click.echo(' Python: {0} ({1}, {2})'.format(
             platform.python_version(),
             platform.python_implementation(),
             platform.python_compiler(),
