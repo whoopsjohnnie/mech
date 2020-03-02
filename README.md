@@ -44,6 +44,7 @@ There is `--help` on every operation.
         snapshot          manages snapshots: save, list, remove, etc.
         ssh               connects to an instance via SSH (or run a command)
         ssh-config        outputs OpenSSH valid configuration to connect to instance
+        support           Print info helpful with support
         suspend           suspends the instance(s)
         (up|start)        starts instance(s)
         upgrade           upgrade the instance(s) - vmware only
@@ -79,7 +80,9 @@ There is `--help` on every operation.
            - The 'no-nat' option will only be applied if there is no network
              interface supplied in the box file for 'vmware'. For 'virtualbox',
              if you need internet access from the vm, then you will want to
-             use 'no-nat'. Interface 'en0' will be used for bridge.
+             use 'no-nat'.
+           - Will try these interfaces for the bridge when using 'no-nat':
+                'en0', 'eno1', 'eth0', 'enp5s0'
            - Unless 'disable-shared-folders' is used, a default read/write
              share called "mech" will be mounted from the current directory.
              '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
