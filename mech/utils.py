@@ -1523,9 +1523,13 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
                                  shell=True, capture_output=True)
     # kill vmware processes
     kill_pids(find_pids('vmware-vmx.*' + a_dir + '/.mech/'))
-    # kill virtualbox processes (if any)
+    # tryy to stop, then kill virtualbox processes (if any), then unregister
     for name in names:
+        subprocess.run(args="VBoxManage controlvm {} poweroff".format(name),
+                       shell=True, capture_output=True)
         kill_pids(find_pids('VBoxHeadless --comment {} '.format(name)))
+        subprocess.run(args="VBoxManage unregistervm {} --delete".format(name),
+                       shell=True, capture_output=True)
     # clean up the vm files
     rmtree(a_dir, ignore_errors=True)
     # remove any "dead" instances in virtualbox
@@ -1537,12 +1541,22 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
         parts = line.split(' ')
         if all_vms:
             if len(parts) > 1:
-                results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
-                                         shell=True, capture_output=True)
+                vm = parts[1]
+                LOGGER.debug('vm:%s', vm)
+                # try to stop it first (in case the vm is "locked")
+                subprocess.run(args="VBoxManage controlvm {} poweroff".format(vm),
+                               shell=True, capture_output=True)
+                subprocess.run(args="VBoxManage unregistervm {} --delete".format(vm),
+                               shell=True, capture_output=True)
         else:
             if len(parts) > 1 and parts[0] == '"<inaccessible>"':
-                results = subprocess.run(args="VBoxManage unregistervm {}".format(parts[1]),
-                                         shell=True, capture_output=True)
+                vm = parts[1]
+                LOGGER.debug('vm:%s', vm)
+                # try to stop it first (in case the vm is "locked")
+                subprocess.run(args="VBoxManage controlvm {} poweroff".format(vm),
+                               shell=True, capture_output=True)
+                subprocess.run(args="VBoxManage unregistervm {} --delete".format(vm),
+                               shell=True, capture_output=True)
     # re-create the directory to start afresh
     if a_dir != '':
         os.mkdir(a_dir)
