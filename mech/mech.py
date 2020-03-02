@@ -400,6 +400,9 @@ class Mech(MechCommand):
             inst.remove_vagrant = remove_vagrant
             inst.no_nat = no_nat
 
+            if not utils.report_provider(inst.provider):
+                return
+
             location = inst.url
             if not location:
                 location = inst.box_file
