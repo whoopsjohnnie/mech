@@ -29,7 +29,9 @@ from __future__ import print_function, absolute_import
 import sys
 import logging
 
-from clint.textui import colored
+
+import click
+
 
 from . import utils
 
@@ -55,8 +57,8 @@ class MechCloudInstance():
         if clouds.get(name, None):
             self.name = name
         else:
-            sys.exit(colored.red("Instance ({}) was not found in the "
-                                 "Mechcloudfile".format(name)))
+            sys.exit(click.style("Instance ({}) was not found in the "
+                                 "Mechcloudfile".format(name), fg="red"))
 
         self.hostname = clouds[name].get('hostname')
         self.directory = clouds[name].get('directory')
@@ -64,19 +66,19 @@ class MechCloudInstance():
 
     def set_hostname(self, hostname):
         if hostname is None or hostname == '':
-            sys.exit(colored.red("A non-blank hostname is required."))
+            sys.exit(click.style("A non-blank hostname is required.", fg="red"))
         self.hostname = hostname
 
     def set_directory(self, directory):
         if directory is None or directory == '':
-            sys.exit(colored.red("A non-blank directory is required."))
+            sys.exit(click.style("A non-blank directory is required.", fg="red"))
         if ' ' in directory:
-            sys.exit(colored.red("A directory cannot contain spaces."))
+            sys.exit(click.style("A directory cannot contain spaces.", fg="red"))
         self.directory = directory
 
     def set_username(self, username):
         if username is None or username == '':
-            sys.exit(colored.red("A non-blank username is required."))
+            sys.exit(click.style("A non-blank username is required.", fg="red"))
         self.username = username
 
     def __repr__(self):
@@ -100,7 +102,7 @@ class MechCloudInstance():
         """Initialize the cloud instance.
             - add entry to Mechcloudfile
         """
-        print(colored.blue("Writing entry to Mechcloudfile..."))
+        click.secho("Writing entry to Mechcloudfile...", fg="blue")
         clouds = utils.load_mechcloudfile(False)
         clouds[self.name] = self.config()
         utils.save_mechcloudfile(clouds)
@@ -108,39 +110,39 @@ class MechCloudInstance():
         # Note: If using ~/mike for the directory, then ~ will not be expanded
         # when surrounded by quotes. For this reason, directory should not have
         # any spaces in it.
-        print(colored.blue("Creating directory (if necessary)..."))
+        click.secho("Creating directory (if necessary)...", fg="blue")
         self.ssh('if ! [ -d {directory} ]; then mkdir {directory} ; fi'
                  .format(directory=self.directory))
         # create virtualenv, if not already created
-        print(colored.blue("Creating python virtual environment (if necessary)..."))
+        click.secho("Creating python virtual environment (if necessary)...", fg="blue")
         self.ssh('cd {directory}; virtualenv -p python3.7 venv'
                  .format(directory=self.directory))
         # install mikemech into that python virtual environment using pip
-        print(colored.blue("Installing mikemech into that python virtual environment..."))
+        click.secho("Installing mikemech into that python virtual environment...", fg="blue")
         self.ssh('source {}/venv/bin/activate && pip install mikemech'.format(self.directory))
         vmrun_found, _, _ = self.ssh('which vmrun', False)
         if vmrun_found == 0:
-            print(colored.green("VMware vmrun was found."))
+            click.secho("VMware vmrun was found.", fg="green")
         else:
-            print(colored.yellow("VMware vmrun was not found."))
+            click.secho("VMware vmrun was not found.", fg="yellow")
         vbm_found, _, _ = self.ssh('which VBoxManage', False)
         if vbm_found == 0:
-            print(colored.green("Oracle VBoxManage was found."))
+            click.secho("Oracle VBoxManage was found.", fg="green")
         else:
-            print(colored.yellow("Oracle VBoxManage was not found."))
+            click.secho("Oracle VBoxManage was not found.", fg="yellow")
         if vmrun_found != 0 and vbm_found != 0:
-            print(colored.red("Neither VMware vmrun nor Oracle VBoxManage was found."))
-            print(colored.red("The 'mech' command will not be very useful."))
-        print("Done.")
+            click.secho("Neither VMware vmrun nor Oracle VBoxManage was found.", fg="red")
+            click.secho("The 'mech' command will not be very useful.", fg="red")
+        click.echo("Done.")
 
     def upgrade(self):
         """Upgrade the cloud instance.
         """
-        print(colored.blue("Updating pip on cloud instance:({})...".format(self.name)))
+        click.secho("Updating pip on cloud instance:({})...".format(self.name), fg="blue")
         self.ssh('source {}/venv/bin/activate && pip install -U pip'.format(self.directory))
-        print(colored.blue("Updating mikemech..."))
+        click.secho("Updating mikemech...", fg="blue")
         self.ssh('source {}/venv/bin/activate && pip install -U mikemech'.format(self.directory))
-        print("Done.")
+        click.echo("Done.")
 
     def ssh(self, command, print_output_on_error=True):
         """Run ssh command using internal variables (like username and hostname) and print output.
@@ -155,10 +157,10 @@ class MechCloudInstance():
         LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
         if print_output_on_error:
             if return_code != 0:
-                print(colored.red('Warning: Command did not complete successfully.'
-                                  '(return_code:{})'.format(return_code)))
+                click.secho('Warning: Command did not complete successfully.'
+                            '(return_code:{})'.format(return_code), fg="red")
                 if stdout:
-                    print(stdout)
+                    click.echo(stdout)
                 if stderr:
-                    print(stderr)
+                    click.echo(stderr)
         return return_code, stdout, stderr

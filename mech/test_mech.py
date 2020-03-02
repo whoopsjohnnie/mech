@@ -1682,12 +1682,12 @@ def test_mech_port_without_nat_from_mac(mock_locate, mock_load_mechfile,
     a_mock.return_value = 'Darwin'
     mock_platform_system.side_effect = a_mock
     a_mech.port(port_arguments)
-    _, err = capfd.readouterr()
+    out, _ = capfd.readouterr()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
     mock_platform_system.assert_called()
-    assert re.search(r'Cannot find a nat network', err, re.MULTILINE)
+    assert re.search(r'Cannot find a nat network', out, re.MULTILINE)
 
 
 @patch('requests.get')

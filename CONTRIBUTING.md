@@ -32,7 +32,7 @@ source venv/bin/activate
 pip install -e .
 
 # if doing development
-pip install docopt clint requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra setuptools wheel
+pip install docopt requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra setuptools wheel click colorama
 
 # also optional
 pip install autopep8

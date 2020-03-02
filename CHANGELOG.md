@@ -5,6 +5,7 @@
 + Minor update to README about which interfaces are used during "no-nat"
 + Do not initialize a vm (hence prevent starting) when using
   a provider that is not installed.
++ Change libraries (from "clint" to "click") because "clint" is deprecated
 
 # v0.8.8
 
