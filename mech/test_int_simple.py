@@ -287,8 +287,8 @@ def test_int_smoke():
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
-        assert stderr == ''
-        assert re.search(r'This command is not supported on this OS', stdout, re.MULTILINE)
+        assert stdout == ''
+        assert re.search(r'This command is not supported on this OS', stderr, re.MULTILINE)
         assert results.returncode == 1
     else:
         # test "mech port"
@@ -297,9 +297,9 @@ def test_int_smoke():
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
-        assert stderr == ''
+        assert stdout == ''
         assert results.returncode == 0
-        assert re.search(expected, stdout, re.MULTILINE)
+        assert re.search(expected, stderr, re.MULTILINE)
 
     # test "mech box list" (and alias)
     commands = ["mech box list", "mech box ls"]
