@@ -222,22 +222,23 @@ def test_int_smoke_virtualbox():
     if platform.system() == "Linux":
         # test "mech port"
         command = "mech port"
+        expected = r"This command is not supported on this OS"
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
         assert stderr == ''
-        assert re.search('This command is not supported on this OS', stdout, re.MULTILINE)
+        assert re.search(expected, stdout, re.MULTILINE)
         assert results.returncode == 1
     else:
         # test "mech port"
         command = "mech port"
-        expected = "This command is not supported on this OS"
+        expected = r"This command is not supported on this OS"
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
         assert stderr == ''
-        assert results.returncode == 0
         assert re.search(expected, stdout, re.MULTILINE)
+        assert results.returncode == 0
 
     # test "mech box list" (and alias)
     commands = ["mech box list", "mech box ls"]

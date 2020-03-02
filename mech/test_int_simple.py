@@ -288,7 +288,7 @@ def test_int_smoke():
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
         assert stderr == ''
-        assert re.search('This command is not supported on this OS', stdout, re.MULTILINE)
+        assert re.search(r'This command is not supported on this OS', stdout, re.MULTILINE)
         assert results.returncode == 1
     else:
         # test "mech port"
