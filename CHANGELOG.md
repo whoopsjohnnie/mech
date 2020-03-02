@@ -1,3 +1,11 @@
+# TBD
+
++ Add "support" operation.
++ Add github issues and requests options.
++ Minor update to README about which interfaces are used during "no-nat"
++ Do not initialize a vm (hence prevent starting) when using
+  a provider that is not installed.
+
 # v0.8.8
 
 + Fix virtualbox int tests

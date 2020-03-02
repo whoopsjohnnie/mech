@@ -36,6 +36,7 @@ import subprocess
 
 from clint.textui import colored
 
+from .__init__ import __version__
 from . import utils
 from .vmrun import VMrun
 from .vbm import VBoxManage
@@ -81,6 +82,7 @@ class Mech(MechCommand):
         snapshot          manages snapshots: save, list, remove, etc.
         ssh               connects to an instance via SSH (or run a command)
         ssh-config        outputs OpenSSH valid configuration to connect to instance
+        support           Print info helpful with support
         suspend           suspends the instance(s)
         (up|start)        starts instance(s)
         upgrade           upgrade the instance(s) - vmware only
@@ -1064,3 +1066,30 @@ class Mech(MechCommand):
 
     # allow 'mech ls' as alias to 'mech list'
     ls = list
+
+    def support(self, arguments):
+        """
+        Show info that would be helpful for support.
+
+
+        Usage: mech support [options]
+
+        Options:
+            -h, --help                       Print this help
+        """
+
+        print('If you are having issues with mikemech or wish to make feature requests, please')
+        print('check out the GitHub issues at https://github.com/mkinney/mech/issues .')
+        print('')
+        print('When adding an issue, be sure to include the following:')
+        print(' System: {0}'.format(platform.system()))
+        print('   Platform: {0}'.format(platform.platform()))
+        print('   Release: {0}'.format(platform.uname().release))
+        print('   Machine: {0}'.format(platform.uname().machine))
+        print(' mikemech: v{0}'.format(__version__))
+        print(' Executable: {0}'.format(sys.argv[0]))
+        print(' Python: {0} ({1}, {2})'.format(
+            platform.python_version(),
+            platform.python_implementation(),
+            platform.python_compiler(),
+        ))
