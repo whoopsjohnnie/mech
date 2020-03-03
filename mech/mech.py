@@ -42,6 +42,7 @@ from .vbm import VBoxManage
 from .mech_instance import MechInstance
 from .mech_command import MechCommand
 from .mech_box import MechBox
+from .mech_winrm import MechWinrm
 from .mech_cloud import MechCloud
 from .mech_cloud_instance import MechCloudInstance
 from .mech_snapshot import MechSnapshot
@@ -85,6 +86,7 @@ class Mech(MechCommand):
         suspend           suspends the instance(s)
         (up|start)        starts instance(s)
         upgrade           upgrade the instance(s) - vmware only
+        winrm             winrm options: config, copy, fetch, run
 
     For help on any individual command run `mech <command> -h`
 
@@ -124,6 +126,7 @@ class Mech(MechCommand):
 
     box = MechBox
     cloud = MechCloud
+    winrm = MechWinrm
     snapshot = MechSnapshot
 
     def cloud_run(self, operations):

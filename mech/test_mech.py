@@ -452,7 +452,6 @@ def test_mech_ip(mock_locate, mock_load_mechfile,
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_get_ip.assert_called()
-        mock_get_ip.assert_called()
         assert re.search(r'192.168', out, re.MULTILINE)
 
 
