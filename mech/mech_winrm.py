@@ -118,7 +118,6 @@ class MechWinrm(MechCommand):
                     click.echo(stdout)
                 if stderr:
                     click.echo(stderr)
-                sys.exit(rc)
             else:
                 output, streams, had_errors = client.execute_ps(powershell)
                 LOGGER.debug('powershell:%s output:%s streams:%s '
