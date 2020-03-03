@@ -1,6 +1,7 @@
 # TBD
 
 + Add "winrm config" and "winrm run" operations
++ Add "winrm copy" and "winrm fetch" operations
 
 # v0.8.9
 

@@ -1608,3 +1608,19 @@ def preferred_interface():
         if interface == 'enp5s0':
             return 'enp5s0'
     return "en0"
+
+
+def suppress_urllib3_errors():
+    """Suppress the urllib3 errors."""
+    # Note: Not really sure why we need to do this, but it seems to suppress the output
+    # when using the pypsrp client.
+    try:
+        from urllib3.connectionpool import log
+        log.addFilter(SuppressFilter())
+    except:  # noqa: E722
+        pass
+
+
+class SuppressFilter(logging.Filter):
+    def filter(self, record):
+        return 'unparsed data' not in record.getMessage()

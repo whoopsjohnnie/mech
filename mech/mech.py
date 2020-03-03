@@ -86,7 +86,7 @@ class Mech(MechCommand):
         suspend           suspends the instance(s)
         (up|start)        starts instance(s)
         upgrade           upgrade the instance(s) - vmware only
-        winrm             winrm options: config, run
+        winrm             winrm options: config, copy, fetch, run
 
     For help on any individual command run `mech <command> -h`
 

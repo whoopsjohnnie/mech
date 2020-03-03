@@ -34,15 +34,11 @@ import sys
 import click
 from pypsrp.client import Client
 
+from . import utils
 from .mech_command import MechCommand
 from .mech_instance import MechInstance
 
 LOGGER = logging.getLogger(__name__)
-
-
-class SuppressFilter(logging.Filter):
-    def filter(self, record):
-        return 'unparsed data' not in record.getMessage()
 
 
 class MechWinrm(MechCommand):
@@ -53,6 +49,8 @@ class MechWinrm(MechCommand):
 
     Available subcommands:
         config            Get configuration
+        copy              Copy file to instance
+        fetch             Fetch file from instance
         run               Run winrm command
 
     For help on any individual subcommand run `mech winrm <subcommand> -h`
@@ -111,15 +109,8 @@ class MechWinrm(MechCommand):
         if inst.created:
             LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
                          " password:%s", inst.get_ip(), inst.user, inst.password)
+            utils.suppress_urllib3_errors()
             client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-
-            # Note: Not really sure why we need to do this, but it seems to suppress the output
-            try:
-                from urllib3.connectionpool import log
-                log.addFilter(SuppressFilter())
-            except:  # noqa: E722
-                pass
-
             if command:
                 stdout, stderr, rc = client.execute_cmd(command)
                 LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
@@ -137,3 +128,57 @@ class MechWinrm(MechCommand):
 
         else:
             click.echo("VM not created.")
+
+    def copy(self, arguments):  # pylint: disable=no-self-use,unused-argument
+        """
+        Copy local file to remote file on instance.
+
+        Usage: mech winrm copy [options] <local> <remote> <instance>
+
+        Options:
+            -h, --help                       Print this help
+        """
+        local = arguments['<local>']
+        remote = arguments['<remote>']
+        instance = arguments['<instance>']
+
+        if local is None or local == '':
+            sys.exit(click.style("local file required", fg="red"))
+
+        if remote is None or remote == '':
+            sys.exit(click.style("remote file required", fg="red"))
+
+        inst = MechInstance(instance)
+
+        if inst.created:
+            utils.suppress_urllib3_errors()
+            client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+            client.copy(local, remote)
+            click.echo("Copied")
+
+    def fetch(self, arguments):  # pylint: disable=no-self-use,unused-argument
+        """
+        Fetch remote file from instance.
+
+        Usage: mech winrm fetch [options] <remote> <local> <instance>
+
+        Options:
+            -h, --help                       Print this help
+        """
+        local = arguments['<local>']
+        remote = arguments['<remote>']
+        instance = arguments['<instance>']
+
+        if local is None or local == '':
+            sys.exit(click.style("local file required", fg="red"))
+
+        if remote is None or remote == '':
+            sys.exit(click.style("remote file required", fg="red"))
+
+        inst = MechInstance(instance)
+
+        if inst.created:
+            utils.suppress_urllib3_errors()
+            client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+            client.fetch(remote, local)
+            click.echo("Fetched")
