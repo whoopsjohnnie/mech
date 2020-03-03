@@ -1,3 +1,7 @@
+# TBD
+
++ Add "winrm config" and "winrm run" operations
+
 # v0.8.9
 
 + Add "support" operation.

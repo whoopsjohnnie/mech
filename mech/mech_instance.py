@@ -268,3 +268,36 @@ class MechInstance():
             "HostName": self.ip,
         })
         return self.config
+
+    def winrm_raw_config(self):
+        """Print the winrm configuration."""
+        if not self.get_ip():
+            sys.exit(click.style(
+                "This Mech machine is reporting that it is not yet ready. "
+                "Make sure your machine is created and running and try again. "
+                "Additionally, check the output of `mech ls` to verify "
+                "that the machine is in the state that you expect.", fg="red"))
+
+        config = {
+            "Host": self.name,
+            "HostName": self.ip,
+            "User": self.user,
+            "Password": self.password,
+            "Port": "5985",
+            "RDPHostName": self.ip,
+            "RDPPort": 3389,
+            "RDPUser": self.user,
+            "RDPPassword": self.password,
+        }
+        return config
+
+    def winrm_config(self):
+        """Return the winrm configuration formatted."""
+        config = self.winrm_raw_config()
+        return ('Host {}\n  Hostname {}\n  User {}\n  Password {}\n'
+                '  Port {}\n  RDPHostName {}\n  RDPPort {}\n  RDPUser {}\n'
+                '  RDPPassword {}\n').format(config.get("Host"), config.get("HostName"),
+                                             config.get("User"), config.get("Password"),
+                                             config.get("Port"), config.get("RDPHostName"),
+                                             config.get("RDPPort"), config.get("RDPUser"),
+                                             config.get("RDPPassword"))

@@ -46,7 +46,7 @@ setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
     ],
-    install_requires=['requests', 'click', 'colorama', 'docopt', 'pyinfra'],
+    install_requires=['requests', 'click', 'colorama', 'docopt', 'pyinfra', 'pypsrp'],
     python_requires='>=3.7',
     packages=['mech'],
     entry_points={
