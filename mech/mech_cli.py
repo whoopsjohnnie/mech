@@ -75,7 +75,7 @@ def list(ctx, detail, instance):
         click.echo('Instance Details')
         click.echo()
     else:
-        click.echo("{}\t{}\t{}\t{}\t{}\t{}".format(
+        click.echo('{}\t{}\t{}\t{}\t{}\t{}'.format(
             'NAME'.rjust(20),
             'ADDRESS'.rjust(15),
             'BOX'.rjust(35),
@@ -172,7 +172,7 @@ def port(ctx, instance):
         return
 
     if platform.system() == 'Linux':
-        sys.exit(click.style('This command is not supported on this OS.', fg="red"))
+        sys.exit(click.style('This command is not supported on this OS.', fg='red'))
 
     if instance:
         # single instance
@@ -195,9 +195,9 @@ def port(ctx, instance):
                     click.echo(vmrun.list_port_forwardings(network[1]))
                     nat_found = True
             if not nat_found:
-                click.secho("Cannot find a nat network", fg="red")
+                click.secho('Cannot find a nat network', fg='red')
         else:
-            click.secho("Not yet implemented on this platform.", fg="red")
+            click.secho('Not yet implemented on this platform.', fg='red')
 
 
 @cli.command()
@@ -205,7 +205,7 @@ def port(ctx, instance):
 @click.option('--show-only', is_flag=True, default=False)
 @click.pass_context
 def provision(ctx, instance, show_only):
-    """
+    '''
     Provision the instance(s).
 
     Notes:
@@ -221,7 +221,7 @@ def provision(ctx, instance, show_only):
       - An example of provisioning could be installing puppet (or your config tool
         of choice).
 
-    """
+    '''
 
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s show_only:%s instance:%s', cloud_name, show_only, instance)
@@ -243,7 +243,7 @@ def provision(ctx, instance, show_only):
         if inst.created:
             utils.provision(inst, show_only)
         else:
-            click.echo("VM not created.")
+            click.echo('VM not created.')
 
 
 @cli.command()
@@ -688,16 +688,257 @@ def global_status(ctx, purge):
             click.echo(vbm.list())
 
 
+@cli.command()
+@click.argument('instance', required=False)
+@click.option('--disable-provisioning', is_flag=True, default=False, help='Do not provision.')
+@click.option('--disable-shared-folders', is_flag=True, default=False, help='Do not share folders.')
+@click.option('--gui', is_flag=True, default=False, help='Start GUI, otherwise starts headless.')
+@click.option('--memsize', metavar='MEMORY', help='Specify memory size in MB.')
+@click.option('--no-cache', is_flag=True, default=False, help='Do not save the downloaded box.')
+@click.option('--no-nat', is_flag=True, default=False,
+              help='Do not use NAT networking (i.e., use bridged).')
+@click.option('--numvcpus', metavar='VCPUS', help='Specify number of vcpus.')
+@click.option('--remove-vagrant', is_flag=True, default=False, help='Remove vagrant user.')
+@click.pass_context
+def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize, no_cache,
+       no_nat, numvcpus, remove_vagrant):
+    '''
+    Starts and provisions instance(s).
+
+    Notes:
+       - If no instance is specified, all instances will be started.
+       - The options ('memsize', 'numvcpus', and 'no-nat') will only be applied
+         upon first run of the 'up' command.
+       - The 'no-nat' option will only be applied if there is no network
+         interface supplied in the box file for 'vmware'. For 'virtualbox',
+         if you need internet access from the vm, then you will want to
+         use 'no-nat'. Interface 'en0' will be used for bridge.
+       - Unless 'disable-shared-folders' is used, a default read/write
+         share called 'mech' will be mounted from the current directory.
+         '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
+         To add/change shared folders, modify the Mechfile directly, then
+         stop/start the VM.
+       - The 'remove-vagrant' option will remove the vagrant account from the
+         guest VM which is what 'mech' uses to communicate with the VM.
+         Be sure you can connect/admin the instance before using this option.
+         Be sure to check that root cannot ssh, or change the root password.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s disable_provisioning:%s disable_shared_folders:%s '
+                 'gui:%s memsize:%s no_cache:%s no_nat:%s numvcpus:%s remove_vagrant:%s',
+                 cloud_name, instance, disable_provisioning, disable_shared_folders,
+                 gui, memsize, no_cache, no_nat, numvcpus, remove_vagrant)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['up', 'start'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        inst.gui = gui
+        inst.disable_shared_folders = disable_shared_folders
+        inst.disable_provisioning = disable_provisioning
+        inst.remove_vagrant = remove_vagrant
+        inst.no_nat = no_nat
+
+        if not utils.report_provider(inst.provider):
+            return
+
+        location = inst.url
+        if not location:
+            location = inst.box_file
+
+        # only run init_box on first 'up'
+        # extracts the VM files from the singular .box archive
+        if not inst.created:
+            path_to_vmx_or_vbox = utils.init_box(
+                instance,
+                box=inst.box,
+                box_version=inst.box_version,
+                location=location,
+                instance_path=inst.path,
+                save=not no_cache,
+                numvcpus=numvcpus,
+                memsize=memsize,
+                no_nat=no_nat,
+                provider=inst.provider)
+            if inst.provider == 'vmware':
+                inst.vmx = path_to_vmx_or_vbox
+            else:
+                inst.vbox = path_to_vmx_or_vbox
+                vbm = VBoxManage()
+                if memsize:
+                    vbm.memory(inst.name, memsize)
+                if numvcpus:
+                    vbm.cpus(inst.name, numvcpus)
+                # virtualbox wants to add shared folder before starting VM
+                utils.share_folders(inst)
+
+            inst.created = True
+
+        utils.start_vm(inst)
+
+
+@cli.command()
+@click.argument('name', required=True)
+@click.pass_context
+def remove(ctx, name):
+    '''
+    Remove instance from the Mechfile.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['remove', 'delete', 'rm'])
+        return
+
+    mechfiles = utils.load_mechfile()
+    LOGGER.debug('mechfiles:%s', mechfiles)
+
+    inst = mechfiles.get(name, None)
+    if inst:
+        click.secho('Removing ({}) from the Mechfile.'.format(name), fg='green')
+        utils.remove_mechfile_entry(name=name)
+        click.secho('Removed from the Mechfile.', fg='green')
+    else:
+        sys.exit(click.style('There is no instance called '
+                             '({}) in the Mechfile.'.format(name), fg='red'))
+
+
+@cli.command()
+@click.argument('name', required=True)
+@click.argument('location', required=True)
+@click.option('--add-me', '-a', is_flag=True, default=False,
+              help='Add the current user/pubkey to guest.')
+@click.option('--box', metavar='BOXNAME', help='Name of the box (ex: bento/ubuntu-10.04).')
+@click.option('--box-version', metavar='VERSION', help='Constrain to specific box version.')
+@click.option('--provider', metavar='PROVIDER', default='vmware',
+              help='Provider (`vmware` or `virtualbox`)')
+@click.option('--use-me', '-u', is_flag=True, default=False,
+              help='Use the current user for mech interactions.')
+@click.pass_context
+def add(ctx, name, location, add_me, box, box_version, provider, use_me):
+    '''
+    Add instance to the Mechfile.
+
+    Notes:
+    - The 'add-me' option will add the currently logged in user to the guest,
+      add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+      for that user.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s location:%s add_me:%s box:%s box_version:%s '
+                 'provider:%s use_me:%s', cloud_name, name, location, add_me, box,
+                 box_version, provider, use_me)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['add'])
+        return
+
+    if not utils.valid_provider(provider):
+        sys.exit(click.style('Need to provide valid provider.', fg='red'))
+
+    utils.report_provider(provider)
+
+    click.secho('Adding ({}) to the Mechfile.'.format(name), fg='green')
+
+    utils.add_to_mechfile(
+        location=location,
+        box=box,
+        name=name,
+        box_version=box_version,
+        add_me=add_me,
+        use_me=use_me,
+        provider=provider)
+    click.secho('Added to the Mechfile.', fg='green')
+
+
+@cli.command()
+@click.argument('location', required=True)
+@click.option('--add-me', '-a', is_flag=True, default=False,
+              help='Add the current user/pubkey to guest.')
+@click.option('--box', metavar='BOXNAME', help='Name of the box (ex: bento/ubuntu-10.04).')
+@click.option('--box-version', metavar='VERSION', help='Constrain to specific box version.')
+@click.option('--force', is_flag=True, default=False, help='Overwrite existing Mechfile.')
+@click.option('--name', metavar='INSTANCE', default='first',
+              help='Name of the instance (ex: `first`).')
+@click.option('--provider', metavar='PROVIDER', default='vmware',
+              help='Provider (`vmware` or `virtualbox`)')
+@click.option('--use-me', '-u', is_flag=True, default=False,
+              help='Use the current user for mech interactions.')
+@click.pass_context
+def init(ctx, location, add_me, box, box_version, force, name, provider, use_me):
+    '''
+    Initialize Mechfile.
+
+    Notes:
+      - The location can be a:
+          + URL (ex: 'http://example.com/foo.box'),
+          + box file (ex: 'file:/mnt/boxen/foo.box'),
+          + json file (ex: 'file:/tmp/foo.json'), or
+          + HashiCorp account/box (ex: 'bento/ubuntu-18.04').
+      - A default shared folder name 'mech' will be available
+        in the guest for the current directory.
+      - The 'add-me' option will add the currently logged in user to the guest,
+        add the same user to sudoers, and add the id_rsa.pub key to the
+        authorized_hosts file for that user.
+      - The 'use-me' option will use the currently logged in user for
+        future interactions with the guest instead of the vagrant user.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s location:%s add_me:%s box:%s box_version:%s '
+                 'force:%s name:%s provider:%s use_me:%s', cloud_name,
+                 location, add_me, box, box_version,
+                 force, name, provider, use_me)
+
+    if not utils.valid_provider(provider):
+        sys.exit(click.style('Need to provide valid provider.', fg='red'))
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['init'])
+        return
+
+    if os.path.exists('Mechfile') and not force:
+        sys.exit(click.style('`Mechfile` already exists in this directory. Remove it \n'
+                             'before running `mech init` or use `mech add`.', fg='red'))
+
+    utils.report_provider(provider)
+
+    click.secho('Initializing mech', fg='green')
+    utils.init_mechfile(
+        location=location,
+        box=box,
+        name=name,
+        box_version=box_version,
+        add_me=add_me,
+        use_me=use_me,
+        provider=provider)
+    click.secho('A `Mechfile` has been initialized and placed in this directory. \n'
+                'You are now ready to `mech up` your first virtual environment!', fg='green')
+
+
 # operation aliases
 ALIASES = {
-    'ls': list,
-    'ip_address': ip,
-    'ip-address': ip,
-    'unpause': resume,
-    'stop': down,
-    'halt': down,
-    'process-status': ps,
-    'process_status': ps,
+    'delete': remove,
     'global-status': global_status,
     'gs': global_status,
+    'halt': down,
+    'ip-address': ip,
+    'ip_address': ip,
+    'ls': list,
+    'process-status': ps,
+    'process_status': ps,
+    'rm': remove,
+    'start': up,
+    'stop': down,
+    'unpause': resume,
 }

@@ -87,3 +87,8 @@ pytest -m"virtualbox" -vv -l
 # Or, just one run int test like this (with verbose and show local variables):
 pytest -m"int" -k"provision" -v -l
 ```
+
+Coding standards:
+- use single quotes where possible
+- flake8 should not emit any warnings
+- all "help" should be sentences, complete with a period ('.') at the end
