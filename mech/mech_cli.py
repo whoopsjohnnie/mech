@@ -1,5 +1,7 @@
 import logging
+import os
 import platform
+import shutil
 import sys
 
 
@@ -10,7 +12,7 @@ from . import utils
 from .__init__ import __version__
 from .mech_instance import MechInstance
 from .vmrun import VMrun
-# from .vbm import VBoxManage
+from .vbm import VBoxManage
 
 # for short and long help options
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
@@ -56,7 +58,7 @@ def cli(ctx, debug, cloud):
 
 
 @cli.command()
-@click.option('--detail', '-d', is_flag=True, help='Print detailed info')
+@click.option('--detail', '-d', is_flag=True, help='Print detailed info.')
 @click.argument('instance', required=False)
 @click.pass_context
 def list(ctx, detail, instance):
@@ -130,7 +132,7 @@ def list(ctx, detail, instance):
 @cli.command()
 @click.pass_context
 def support(ctx):
-    '''Show info that would be helpful for support.'''
+    '''Show support info.'''
 
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s', cloud_name)
@@ -160,7 +162,7 @@ def support(ctx):
 @click.argument('instance', required=False)
 @click.pass_context
 def port(ctx, instance):
-    '''Displays information about guest port mappings.'''
+    '''Displays guest port mappings.'''
 
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
@@ -204,7 +206,7 @@ def port(ctx, instance):
 @click.pass_context
 def provision(ctx, instance, show_only):
     """
-    Provisions the instance.
+    Provision the instance(s).
 
     Notes:
       - There are a few provision types: 'file', 'shell', and 'pyinfra'.
@@ -278,7 +280,7 @@ def ip(ctx, instance):
 @click.pass_context
 def scp(ctx, src, dst, extra_ssh_args):
     '''
-    Copies files to and from the machine via SCP.
+    Copies files to and from the instance using SCP.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s src:%s dst:%s extra_ssh_args:%s',
@@ -319,21 +321,21 @@ def scp(ctx, src, dst, extra_ssh_args):
 @cli.command()
 @click.argument('instance', required=True)
 @click.option('--command', '-c', required=False, metavar='COMMAND',
-              help='Command to run on instance')
+              help='Command to run on instance.')
 @click.option('--plain', is_flag=True, default=False,
-              help='Plain mode, leaves authentication up to user')
+              help='Plain mode, leaves authentication up to user.')
 @click.argument('extra-ssh-args', required=False)
 @click.pass_context
 def ssh(ctx, instance, command, plain, extra_ssh_args):
-    """
-    Connects to instance via SSH or runs a command (if COMMAND is supplied).
-    """
+    '''
+    Connects to an instance via SSH or runs a command (if COMMAND is supplied).
+    '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s command:%s plain:%s extra_ssh_args:%s',
                  cloud_name, instance, command, plain, extra_ssh_args)
 
     if cloud_name:
-        click.secho("Using 'ssh' on cloud instance is not supported.", fg="red")
+        click.secho('Using `ssh` on cloud instance is not supported.', fg='red')
         return
 
     inst = MechInstance(instance)
@@ -347,16 +349,16 @@ def ssh(ctx, instance, command, plain, extra_ssh_args):
             click.echo(stderr)
         sys.exit(rc)
     else:
-        click.echo("VM not created.")
+        click.echo('VM not created.')
 
 
 @cli.command()
 @click.argument('instance', required=True)
 @click.pass_context
 def ssh_config(ctx, instance):
-    """
+    '''
     Output OpenSSH configuration to connect to the instance.
-    """
+    '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
 
@@ -376,11 +378,326 @@ def ssh_config(ctx, instance):
         if inst.created:
             click.echo(utils.config_ssh_string(inst.config_ssh()))
         else:
-            click.secho("VM ({}) is not created.".format(an_instance), fg="red")
+            click.secho('VM ({}) is not created.'.format(an_instance), fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.pass_context
+def suspend(ctx, instance):
+    '''
+    Suspends the instance(s).
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['suspend'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        if inst.created:
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                if vmrun.suspend() is None:
+                    click.secho('Not suspended', fg='red')
+                else:
+                    click.secho('Suspended', fg='green')
+            else:
+                click.secho('Not sure equivalent command on this platform.', fg='red')
+                click.secho('If you know, please open issue on github.', fg='red')
+        else:
+            click.secho('VM has not been created.')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.option('--disable-shared-folders', is_flag=True, default=False)
+@click.pass_context
+def resume(ctx, instance, disable_shared_folders):
+    '''
+    Resume paused/suspended instance(s).
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s disable_shared_folders:%s',
+                 cloud_name, instance, disable_shared_folders)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['resume', 'unpause'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+        inst.disable_shared_folders = disable_shared_folders
+        LOGGER.debug('instance:%s', instance)
+
+        # if we have started this instance before, try to unpause
+        if inst.created:
+            utils.unpause_vm(inst)
+        else:
+            click.secho('VM not created', fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.pass_context
+def upgrade(ctx, instance):
+    '''
+    Upgrade the VM and virtual hardware for the instance(s).
+
+    Note: The VMs must be created and stopped.
+
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['upgrade'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        if inst.created:
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                state = vmrun.check_tools_state(quiet=True)
+                if state == 'running':
+                    click.secho('VM must be stopped before doing upgrade.')
+                else:
+                    if vmrun.upgradevm(quiet=False) is None:
+                        click.secho('Not upgraded', fg='red')
+                    else:
+                        click.secho('Upgraded', fg='yellow')
+            else:
+                click.secho('Functionality not available on this platform.', fg='red')
+        else:
+            click.secho('VM ({}) not created.'.format(an_instance), fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.pass_context
+def pause(ctx, instance):
+    '''
+    Pauses the instance(s).
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['pause'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        if inst.created:
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                pause_results = vmrun.pause()
+                if pause_results is None:
+                    click.secho('Not paused', fg='red')
+                else:
+                    click.secho('Paused', fg='yellow')
+            else:
+                vbm = VBoxManage()
+                pause_results = vbm.pause(inst.name)
+                if pause_results is None:
+                    click.secho('Not paused', fg='red')
+                else:
+                    click.secho('Paused', fg='yellow')
+        else:
+            click.secho('VM ({}) not created.'.format(an_instance), fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.option('--force', is_flag=True, default=False, help='Force a hard stop.')
+@click.pass_context
+def down(ctx, instance, force):
+    '''
+    Stops the instance(s).
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s force:%s', cloud_name, instance, force)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['down', 'halt', 'stop'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        if inst.created:
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                if not force and vmrun.installed_tools():
+                    stopped = vmrun.stop()
+                else:
+                    stopped = vmrun.stop(mode='hard')
+                if stopped is None:
+                    click.secho('Not stopped', fg='red')
+                else:
+                    click.secho('Stopped', fg='green')
+            else:
+                vbm = VBoxManage()
+                stopped = vbm.stop(vmname=inst.name, quiet=True)
+                if stopped is None:
+                    click.secho('Not stopped', fg='red')
+                else:
+                    click.secho('Stopped', fg='green')
+        else:
+            click.secho('VM ({}) not created.'.format(an_instance), fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=False)
+@click.option('--force', is_flag=True, default=False, help='Destroy without confirmation.')
+@click.pass_context
+def destroy(ctx, instance, force):
+    '''
+    Stops and deletes all traces of the instances.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s force:%s', cloud_name, instance, force)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['destroy'])
+        return
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+
+        if os.path.exists(inst.path):
+            if force or utils.confirm('Are you sure you want to delete {} '
+                                      'at {}'.format(inst.name, inst.path), default='n'):
+                click.secho('Deleting ({})...'.format(an_instance), fg='green')
+
+                if inst.provider == 'vmware':
+                    vmrun = VMrun(inst.vmx)
+                    vmrun.stop(mode='hard', quiet=True)
+                    vmrun.delete_vm()
+                else:
+                    vbm = VBoxManage()
+
+                    vbm.stop(vmname=inst.name, quiet=True)
+                    vbm.unregister(vmname=inst.name, quiet=True)
+
+                if os.path.exists(inst.path):
+                    shutil.rmtree(inst.path)
+                click.echo('Deleted')
+            else:
+                click.secho('Delete aborted.', fg='red')
+        else:
+            click.secho('VM ({}) not created.'.format(an_instance), fg='red')
+
+
+@cli.command()
+@click.argument('instance', required=True)
+@click.pass_context
+def ps(ctx, instance):
+    '''
+    List running processes in Guest OS.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['ps', 'process-status', 'process_status'])
+        return
+
+    inst = MechInstance(instance)
+
+    if inst.created:
+        _, stdout, _ = utils.ssh(inst, 'ps -ef')
+        click.echo(stdout)
+    else:
+        click.echo('VM {} not created.'.format(instance))
+
+
+@cli.command()
+@click.option('--purge', is_flag=True, default=False, help='Kill and remove any instances.')
+@click.pass_context
+def global_status(ctx, purge):
+    '''
+    Outputs info about all instances running on this host and optionally destroy them.
+    '''
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s purge:%s', cloud_name, purge)
+
+    if cloud_name:
+        utils.cloud_run(cloud_name, ['global-status', 'global_status', 'gs'])
+        return
+
+    if purge:
+        utils.cleanup_dir_and_vms_from_dir('', all_vms=True)
+    else:
+        vmrun = VMrun()
+        if vmrun.installed():
+            click.echo('===VMware VMs===')
+            click.echo(vmrun.list())
+
+        vbm = VBoxManage()
+        if vbm.installed():
+            click.echo('===VirtualBox VMs===')
+            click.echo(vbm.list())
 
 
 # operation aliases
 ALIASES = {
     'ls': list,
     'ip_address': ip,
+    'ip-address': ip,
+    'unpause': resume,
+    'stop': down,
+    'halt': down,
+    'process-status': ps,
+    'process_status': ps,
+    'global-status': global_status,
+    'gs': global_status,
 }
