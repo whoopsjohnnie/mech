@@ -1,3 +1,4 @@
+import fnmatch
 import logging
 import os
 import platform
@@ -926,6 +927,95 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
                 'You are now ready to `mech up` your first virtual environment!', fg='green')
 
 
+@click.group(context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
+@click.pass_context
+def box(ctx):
+    '''Box operations.'''
+    pass
+
+
+@box.command()
+@click.argument('location', required=True)
+@click.option('--box-version', metavar='VERSION', help='Constrain to specific box version.')
+@click.option('--force', is_flag=True, default=False, help='Overwrite existing Mechfile.')
+@click.option('--provider', metavar='PROVIDER', default='vmware',
+              help='Provider (`vmware` or `virtualbox`)')
+@click.pass_context
+def add(ctx, location, box_version, force, provider):
+    """
+    Add a box to the catalog of available boxes.
+
+    Notes:
+        The location can be a:
+            URL (ex: 'http://example.com/foo.box'),
+            box file (ex: 'file:/mnt/boxen/foo.box'),
+            json file (ex: 'file:/tmp/foo.json'), or
+            HashiCorp account/box (ex: 'bento/ubuntu-18.04').
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s location:%s box_version:%s '
+                 'force:%s provider:%s', cloud_name,
+                 location, box_version, force, provider)
+
+    if not utils.valid_provider(provider):
+        sys.exit(click.style('Need to provide valid provider.', fg='red'))
+
+    utils.add_box(name=None, box=None, location=location, box_version=box_version,
+                  force=force, provider=provider)
+
+
+@box.command()
+@click.pass_context
+def list(ctx):
+    """
+    List all available boxes in the catalog.
+    """
+
+    print("{}\t{}\t{}".format(
+        'BOX'.rjust(35),
+        'VERSION'.rjust(12),
+        'PROVIDER'.rjust(12),
+    ))
+    path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
+    for root, _, filenames in os.walk(path):
+        for filename in fnmatch.filter(filenames, '*.box'):
+            directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
+            provider, account, box, version = directory.split('/', 3)
+            print("{}\t{}\t{}".format(
+                "{}/{}".format(account, box).rjust(35),
+                version.rjust(12),
+                provider.rjust(12),
+            ))
+
+
+@box.command()
+@click.option('--name', metavar='BOXNAME', required=True,
+              help='Box name (ex: `bento/ubuntu-18.04`).')
+@click.option('--provider', metavar='PROVIDER', default='vmware',
+              help='Provider (`vmware` or `virtualbox`)')
+@click.option('--version', metavar='VERSION', required=True, help='Box version.')
+@click.pass_context
+def remove(ctx, name, provider, version):
+    """
+    Remove a box that matches the name, provider and version.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s provider:%s version:%s',
+                 cloud_name, name, provider, version)
+
+    if not utils.valid_provider(provider):
+        sys.exit(click.style("Need to provide valid provider.", fg="red"))
+
+    path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes', provider, name, version))
+    if os.path.exists(path):
+        shutil.rmtree(path)
+        print("Removed {} {}".format(name, version))
+    else:
+        print("No boxes were removed.")
+
+
+cli.add_command(box)
+
 # operation aliases
 ALIASES = {
     'delete': remove,
@@ -942,3 +1032,7 @@ ALIASES = {
     'stop': down,
     'unpause': resume,
 }
+
+
+if __name__ == '__main__':
+    cli()
