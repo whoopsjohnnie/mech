@@ -7,6 +7,7 @@ import sys
 
 
 import click
+from pypsrp.client import Client
 
 
 from . import utils
@@ -927,6 +928,24 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
                 'You are now ready to `mech up` your first virtual environment!', fg='green')
 
 
+# operation aliases
+ALIASES = {
+    'delete': remove,
+    'global-status': global_status,
+    'gs': global_status,
+    'halt': down,
+    'ip-address': ip,
+    'ip_address': ip,
+    'ls': list,
+    'process-status': ps,
+    'process_status': ps,
+    'rm': remove,
+    'start': up,
+    'stop': down,
+    'unpause': resume,
+}
+
+
 @click.group(context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
 @click.pass_context
 def box(ctx):
@@ -1016,22 +1035,227 @@ def remove(ctx, name, provider, version):
 
 cli.add_command(box)
 
-# operation aliases
-ALIASES = {
-    'delete': remove,
-    'global-status': global_status,
-    'gs': global_status,
-    'halt': down,
-    'ip-address': ip,
-    'ip_address': ip,
-    'ls': list,
-    'process-status': ps,
-    'process_status': ps,
-    'rm': remove,
-    'start': up,
-    'stop': down,
-    'unpause': resume,
-}
+
+@click.group(context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
+@click.pass_context
+def snapshot(ctx):
+    '''Snapshot operations.'''
+    pass
+
+
+@snapshot.command()
+@click.argument('name', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def delete(ctx, name, instance):
+    """
+    Delete a snapshot taken previously with snapshot save.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s instance:%s',
+                 cloud_name, name, instance)
+
+    inst = MechInstance(instance)
+
+    if inst.provider == 'vmware':
+        vmrun = VMrun(inst.vmx)
+        if vmrun.delete_snapshot(name) is None:
+            click.secho("Cannot delete name", fg="red")
+        else:
+            click.secho("Snapshot {} deleted".format(name), fg="green")
+    else:
+        click.secho("Not yet implemented on this platform.", fg="red")
+
+
+@snapshot.command()
+@click.argument('instance', required=True)
+@click.pass_context
+def list(ctx, instance):
+    """
+    List all snapshots taken for an instance.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s',
+                 cloud_name, instance)
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+        click.echo('Snapshots for instance:{}'.format(an_instance))
+        if inst.created:
+            if inst.provider == 'vmware':
+                vmrun = VMrun(inst.vmx)
+                click.echo(vmrun.list_snapshots())
+            else:
+                click.secho("Not yet implemented on this platform.", fg="red")
+        else:
+            click.secho('Instance ({}) is not created.'.format(an_instance), fg="red")
+
+
+@snapshot.command()
+@click.argument('name', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def save(ctx, name, instance):
+    """
+    Take a snapshot of the current state of the instance.
+
+    Notes:
+        Snapshots are useful for experimenting in a machine for being able
+        to rollback quickly.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s instance:%s',
+                 cloud_name, name, instance)
+
+    inst = MechInstance(instance)
+    if inst.created:
+        if inst.provider == 'vmware':
+            vmrun = VMrun(inst.vmx)
+            if vmrun.snapshot(name) is None:
+                sys.exit(click.style("Warning: Could not take snapshot.", fg="red"))
+            else:
+                click.secho("Snapshot ({}) on VM ({}) taken".format(name, instance), fg="green")
+        else:
+            click.secho("Not yet implemented on this platform.", fg="red")
+    else:
+        click.secho('Instance ({}) is not created.'.format(instance), fg="red")
+
+
+cli.add_command(snapshot)
+
+
+@click.group(context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
+@click.pass_context
+def winrm(ctx):
+    '''Winrm operations.'''
+    pass
+
+
+@winrm.command()
+@click.argument('instance', required=True)
+@click.pass_context
+def config(ctx, instance):
+    """
+    Show winrm configuration.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
+
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+        if inst.created:
+            click.echo(inst.winrm_config())
+        else:
+            click.secho("VM ({}) is not created.".format(an_instance), fg="red")
+
+
+@winrm.command()
+@click.argument('instance', required=True)
+@click.option('--command', '-c', required=False, metavar='COMMAND',
+              help='Command to run on instance (using command prompt).')
+@click.option('--powershell', '-p', required=False, metavar='POWERSHELL',
+              help='Powershell to run on instance.')
+@click.pass_context
+def run(ctx, instance, command, powershell):
+    """
+    Run command or powershell using winrm
+
+    Notes:
+        Example command: 'date /T'
+        Example powershell: 'Write-Host hello'
+
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s command:%s powershell:%s',
+                 cloud_name, instance, command, powershell)
+
+    if (command is None or command == '') and (powershell is None or powershell == ''):
+        sys.exit(click.style("Command or Powershell is required", fg="red"))
+
+    inst = MechInstance(instance)
+
+    if inst.created:
+        LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
+                     " password:%s", inst.get_ip(), inst.user, inst.password)
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        if command:
+            stdout, stderr, rc = client.execute_cmd(command)
+            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
+            if stdout:
+                click.echo(stdout)
+            if stderr:
+                click.echo(stderr)
+        else:
+            output, streams, had_errors = client.execute_ps(powershell)
+            LOGGER.debug('powershell:%s output:%s streams:%s '
+                         'had_errors:%s', powershell, output, streams, had_errors)
+            if output:
+                click.echo(output)
+
+    else:
+        click.echo("VM not created.")
+
+
+@winrm.command()
+@click.argument('local', required=True)
+@click.argument('remote', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def copy(ctx, local, remote, instance):
+    """
+    Copy local file to remote file on instance.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s local:%s remote:%s instance:%s',
+                 cloud_name, local, remote, instance)
+
+    inst = MechInstance(instance)
+
+    if inst.created:
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        client.copy(local, remote)
+        click.echo("Copied")
+
+
+@winrm.command()
+@click.argument('remote', required=True)
+@click.argument('local', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def fetch(ctx, remote, local, instance):
+    """
+    Fetch remote file from instance.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s remote:%s local:%s instance:%s',
+                 cloud_name, remote, local, instance)
+
+    inst = MechInstance(instance)
+
+    if inst.created:
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        client.fetch(remote, local)
+        click.echo("Fetched")
+
+
+cli.add_command(winrm)
 
 
 if __name__ == '__main__':
