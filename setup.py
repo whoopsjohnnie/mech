@@ -52,7 +52,7 @@ setup(
     entry_points={
         'console_scripts': [
             'mech = mech.__main__:main',
-            'mech2 = mech.mech_cli:list'
+            'mech2 = mech.mech_cli:cli'
         ]
     },
 )

@@ -1624,3 +1624,8 @@ def suppress_urllib3_errors():
 class SuppressFilter(logging.Filter):
     def filter(self, record):
         return 'unparsed data' not in record.getMessage()
+
+
+def instances():
+    """Return list of instances."""
+    return list(load_mechfile())

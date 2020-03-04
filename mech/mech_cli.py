@@ -1,3 +1,7 @@
+import logging
+import sys
+
+
 import click
 
 
@@ -7,20 +11,55 @@ from . import utils
 # for short and long help options
 CONTEXT_SETTINGS = dict(help_option_names=['-h', '--help'])
 
+# TODO: change back to __name__
+# LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
-@click.command(context_settings=CONTEXT_SETTINGS)
-@click.option('--debug', '-D', is_flag=True, help='Show debug')
-@click.option('--detail', '-d', is_flag=True, help='Print detailed info')
-@click.argument('instance', required=False)
-def list(debug, detail, instance):
-    '''Lists all available instances (using Mechfile).'''
+
+class CustomMultiCommand(click.Group):
+
+    def command(self, *args, **kwargs):
+        """Behaves the same as `click.Group.command()` except if passed
+        a list of names, all after the first will be aliases for the first.
+        """
+        def decorator(f):
+            if isinstance(args[0], list):
+                _args = [args[0][0]] + list(args[1:])
+                for alias in args[0][1:]:
+                    cmd = super(CustomMultiCommand, self).command(
+                        alias, *args[1:], **kwargs)(f)
+                    cmd.short_help = "Alias for '{}'".format(_args[0])
+            else:
+                _args = args
+            cmd = super(CustomMultiCommand, self).command(
+                *_args, **kwargs)(f)
+            return cmd
+
+        return decorator
+
+
+@click.group(context_settings=CONTEXT_SETTINGS, cls=CustomMultiCommand)
+@click.option('--debug', is_flag=True, default=False)
+def cli(debug):
+    logger = logging.getLogger()
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = logging.Formatter('%(filename)s:%(lineno)s %(funcName)s() '
+                                  '%(levelname)s: %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     if debug:
-        click.echo('Debug:')
-        click.echo(' instance:{}'.format(instance))
-        click.echo(' detail:{}'.format(detail))
+        click.echo('Debug is on')
+        LOGGER.setLevel(logging.DEBUG)
 
-    mechfiles = utils.load_mechfile()
+
+@cli.command(['list', 'ls'])
+@click.option('--detail', '-d', is_flag=True, help='Print detailed info')
+@click.argument('instance', required=False)
+def list(detail, instance):
+    '''Lists all available instances (using Mechfile)'''
+
+    LOGGER.debug("detail:%s", detail)
 
     if detail:
         click.echo('Instance Details')
@@ -35,7 +74,12 @@ def list(debug, detail, instance):
             'STATE'.rjust(12),
         ))
 
-    for name in list(mechfiles):
+    instances = utils.instances()
+    LOGGER.debug("instances:%s", instances)
+    mechfiles = utils.load_mechfile()
+    LOGGER.debug("mechfiles:%s", mechfiles)
+    for name in instances:
+        LOGGER.debug('name:%s', name)
         inst = MechInstance(name, mechfiles)
         vm_state = "unknown"
         if inst.created:

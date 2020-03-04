@@ -148,6 +148,7 @@ class MechInstance():
 
     def get_ip(self, wait=False, quiet=True):
         """ Get the ip address."""
+        LOGGER.debug("self.ip:%s self.provider:%s", self.ip, self.provider)
         if self.ip:
             return self.ip
         else:
