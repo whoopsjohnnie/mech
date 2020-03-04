@@ -51,7 +51,8 @@ setup(
     packages=['mech'],
     entry_points={
         'console_scripts': [
-            'mech = mech.__main__:main'
+            'mech = mech.__main__:main',
+            'mech2 = mech.mech_cli:list'
         ]
     },
 )
