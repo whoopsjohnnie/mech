@@ -47,6 +47,7 @@ import click
 from .vmrun import VMrun
 import mech.vbm
 from .compat import b2s, PY3, raw_input
+from .mech_cloud_instance import MechCloudInstance
 
 LOGGER = logging.getLogger(__name__)
 
@@ -1629,3 +1630,41 @@ class SuppressFilter(logging.Filter):
 def instances():
     """Return list of instances."""
     return list(load_mechfile())
+
+
+def cloud_run(cloud_name, operations):
+    """Run the command on the cloud instance.
+    """
+    if cloud_name and cloud_name != '':
+        mci = MechCloudInstance(cloud_name)
+        mci.read_config(cloud_name)
+
+        # find out what args were used on the command line
+        # any command after the operation will be appended to
+        # the command to run on the remote
+        args_list = []
+        found_operation = False
+        LOGGER.debug('sys.argv:%s', sys.argv)
+        for arg in sys.argv:
+            if arg in operations:
+                found_operation = True
+            if found_operation:
+                args_list.append(arg)
+        args_string = ' '.join(args_list)
+        LOGGER.debug('cloud_name:%s operations:%s args_list:%s args_string:%s',
+                     cloud_name, operations, args_list, args_string)
+        command = ('''ssh {username}@{hostname} -- "cd {directory}; '''
+                   '''source {directory}/venv/bin/activate && '''
+                   '''mech {args_string}"''').format(hostname=mci.hostname,
+                                                     directory=mci.directory,
+                                                     username=mci.username,
+                                                     args_string=args_string)
+        LOGGER.debug('command:%s', command)
+        result = subprocess.run(command, shell=True, capture_output=True)
+        stdout = result.stdout.decode('utf-8')
+        stderr = result.stderr.decode('utf-8')
+        if stdout:
+            click.echo(stdout)
+        if stderr:
+            click.echo(stderr)
+        return result.returncode, stdout, stderr
