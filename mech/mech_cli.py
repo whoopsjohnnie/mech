@@ -13,6 +13,7 @@ from pypsrp.client import Client
 from . import utils
 from .__init__ import __version__
 from .mech_instance import MechInstance
+from .mech_cloud_instance import MechCloudInstance
 from .vmrun import VMrun
 from .vbm import VBoxManage
 
@@ -1256,6 +1257,146 @@ def fetch(ctx, remote, local, instance):
 
 
 cli.add_command(winrm)
+
+
+@click.group(context_settings=CONTEXT_SETTINGS, cls=AliasedGroup)
+@click.pass_context
+def cloud(ctx):
+    '''Cloud operations.
+
+    Notes:
+        Mech Cloud is an easy way to expose resources for non-local use.
+
+        If you have a spare desktop/laptop:
+
+            1. Install VMware Workstation and/or Oracle VirtualBox, and
+
+            2. Install pre-requisites ("python3.7+" and "virtualenv")
+
+               For Ubuntu:
+                 sudo apt-get install python3.7 python3-pip
+                 sudo pip3 install virtualenv
+
+               For Fedora:
+                 sudo dnf install python37 python3-pip
+                 sudo pip3 install virtualenv
+
+        See https://github.com/Fizzadar/pyinfra/tree/master/examples/virtualbox
+        to install virtualbox using `pyinfra`.
+
+        Then add that host as a mech "cloud-instance" using the
+        "mech cloud init" command.
+
+        This would allow you to spin up/down virtual machines on that
+        computer. For instance, if you have a could-instance called "top",
+        you could init and start a VM on the remote computer using:
+            mech -C top init bento/ubuntu-18.04
+            mech -C top up
+
+        The host's directory needs to have a virtual environment setup in
+        "venv" and "mech" needs to be installed under that virtual
+        environment, such as: "pip install mikemech". The 'mech cloud init'
+        takes care of this for you.
+
+        Virtualbox instances are "global". So, you can have only one
+        instance named "first".
+    '''
+    pass
+
+
+@cloud.command()
+@click.argument('hostname', required=True, metavar='HOST')
+@click.argument('directory', required=True, metavar='DIR')
+@click.argument('username', required=True, metavar='USER')
+@click.argument('name', required=True, metavar='NAME')
+@click.pass_context
+def init(ctx, hostname, directory, username, name):
+    """
+    Initialize Mechcloudfile and add entry.
+
+    The directory will be created with a python virtual environment (venv)
+    and "mikemech" will be installed into it.
+
+    Notes:
+       - The "mech cloud init" operation can be run again with same cloud-instance.
+         (The values would be updated in the Mechcloudfile).
+
+       - The directory should not contain spaces.
+
+       - If you use '~' in the directory value, be sure it is surrounded by
+         single quotes because without quotes or if double quotes (") are used,
+         then the '~' will be expanded locally and will not use the remote value.
+            Good Example: --directory '~/mikemech'
+            Bad Example: --directory "~/mikemech"   (do not use)
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s hostname:%s directory:%s username:%s name:%s',
+                 cloud_name, hostname, directory, username, name)
+
+    inst = MechCloudInstance(name)
+    inst.set_hostname(hostname)
+    inst.set_directory(directory)
+    inst.set_username(username)
+    inst.init()
+
+
+@cloud.command()
+@click.argument('name', required=True, metavar='NAME')
+@click.pass_context
+def remove(ctx, name):
+    """
+    Remove a Mech Cloud instance
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
+    if utils.cloud_exists(name):
+        utils.remove_mechcloudfile_entry(name=name)
+        print("Removed ({}) from mech cloud.".format(name))
+        print("Be sure to remove any running virtual machines.")
+    else:
+        print("Cloud ({}) does not exist in the Mechcloudfile.", name)
+
+
+@cloud.command()
+@click.pass_context
+def list(ctx):
+    """
+    List Mech Clouds
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s', cloud_name)
+
+    print('=== mech clouds: ===')
+    clouds = utils.cloud_instances()
+    for cloud in clouds:
+        mci = MechCloudInstance(cloud)
+        mci.read_config(cloud)
+        print(mci)
+        print()
+
+
+@cloud.command()
+@click.argument('name', required=False, metavar='NAME')
+@click.pass_context
+def upgrade(ctx, name):
+    """
+    Upgrade 'pip' and 'mikemech' on the cloud instances.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
+
+    if name:
+        instances = [name]
+    else:
+        instances = utils.cloud_instances()
+
+    for a_name in instances:
+        mci = MechCloudInstance(a_name)
+        mci.read_config(a_name)
+        mci.upgrade()
+
+
+cli.add_command(cloud)
 
 
 if __name__ == '__main__':

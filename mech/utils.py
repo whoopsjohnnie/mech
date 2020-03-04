@@ -1632,6 +1632,11 @@ def instances():
     return list(load_mechfile())
 
 
+def cloud_instances():
+    """Return list of cloud instances."""
+    return list(load_mechcloudfile())
+
+
 def cloud_run(cloud_name, operations):
     """Run the command on the cloud instance.
     """
