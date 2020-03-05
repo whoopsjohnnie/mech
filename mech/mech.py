@@ -232,17 +232,20 @@ def provision(ctx, instance, show_only):
     Provision the instance(s).
 
     Notes:
-      - There are a few provision types: 'file', 'shell', and 'pyinfra'.
-      - 'shell' can be inline.
-      - 'shell' and 'pyinfra' can have a remote endpoint ('http', 'https',
-        'ftp') for the script.
-        (ex: 'http://example.com/somefile.sh' or ex: 'ftp://foo.com/install.sh')
-      - 'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
-        See https://pyinfra.readthedocs.io/en/latest/ for more info.
-      - Provisioning is run when the instance is started. This option
-        is if you want to re-run the provisioning.
-      - An example of provisioning could be installing puppet (or your config tool
-        of choice).
+
+    There are a few provision types: 'file', 'shell', and 'pyinfra'.
+
+    'shell' can be inline.
+
+    'shell' and 'pyinfra' can have a remote endpoint ('http', 'https', 'ftp') for the script.
+    (ex: 'http://example.com/somefile.sh' or ex: 'ftp://foo.com/install.sh')
+
+    'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
+    See https://pyinfra.readthedocs.io/en/latest/ for more info.
+
+    Provisioning is run when the instance is started. This option is if you want to re-run the provisioning.
+
+    An example of provisioning could be installing puppet (or your config tool of choice).
 
     '''
 
@@ -729,22 +732,27 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
     Starts and provisions instance(s).
 
     Notes:
-       - If no instance is specified, all instances will be started.
-       - The options ('memsize', 'numvcpus', and 'no-nat') will only be applied
-         upon first run of the 'up' command.
-       - The 'no-nat' option will only be applied if there is no network
-         interface supplied in the box file for 'vmware'. For 'virtualbox',
-         if you need internet access from the vm, then you will want to
-         use 'no-nat'. Interface 'en0' will be used for bridge.
-       - Unless 'disable-shared-folders' is used, a default read/write
-         share called 'mech' will be mounted from the current directory.
-         '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
-         To add/change shared folders, modify the Mechfile directly, then
-         stop/start the VM.
-       - The 'remove-vagrant' option will remove the vagrant account from the
-         guest VM which is what 'mech' uses to communicate with the VM.
-         Be sure you can connect/admin the instance before using this option.
-         Be sure to check that root cannot ssh, or change the root password.
+
+    If no instance is specified, all instances will be started.
+
+    The options ('memsize', 'numvcpus', and 'no-nat') will only be applied
+    upon first run of the 'up' command.
+
+    The 'no-nat' option will only be applied if there is no network
+    interface supplied in the box file for 'vmware'. For 'virtualbox',
+    if you need internet access from the vm, then you will want to
+    use 'no-nat'. Interface 'en0' will be used for bridge.
+
+    Unless 'disable-shared-folders' is used, a default read/write
+    share called 'mech' will be mounted from the current directory.
+    '/mnt/hgfs/mech' on 'vmware' and '/mnt/mech' on 'virtualbox'
+    To add/change shared folders, modify the Mechfile directly, then
+    stop/start the VM.
+
+    The 'remove-vagrant' option will remove the vagrant account from the
+    guest VM which is what 'mech' uses to communicate with the VM.
+    Be sure you can connect/admin the instance before using this option.
+    Be sure to check that root cannot ssh, or change the root password.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s disable_provisioning:%s disable_shared_folders:%s '
@@ -854,9 +862,10 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
     Add instance to the Mechfile.
 
     Notes:
-    - The 'add-me' option will add the currently logged in user to the guest,
-      add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
-      for that user.
+
+    The 'add-me' option will add the currently logged in user to the guest,
+    add the same user to sudoers, and add the id_rsa.pub key to the authorized_hosts file
+    for that user.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s location:%s add_me:%s box:%s box_version:%s '
@@ -904,18 +913,26 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
     Initialize Mechfile.
 
     Notes:
-      - The location can be a:
-          + URL (ex: 'http://example.com/foo.box'),
-          + box file (ex: 'file:/mnt/boxen/foo.box'),
-          + json file (ex: 'file:/tmp/foo.json'), or
-          + HashiCorp account/box (ex: 'bento/ubuntu-18.04').
-      - A default shared folder name 'mech' will be available
-        in the guest for the current directory.
-      - The 'add-me' option will add the currently logged in user to the guest,
-        add the same user to sudoers, and add the id_rsa.pub key to the
-        authorized_hosts file for that user.
-      - The 'use-me' option will use the currently logged in user for
-        future interactions with the guest instead of the vagrant user.
+
+    The location can be a:
+
+        + URL (ex: 'http://example.com/foo.box'),
+
+        + box file (ex: 'file:/mnt/boxen/foo.box'),
+
+        + json file (ex: 'file:/tmp/foo.json'), or
+
+        + HashiCorp account/box (ex: 'bento/ubuntu-18.04').
+
+    A default shared folder name 'mech' will be available
+    in the guest for the current directory.
+
+    The 'add-me' option will add the currently logged in user to the guest,
+    add the same user to sudoers, and add the id_rsa.pub key to the
+    authorized_hosts file for that user.
+
+    The 'use-me' option will use the currently logged in user for
+    future interactions with the guest instead of the vagrant user.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s location:%s add_me:%s box:%s box_version:%s '

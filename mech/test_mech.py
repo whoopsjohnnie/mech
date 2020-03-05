@@ -916,7 +916,7 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
     runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value="192.168.1.145") as mock_get_ip:
-        result = runner.invoke(cli, ['up', '--remove-vagrant'])
+        result = runner.invoke(cli, ['--debug', 'up', '--remove-vagrant'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
