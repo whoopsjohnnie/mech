@@ -37,7 +37,7 @@ from .vmrun import VMrun
 from .vbm import VBoxManage
 from .__init__ import __version__
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 class MechAliasedGroup(click.Group):

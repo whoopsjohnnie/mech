@@ -49,7 +49,7 @@ import mech.vbm
 from .compat import b2s, PY3, raw_input
 from .mech_cloud_instance import MechCloudInstance
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 def main_dir():

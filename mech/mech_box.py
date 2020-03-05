@@ -32,7 +32,7 @@ import click
 
 from . import utils
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 class MechBoxAliasedGroup(click.Group):

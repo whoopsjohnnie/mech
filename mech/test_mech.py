@@ -5,7 +5,6 @@ import os
 import re
 
 from unittest.mock import patch, mock_open, MagicMock
-from pytest import raises
 from click.testing import CliRunner
 
 import mech.mech
@@ -1378,7 +1377,6 @@ def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile,
     runner = CliRunner()
     result = runner.invoke(cli, ['remove', 'second'])
     assert re.search(r'SystemExit', '{}'.format(result))
-
 
 
 def test_mech_remove_no_name():

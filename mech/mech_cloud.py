@@ -31,7 +31,7 @@ import click
 from . import utils
 from .mech_cloud_instance import MechCloudInstance
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 class MechCloudAliasedGroup(click.Group):

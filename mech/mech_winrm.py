@@ -33,7 +33,7 @@ from pypsrp.client import Client
 from . import utils
 from .mech_instance import MechInstance
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 @click.group(context_settings=utils.context_settings())
@@ -44,7 +44,7 @@ def winrm(ctx):
 
 
 @winrm.command()
-@click.argument('instance', required=True)
+@click.argument('instance', required=False)
 @click.pass_context
 def config(ctx, instance):
     """

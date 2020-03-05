@@ -37,7 +37,7 @@ from . import utils
 from .vmrun import VMrun
 from .vbm import VBoxManage
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 DEFAULT_USER = 'vagrant'
 DEFAULT_PASSWORD = 'vagrant'
