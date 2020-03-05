@@ -5,7 +5,6 @@ import re
 
 from unittest.mock import patch
 
-import mech.command
 import mech.mech
 import mech.vmrun
 

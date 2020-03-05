@@ -4,7 +4,6 @@
 from unittest.mock import patch
 from pytest import raises
 
-import mech.command
 import mech.mech
 import mech.vmrun
 import mech.mech_instance

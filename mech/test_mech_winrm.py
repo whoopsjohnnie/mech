@@ -7,7 +7,6 @@ from unittest.mock import patch
 from pypsrp.client import Client
 from pytest import raises
 
-import mech.command
 import mech.mech
 import mech.vmrun
 
