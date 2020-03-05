@@ -12,7 +12,6 @@ import mech.mech
 import mech.vmrun
 from mech.mech_cli import cli
 import mech.mech_instance
-#from . import utils
 
 
 @patch('mech.utils.locate', return_value=None)
@@ -20,7 +19,8 @@ def test_mech_list_with_one(mock_locate, mechfile_one_entry):
     """Test 'mech list' with one entry."""
     runner = CliRunner()
     with patch('mech.utils.instances', return_value=['first']) as mock_instances:
-        with patch('mech.utils.load_mechfile', return_value=mechfile_one_entry) as mock_load_mechfile:
+        with patch('mech.utils.load_mechfile',
+                   return_value=mechfile_one_entry) as mock_load_mechfile:
             result = runner.invoke(cli, ['list'])
             print("result:{}".format(result))
             print("result.output:{}".format(result.output))
@@ -294,7 +294,6 @@ def test_mech_destroy_prompted_and_answered_no(mock_locate, mock_load_mechfile,
     a_mock.return_value = 'N'
     with patch('mech.utils.raw_input', a_mock):
         result = runner.invoke(cli, ['destroy', 'first'])
-        a_mech.destroy(arguments)
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_path_exists.assert_called()
@@ -588,33 +587,19 @@ def test_mech_suspend_not_created(mock_locate, mock_load_mechfile,
     assert re.search(r'VM has not been created', result.output, re.MULTILINE)
 
 
-@patch('os.chmod', return_value=True)
-@patch('mech.vmrun.VMrun.installed_tools', return_value='running')
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.4.130")
-@patch('subprocess.run')
+@patch('mech.utils.ssh')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_ssh(mock_locate, mock_load_mechfile,
-                  mock_subprocess_run, mock_get_ip, mock_installed_tools,
-                  mock_chmod, mechfile_two_entries):
+                  mock_ssh, mechfile_two_entries):
     """Test 'mech ssh'"""
     mock_load_mechfile.return_value = mechfile_two_entries
-    mock_subprocess_run.return_value.returncode = 0
-    mock_subprocess_run.stdout = b'00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00\n'
-    mock_subprocess_run.stderr = b''
+    mock_ssh.return_value = (0, b'00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00\n', b'')
     runner = CliRunner()
-    filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
-    a_mock = mock_open()
-    with raises(SystemExit):
-        with patch('builtins.open', a_mock, create=True):
-            result = runner.invoke(cli, ['ssh', '--command', 'uptime', '--extra-ssh-args', 'blah', 'first'])
-            mock_locate.assert_called()
-            mock_load_mechfile.assert_called()
-            mock_subprocess_run.assert_called()
-            mock_installed_tools.assert_called()
-            mock_get_ip.assert_called()
-            mock_chmod.assert_called()
-            a_mock.assert_called_once_with(filename, 'w')
+    runner.invoke(cli, ['--debug', 'ssh', '--command', 'uptime', 'first'])
+    mock_locate.assert_called()
+    mock_ssh.assert_called()
+    mock_load_mechfile.assert_called()
 
 
 @patch('mech.utils.load_mechfile')
@@ -625,7 +610,6 @@ def test_mech_ssh_not_created(mock_locate, mock_load_mechfile,
     mock_load_mechfile.return_value = mechfile_two_entries
     runner = CliRunner()
     result = runner.invoke(cli, ['ssh', '--command', 'uptime', 'first'])
-    a_mech.ssh(arguments)
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     assert re.search(r'VM not created', result.output, re.MULTILINE)
@@ -775,7 +759,6 @@ def test_mech_resume_unknown_ip(mock_locate, mock_load_mechfile,
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value=None) as mock_get_ip:
         result = runner.invoke(cli, ['resume', '--disable-shared-folders', 'first'])
-        a_mech.resume(arguments)
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_unpause.assert_called()
@@ -904,20 +887,10 @@ def test_mech_up_without_name(mock_load_mechfile):
     """Test 'mech up' (overriding name to be '') to test exception."""
     mock_load_mechfile.return_value = MECHFILE_BAD_ENTRY
     runner = CliRunner()
-    arguments = {
-        '--detail': False,
-        '--gui': False,
-        '--disable-shared-folders': False,
-        '--disable-provisioning': False,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': '',
-    }
-    with raises(AttributeError, match=r"Must provide a name for the instance."):
-        a_mech.up(arguments)
+    result = runner.invoke(cli, ['--debug', 'up'])
+    print('result:{}'.format(result))
+    print('result.exception:{}'.format(result.exception))
+    assert re.search(r'Must provide a name for the instance.', '{}'.format(result.exception))
 
 
 @patch('mech.utils.load_mechfile')
@@ -925,8 +898,9 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
                                            mechfile_one_entry):
     """Test 'mech up' with a name that is not in the Mechfile."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    with raises(SystemExit, match=r" was not found in the Mechfile"):
-        result = runner.invoke(cli, ['up', 'notfirst'])
+    runner = CliRunner()
+    result = runner.invoke(cli, ['up', 'notfirst'])
+    assert re.search(r'was not found in the Mechfile', '{}'.format(result.exception))
 
 
 @patch('mech.utils.report_provider', return_value=True)
@@ -940,22 +914,10 @@ def test_mech_up_already_started(mock_locate, mock_load_mechfile,
                                  mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': True,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value="192.168.1.145") as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--remove-vagrant'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -980,22 +942,10 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
                                              mechfile_one_entry_with_auth):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry_with_auth
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     mock_file = mock_open(read_data='some_pub_key_data')
     with patch('builtins.open', mock_file, create=True):
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
         mock_file.assert_called()
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
@@ -1018,22 +968,10 @@ def test_mech_up_already_started_but_could_not_get_ip(mock_locate, mock_load_mec
                                                       mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value='') as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -1051,22 +989,10 @@ def test_mech_up_already_started_but_on_unknnown_ip(mock_locate, mock_load_mechf
                                                     mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value=False) as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -1084,20 +1010,8 @@ def test_mech_up_problem(mock_locate, mock_load_mechfile,
                          mechfile_one_entry):
     """Test 'mech up' when issue with starting VM"""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
-    a_mech.up(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_vmrun_start.assert_called()
@@ -1116,22 +1030,10 @@ def test_mech_up_with_provisioning(mock_locate, mock_load_mechfile,
                                    mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': False,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value='192.168.1.100') as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-shared-folders'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -1154,23 +1056,11 @@ def test_mech_up_without_provisioning_without_shared_not_created(mock_locate,
                                                                  mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': True,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     mock_init_box.return_value = '/tmp/some.vmx'
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value='192.168.1.100') as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -1192,22 +1082,10 @@ def test_mech_up_wth_shared_folders(mock_locate, mock_load_mechfile,
                                     mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '--gui': False,
-        '--disable-shared-folders': False,
-        '--disable-provisioning': True,
-        '--no-cache': None,
-        '--memsize': None,
-        '--numvcpus': None,
-        '--no-nat': None,
-        '--remove-vagrant': None,
-        '<instance>': None,
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value='192.168.1.100') as mock_get_ip:
-        a_mech.up(arguments)
+        result = runner.invoke(cli, ['up', '--disable-provisioning'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_vmrun_start.assert_called()
@@ -1223,12 +1101,8 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile,
                                      mechfile_one_entry):
     """Test 'mech ssh-config' when vm is not created."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<instance>': None,
-    }
-    a_mech.ssh_config(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'ssh-config', 'first'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     assert re.search(r'not created', result.output, re.MULTILINE)
@@ -1243,14 +1117,10 @@ def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfil
     mock_locate.return_value = '/tmp/first/some.vmx'
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<instance>': 'first',
-    }
+    runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance, 'get_ip', return_value=None):
-        with raises(SystemExit, match=r".*not yet ready for SSH.*"):
-            a_mech.ssh_config(arguments)
+        result = runner.invoke(cli, ['ssh-config', 'first'])
+        assert re.search(r'not yet ready for SSH', '{}'.format(result.exception))
 
 
 @patch('os.chmod')
@@ -1265,14 +1135,10 @@ def test_mech_ssh_config(mock_getcwd, mock_locate,  # pylint: disable=too-many-a
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_getcwd.return_value = '/tmp'
     mock_chmod.return_value = 0
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<instance>': 'first',
-    }
     mock_file = mock_open()
+    runner = CliRunner()
     with patch('builtins.open', mock_file, create=True):
-        a_mech.ssh_config(arguments)
+        result = runner.invoke(cli, ['ssh-config', 'first'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
         mock_get_guest_ip_address.assert_called()
@@ -1291,15 +1157,12 @@ def test_mech_port_with_nat_from_linux(mock_locate, mock_load_mechfile,
                                        mechfile_one_entry):
     """Test 'mech port' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    port_arguments = {}
-    port_arguments = {'<instance>': None}
+    runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'Linux'
     mock_platform_system.side_effect = a_mock
-    with raises(SystemExit, match=r"This command is not supported on this OS."):
-        a_mech.port(port_arguments)
+    result = runner.invoke(cli, ['port'])
+    assert re.search(r'This command is not supported on this OS', '{}'.format(result.exception))
 
 
 HOST_NETWORKS = """Total host networks: 3
@@ -1317,14 +1180,11 @@ def test_mech_port_with_nat_from_mac(mock_locate, mock_load_mechfile, mock_list_
                                      mechfile_one_entry):
     """Test 'mech port' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    port_arguments = {}
-    port_arguments = {'<instance>': None}
+    runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'Darwin'
     mock_platform_system.side_effect = a_mock
-    a_mech.port(port_arguments)
+    result = runner.invoke(cli, ['port'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
@@ -1345,14 +1205,11 @@ def test_mech_port_with_nat_and_instance_from_mac(mock_locate, mock_load_mechfil
                                                   mechfile_one_entry):
     """Test 'mech port first' with nat networking."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    port_arguments = {}
-    port_arguments = {'<instance>': 'first'}
+    runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'Darwin'
     mock_platform_system.side_effect = a_mock
-    a_mech.port(port_arguments)
+    result = runner.invoke(cli, ['port', 'first'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
@@ -1378,14 +1235,11 @@ def test_mech_port_with_nat_two_hosts_from_mac(mock_locate, mock_load_mechfile,
                                                mechfile_two_entries):
     """Test 'mech port' with nat networking and two instances."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    port_arguments = {}
-    port_arguments = {'<instance>': None}
+    runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'Darwin'
     mock_platform_system.side_effect = a_mock
-    a_mech.port(port_arguments)
+    result = runner.invoke(cli, ['port'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
@@ -1408,14 +1262,11 @@ def test_mech_port_without_nat_from_mac(mock_locate, mock_load_mechfile,
                                         mechfile_one_entry):
     """Test 'mech port' without nat."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    port_arguments = {}
-    port_arguments = {'<instance>': None}
+    runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'Darwin'
     mock_platform_system.side_effect = a_mock
-    a_mech.port(port_arguments)
+    result = runner.invoke(cli, ['port'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_list_host_networks.assert_called()
@@ -1427,110 +1278,80 @@ def test_mech_port_without_nat_from_mac(mock_locate, mock_load_mechfile,
 @patch('os.path.exists')
 @patch('os.getcwd')
 def test_mech_init(mock_os_getcwd, mock_os_path_exists,
-                   mock_requests_get, catalog_as_json,
-                   mech_init_arguments):
+                   mock_requests_get, catalog_as_json):
     """Test 'mech init' from Hashicorp'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = False
-    global_arguments = {'--debug': False, '--cloud': None}
     mock_requests_get.return_value.status_code = 200
     mock_requests_get.return_value.json.return_value = catalog_as_json
-
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_init_arguments
-    arguments['<location>'] = 'bento/ubuntu-18.04'
-    arguments['-add-me'] = None
-    a_mech.init(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['init', 'bento/ubuntu-18.04'])
     assert re.search(r'Loading metadata', result.output, re.MULTILINE)
 
 
 @patch('os.path.exists')
 @patch('os.getcwd')
-def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists,
-                                   mech_init_arguments):
+def test_mech_init_mechfile_exists(mock_os_getcwd, mock_os_path_exists):
     """Test 'mech init' when Mechfile exists'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = True
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_init_arguments
-    arguments['<location>'] = 'bento/ubuntu-18.04'
-    with raises(SystemExit, match=r".*already exists in this directory.*"):
-        a_mech.init(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['init', 'bento/ubuntu-18.04'])
+    assert re.search(r'already exists in this directory', '{}'.format(result.exception))
 
 
-def test_mech_init_with_cloud(mech_init_arguments):
+def test_mech_init_with_cloud():
     """Test 'mech init' with cloud."""
-    global_arguments = {'--debug': False, '--cloud': 'foo'}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_init_arguments
-    with patch.object(a_mech, 'cloud_run', return_value='some output'):
-        a_mech.init(arguments)
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run'):
+        runner.invoke(cli, ['--cloud', 'foo', 'init', 'bento/ubuntu-18.04'])
 
 
-def test_mech_init_with_invalid_provider(mech_init_arguments):
+def test_mech_init_with_invalid_provider():
     """Test if we do not have a valid provider."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_init_arguments
-    arguments['--provider'] = 'atari'
-    with raises(SystemExit, match=r"Need to provide valid provider"):
-        a_mech.init(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'init', '--provider', 'atari', 'bento/ubuntu-18.04'])
+    assert re.search(r'Need to provide valid provider', '{}'.format(result))
 
 
-def test_mech_add_with_invalid_provider(mech_add_arguments):
+def test_mech_add_with_invalid_provider():
     """Test if we do not have a valid provider."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_add_arguments
-    arguments['--provider'] = 'atari'
-    arguments['<name>'] = 'third'
-    with raises(SystemExit, match=r"Need to provide valid provider"):
-        a_mech.add(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'add', '--provider', 'atari', 'bento/ubuntu-18.04'])
+    assert re.search(r'SystemExit', '{}'.format(result))
 
 
 @patch('os.path.exists')
 @patch('os.getcwd')
-def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists, mech_add_arguments):
+def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists):
     """Test if we do not have a valid location. (must be in form of 'hashiaccount/boxname')."""
     mock_os_getcwd.return_value = '/tmp'
     mock_os_path_exists.return_value = False
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_add_arguments
-    arguments['<location>'] = 'bento'
-    with raises(SystemExit, match=r"Provided box name is not valid"):
-        a_mech.init(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['add', 'bento'])
+    assert re.search(r'SystemExit', '{}'.format(result))
 
 
 @patch('requests.get')
 @patch('os.getcwd')
 def test_mech_add_mechfile_exists(mock_os_getcwd,
                                   mock_requests_get,
-                                  catalog_as_json, mech_add_arguments):
+                                  catalog_as_json):
     """Test 'mech add' when Mechfile exists'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_requests_get.return_value.status_code = 200
     mock_requests_get.return_value.json.return_value = catalog_as_json
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_add_arguments
-    arguments['<location>'] = 'bento/ubuntu-18.04'
-    arguments['<name>'] = 'second'
-    a_mech.add(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['add', 'second', 'bento/ubuntu-18.04'])
     mock_os_getcwd.assert_called()
     assert re.search(r'Loading metadata', result.output, re.MULTILINE)
 
 
-def test_mech_add_mechfile_exists_no_name(mech_add_arguments):
+def test_mech_add_mechfile_exists_no_name():
     """Test 'mech add' when Mechfile exists but no name provided'."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = mech_add_arguments
-    arguments['<location>'] = 'bento/ubuntu-18.04'
-    arguments['<name>'] = None
-    with raises(SystemExit, match=r".*Need to provide a name.*"):
-        a_mech.add(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['add', 'bento/ubuntu-18.04'])
+    assert re.search(r'SystemExit', '{}'.format(result))
 
 
 @patch('mech.utils.load_mechfile')
@@ -1540,12 +1361,8 @@ def test_mech_remove(mock_os_getcwd, mock_load_mechfile,
     """Test 'mech remove'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<name>': 'first',
-    }
-    a_mech.remove(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['remove', 'first'])
     mock_os_getcwd.assert_called()
     mock_load_mechfile.assert_called()
     assert re.search(r'Removed', result.output, re.MULTILINE)
@@ -1558,34 +1375,25 @@ def test_mech_remove_a_nonexisting_entry(mock_os_getcwd, mock_load_mechfile,
     """Test 'mech remove'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<name>': 'second',
-    }
-    with raises(SystemExit, match=r".*There is no instance.*"):
-        a_mech.remove(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['remove', 'second'])
+    assert re.search(r'SystemExit', '{}'.format(result))
+
 
 
 def test_mech_remove_no_name():
     """Test 'mech remove' no name provided'."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<name>': None,
-    }
-    with raises(SystemExit, match=r".*Need to provide a name.*"):
-        a_mech.remove(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['remove'])
+    assert re.search(r'SystemExit', '{}'.format(result))
 
 
 @patch('mech.vmrun.VMrun.installed', return_value=True)
 @patch('mech.vmrun.VMrun.list', return_value="Total running VMs: 0")
 def test_mech_global_status(mock_list, mock_vmrun_installed):
     """Test 'mech global-status'."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {'--purge': None}
-    a_mech.global_status(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['global-status'])
     mock_list.assert_called()
     mock_vmrun_installed.assert_called()
     assert re.search(r'Total running VMs', result.output, re.MULTILINE)
@@ -1611,12 +1419,8 @@ def test_mech_ps(mock_getcwd, mock_locate, mock_load_mechfile, mock_ssh,
     mock_ssh.return_value = 0, PROCESSES, ''
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<instance>': 'first',
-    }
-    a_mech.ps(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['ps', 'first'])
     mock_getcwd.assert_called()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
@@ -1633,68 +1437,37 @@ def test_mech_ps_not_started_vm(mock_getcwd, mock_locate,
     """Test 'mech ps'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<instance>': 'second',
-    }
-    a_mech.ps(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['ps', 'second'])
     mock_getcwd.assert_called()
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     assert re.search(r'not created', result.output, re.MULTILINE)
 
 
-@patch('subprocess.run')
-@patch('os.chmod', return_value=True)
-@patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
+@patch('mech.utils.scp')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_scp_host_to_guest(mock_locate,
-                                mock_load_mechfile, mock_get_ip,
-                                mock_chmod,
-                                mock_subprocess_run,
+                                mock_load_mechfile,
+                                mock_scp,
                                 mechfile_two_entries):
     """Test 'mech scp'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': 'foo',
-        '<src>': 'now',
-        '<dst>': 'first:/tmp/now',
-    }
-    filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
-    a_mock = mock_open()
-
-    mock_subprocess_run.return_value.returncode = 0
-    mock_subprocess_run.stdout = b''
-    mock_subprocess_run.stderr = b''
-
-    with patch.object(mech.mech_instance.MechInstance,
-                      'get_vm_state', return_value="running") as mock_get_vm_state:
-        with patch('builtins.open', a_mock, create=True):
-            a_mech.scp(arguments)
-            mock_locate.assert_called()
-            mock_load_mechfile.assert_called()
-            mock_subprocess_run.assert_called()
-            mock_get_ip.assert_called()
-            mock_chmod.assert_called()
-            mock_get_vm_state.assert_called()
-            a_mock.assert_called_once_with(filename, 'w')
+    mock_scp.return_value = (0, b'', b'')
+    runner = CliRunner()
+    runner.invoke(cli, ['--debug', 'scp', 'now', 'first:/tmp/now', 'foo'])
+    mock_scp.assert_called()
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
 
 
 def test_mech_scp_with_cloud():
     """Test 'mech scp' with cloud."""
-    global_arguments = {'--debug': False, '--cloud': 'foo'}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': 'foo',
-        '<src>': 'now',
-        '<dst>': 'first:/tmp/now',
-    }
-    with patch.object(a_mech, 'cloud_run', return_value='some output'):
-        a_mech.scp(arguments)
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run'):
+        runner.invoke(cli, ['--cloud', 'foo', 'scp', '--extra-ssh-args',
+                            'foo', 'now', 'first:/tmp/now'])
 
 
 @patch('subprocess.run')
@@ -1713,19 +1486,13 @@ def test_mech_scp_guest_to_host(mock_locate,
     mock_subprocess_run.stderr = b''
 
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': None,
-        '<src>': 'first:/tmp/now',
-        '<dst>': '.',
-    }
+    runner = CliRunner()
     filename = os.path.join(mech.utils.mech_dir(), 'insecure_private_key')
     a_mock = mock_open()
     with patch.object(mech.mech_instance.MechInstance,
                       'get_vm_state', return_value="running") as mock_get_vm_state:
         with patch('builtins.open', a_mock, create=True):
-            a_mech.scp(arguments)
+            runner.invoke(cli, ['scp', 'first:/tmp/now', '.'])
             mock_locate.assert_called()
             mock_load_mechfile.assert_called()
             mock_subprocess_run.assert_called()
@@ -1742,41 +1509,23 @@ def test_mech_scp_guest_to_host_not_created(mock_locate,
                                             mechfile_two_entries):
     """Test 'mech scp'."""
     mock_load_mechfile.return_value = mechfile_two_entries
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': None,
-        '<src>': 'first:/tmp/now',
-        '<dst>': '.',
-    }
+    runner = CliRunner()
     a_mock = mock_open()
     with patch('builtins.open', a_mock, create=True):
-        a_mech.scp(arguments)
+        runner.invoke(cli, ['scp', 'first:/tmp/now', '.'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
 
 
 def test_mech_scp_both_are_guests():
     """Test 'mech scp'."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': None,
-        '<src>': 'first:/tmp/now',
-        '<dst>': 'first:/tmp/now2',
-    }
-    with raises(SystemExit, match=r"Both src and dst are host destinations"):
-        a_mech.scp(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scp', 'first:/tmp/now', 'first:/tmp/now2'])
+    assert re.search(r'Both src and dst are host destinations', '{}'.format(result.exception))
 
 
 def test_mech_scp_no_guests():
     """Test 'mech scp'."""
-    global_arguments = {'--debug': False, '--cloud': None}
-    a_mech = mech.mech.Mech(arguments=global_arguments)
-    arguments = {
-        '<extra-ssh-args>': None,
-        '<src>': '/tmp/now',
-        '<dst>': '/tmp/now2',
-    }
-    with raises(SystemExit, match=r"Could not determine instance name"):
-        a_mech.scp(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['scp', '/tmp/now', '/tmp/now2'])
+    assert re.search(r'Could not determine instance name', '{}'.format(result.exception))
