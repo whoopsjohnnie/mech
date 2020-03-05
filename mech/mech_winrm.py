@@ -1,32 +1,3 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2016-2017 Kevin Chung
-# Copyright (c) 2018 German Mendez Bravo (Kronuz)
-# Copyright (c) 2020 Mike Kinney
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE.
-#
-"""MechWinrm class"""
-
-from __future__ import print_function, absolute_import
-
-
 import logging
 import sys
 
@@ -34,150 +5,132 @@ import sys
 import click
 from pypsrp.client import Client
 
+
 from . import utils
-from .mech_command import MechCommand
 from .mech_instance import MechInstance
 
 LOGGER = logging.getLogger(__name__)
 
 
-class MechWinrm(MechCommand):
+@click.group(context_settings=utils.context_settings())
+@click.pass_context
+def winrm(ctx):
+    '''Winrm operations.'''
+    pass
+
+
+@winrm.command()
+@click.argument('instance', required=True)
+@click.pass_context
+def config(ctx, instance):
     """
-    Usage: mech winrm <subcommand> [<args>...]
-
-    Note: Cloud operations are not yet operational/supported.
-
-    Available subcommands:
-        config            Get configuration
-        copy              Copy file to instance
-        fetch             Fetch file from instance
-        run               Run winrm command
-
-    For help on any individual subcommand run `mech winrm <subcommand> -h`
+    Show winrm configuration.
     """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
 
-    def config(self, arguments):  # pylint: disable=no-self-use
-        """
-        Show winrm configuration.
+    if instance:
+        # single instance
+        instances = [instance]
+    else:
+        # multiple instances
+        instances = utils.instances()
 
-        Usage: mech winrm config [options] <instance>
-
-        Options:
-            -h, --help                       Print this help
-        """
-
-        instance_name = arguments['<instance>']
-
-        if instance_name:
-            # single instance
-            instances = [instance_name]
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
+        if inst.created:
+            click.echo(inst.winrm_config())
         else:
-            # multiple instances
-            instances = self.instances()
+            click.secho("VM ({}) is not created.".format(an_instance), fg="red")
 
-        for instance in instances:
-            inst = MechInstance(instance)
-            if inst.created:
-                click.echo(inst.winrm_config())
-            else:
-                click.secho("VM ({}) is not created.".format(instance), fg="red")
 
-    def run(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Run command or powershell using winrm
+@winrm.command()
+@click.argument('instance', required=True)
+@click.option('--command', '-c', required=False, metavar='COMMAND',
+              help='Command to run on instance (using command prompt).')
+@click.option('--powershell', '-p', required=False, metavar='POWERSHELL',
+              help='Powershell to run on instance.')
+@click.pass_context
+def run(ctx, instance, command, powershell):
+    """
+    Run command or powershell using winrm
 
-        Usage: mech winrm run [options] <instance>
+    Notes:
+        Example command: 'date /T'
+        Example powershell: 'Write-Host hello'
 
-        Notes:
-            Example command: 'date /T'
-            Example powershell: 'write-host hello'
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s instance:%s command:%s powershell:%s',
+                 cloud_name, instance, command, powershell)
 
-        Options:
-            -h, --help                       Print this help
-            -c, --command COMMAND            Command to run
-            -p, --powershell POWERSHELL      Powershell to run
-        """
-        command = arguments['--command']
-        powershell = arguments['--powershell']
-        instance = arguments['<instance>']
+    if (command is None or command == '') and (powershell is None or powershell == ''):
+        sys.exit(click.style("Command or Powershell is required", fg="red"))
 
-        if (command is None or command == '') and (powershell is None or powershell == ''):
-            sys.exit(click.style("Command or Powershell is required", fg="red"))
+    inst = MechInstance(instance)
 
-        inst = MechInstance(instance)
-
-        if inst.created:
-            LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
-                         " password:%s", inst.get_ip(), inst.user, inst.password)
-            utils.suppress_urllib3_errors()
-            client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-            if command:
-                stdout, stderr, rc = client.execute_cmd(command)
-                LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
-                if stdout:
-                    click.echo(stdout)
-                if stderr:
-                    click.echo(stderr)
-            else:
-                output, streams, had_errors = client.execute_ps(powershell)
-                LOGGER.debug('powershell:%s output:%s streams:%s '
-                             'had_errors:%s', powershell, output, streams, had_errors)
-                if output:
-                    click.echo(output)
-
+    if inst.created:
+        LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
+                     " password:%s", inst.get_ip(), inst.user, inst.password)
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        if command:
+            stdout, stderr, rc = client.execute_cmd(command)
+            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
+            if stdout:
+                click.echo(stdout)
+            if stderr:
+                click.echo(stderr)
         else:
-            click.echo("VM not created.")
+            output, streams, had_errors = client.execute_ps(powershell)
+            LOGGER.debug('powershell:%s output:%s streams:%s '
+                         'had_errors:%s', powershell, output, streams, had_errors)
+            if output:
+                click.echo(output)
 
-    def copy(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Copy local file to remote file on instance.
+    else:
+        click.echo("VM not created.")
 
-        Usage: mech winrm copy [options] <local> <remote> <instance>
 
-        Options:
-            -h, --help                       Print this help
-        """
-        local = arguments['<local>']
-        remote = arguments['<remote>']
-        instance = arguments['<instance>']
+@winrm.command()
+@click.argument('local', required=True)
+@click.argument('remote', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def copy(ctx, local, remote, instance):
+    """
+    Copy local file to remote file on instance.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s local:%s remote:%s instance:%s',
+                 cloud_name, local, remote, instance)
 
-        if local is None or local == '':
-            sys.exit(click.style("local file required", fg="red"))
+    inst = MechInstance(instance)
 
-        if remote is None or remote == '':
-            sys.exit(click.style("remote file required", fg="red"))
+    if inst.created:
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        client.copy(local, remote)
+        click.echo("Copied")
 
-        inst = MechInstance(instance)
 
-        if inst.created:
-            utils.suppress_urllib3_errors()
-            client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-            client.copy(local, remote)
-            click.echo("Copied")
+@winrm.command()
+@click.argument('remote', required=True)
+@click.argument('local', required=True)
+@click.argument('instance', required=True)
+@click.pass_context
+def fetch(ctx, remote, local, instance):
+    """
+    Fetch remote file from instance.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s remote:%s local:%s instance:%s',
+                 cloud_name, remote, local, instance)
 
-    def fetch(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Fetch remote file from instance.
+    inst = MechInstance(instance)
 
-        Usage: mech winrm fetch [options] <remote> <local> <instance>
-
-        Options:
-            -h, --help                       Print this help
-        """
-        local = arguments['<local>']
-        remote = arguments['<remote>']
-        instance = arguments['<instance>']
-
-        if local is None or local == '':
-            sys.exit(click.style("local file required", fg="red"))
-
-        if remote is None or remote == '':
-            sys.exit(click.style("remote file required", fg="red"))
-
-        inst = MechInstance(instance)
-
-        if inst.created:
-            utils.suppress_urllib3_errors()
-            client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-            client.fetch(remote, local)
-            click.echo("Fetched")
+    if inst.created:
+        utils.suppress_urllib3_errors()
+        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
+        client.fetch(remote, local)
+        click.echo("Fetched")

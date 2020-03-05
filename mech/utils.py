@@ -1673,3 +1673,8 @@ def cloud_run(cloud_name, operations):
         if stderr:
             click.echo(stderr)
         return result.returncode, stdout, stderr
+
+
+# for short and long help options
+def context_settings():
+    return dict(help_option_names=['-h', '--help'])

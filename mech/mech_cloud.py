@@ -1,48 +1,33 @@
-# -*- coding: utf-8 -*-
-#
-# Copyright (c) 2016-2017 Kevin Chung
-# Copyright (c) 2018 German Mendez Bravo (Kronuz)
-# Copyright (c) 2020 Mike Kinney
-#
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to
-# deal in the Software without restriction, including without limitation the
-# rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
-# sell copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
-# IN THE SOFTWARE.
-#
-"""MechCloud class"""
-
-from __future__ import print_function, absolute_import
-
-
 import logging
 
 
+import click
+
+
 from . import utils
-from .mech_command import MechCommand
 from .mech_cloud_instance import MechCloudInstance
 
 LOGGER = logging.getLogger(__name__)
 
 
-class MechCloud(MechCommand):
-    """
-    Usage: mech cloud <subcommand> [<args>...]
+class MechCloudAliasedGroup(click.Group):
+    '''Enable click command aliases.'''
+
+    def get_command(self, ctx, cmd_name):
+        '''get the alias command'''
+        try:
+            cmd_name = MECH_CLOUD_ALIASES[cmd_name].name
+        except KeyError:
+            pass
+        return super().get_command(ctx, cmd_name)
+
+
+@click.group(context_settings=utils.context_settings(), cls=MechCloudAliasedGroup)
+@click.pass_context
+def cloud(ctx):
+    '''Cloud operations.
 
     Notes:
-
         Mech Cloud is an easy way to expose resources for non-local use.
 
         If you have a spare desktop/laptop:
@@ -78,107 +63,104 @@ class MechCloud(MechCommand):
 
         Virtualbox instances are "global". So, you can have only one
         instance named "first".
+    '''
+    pass
 
-    Available subcommands:
-        init              initialize the mech cloud instance
-        remove            remove a mech cloud instance
-        list              list the mech clould instances
 
-    For help on any individual subcommand run `mech cloud <subcommand> -h`
+@cloud.command()
+@click.argument('hostname', required=True, metavar='HOST')
+@click.argument('directory', required=True, metavar='DIR')
+@click.argument('username', required=True, metavar='USER')
+@click.argument('name', required=True, metavar='NAME')
+@click.pass_context
+def init(ctx, hostname, directory, username, name):
     """
+    Initialize Mechcloudfile and add entry.
 
-    def init(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Initialize the Mech Cloud configuration.
+    The directory will be created with a python virtual environment (venv)
+    and "mikemech" will be installed into it.
 
-        The directory will be created with a python virtual environment (venv)
-        and "mikemech" will be installed into it.
+    Notes:
+       - The "mech cloud init" operation can be run again with same cloud-instance.
+         (The values would be updated in the Mechcloudfile).
 
-        Usage: mech cloud init [options] --hostname HOST --directory DIR <cloud-instance>
+       - The directory should not contain spaces.
 
-        Notes:
-           The "mech init" operation can be run again with same cloud-instance.
-           (The values would be updated in the Mechcloudfile).
+       - If you use '~' in the directory value, be sure it is surrounded by
+         single quotes because without quotes or if double quotes (") are used,
+         then the '~' will be expanded locally and will not use the remote value.
+            Good Example: --directory '~/mikemech'
+            Bad Example: --directory "~/mikemech"   (do not use)
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s hostname:%s directory:%s username:%s name:%s',
+                 cloud_name, hostname, directory, username, name)
 
-           The directory should not contain spaces.
+    inst = MechCloudInstance(name)
+    inst.set_hostname(hostname)
+    inst.set_directory(directory)
+    inst.set_username(username)
+    inst.init()
 
-           If you use '~' in the directory value, be sure it is surrounded by
-           single quotes because without quotes or if double quotes (") are used,
-           then the '~' will be expanded locally and will not use the remote value.
-              Example: --directory '~/mikemech'
 
-        Options:
-            --hostname HOST                  Hostname (resolvable hostname or ip)
-            --directory DIR                  Directory on remote host where mech will be installed
-            --username USER                  Username to use for ssh
-            -h, --help                       Print this help
-        """
-        hostname = arguments['--hostname']
-        directory = arguments['--directory']
-        username = arguments['--username']
-        cloud_instance = arguments['<cloud-instance>']
+@cloud.command()
+@click.argument('name', required=True, metavar='NAME')
+@click.pass_context
+def remove(ctx, name):
+    """
+    Remove a Mech Cloud instance
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
+    if utils.cloud_exists(name):
+        utils.remove_mechcloudfile_entry(name=name)
+        print("Removed ({}) from mech cloud.".format(name))
+        print("Be sure to remove any running virtual machines.")
+    else:
+        print("Cloud ({}) does not exist in the Mechcloudfile.", name)
 
-        inst = MechCloudInstance(cloud_instance)
-        inst.set_hostname(hostname)
-        inst.set_directory(directory)
-        inst.set_username(username)
-        inst.init()
 
-    def remove(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Remove a Mech Cloud instance
+@cloud.command()
+@click.pass_context
+def list(ctx):
+    """
+    List Mech Clouds
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s', cloud_name)
 
-        Usage: mech cloud remove [options] <cloud-instance>
+    print('=== mech clouds: ===')
+    clouds = utils.cloud_instances()
+    for cloud in clouds:
+        mci = MechCloudInstance(cloud)
+        mci.read_config(cloud)
+        print(mci)
+        print()
 
-        Options:
-            -h, --help                       Print this help
-        """
-        cloud_instance = arguments['<cloud-instance>']
-        if utils.cloud_exists(cloud_instance):
-            utils.remove_mechcloudfile_entry(name=cloud_instance)
-            print("Removed ({}) from mech cloud.".format(cloud_instance))
-            print("Be sure to remove any running virtual machines.")
-        else:
-            print("Cloud ({}) does not exist in the Mechcloudfile.", cloud_instance)
-    # allow 'mech cloud delete' as alias to 'mech cloud remove'
-    delete = remove
 
-    def list(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        List Mech Clouds
+@cloud.command()
+@click.argument('name', required=False, metavar='NAME')
+@click.pass_context
+def upgrade(ctx, name):
+    """
+    Upgrade 'pip' and 'mikemech' on the cloud instances.
+    """
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
 
-        Usage: mech cloud list [options]
+    if name:
+        instances = [name]
+    else:
+        instances = utils.cloud_instances()
 
-        Options:
-            -h, --help                       Print this help
-        """
-        print('=== mech clouds: ===')
-        clouds = self.cloud_instances()
-        for cloud in clouds:
-            mci = MechCloudInstance(cloud)
-            mci.read_config(cloud)
-            print(mci)
-            print()
-    # allow 'mech cloud ls' as alias to 'mech cloud list'
-    ls = list
+    for a_name in instances:
+        mci = MechCloudInstance(a_name)
+        mci.read_config(a_name)
+        mci.upgrade()
 
-    def upgrade(self, arguments):  # pylint: disable=no-self-use,unused-argument
-        """
-        Upgrade 'pip' and 'mikemech' on the cloud instances.
 
-        Usage: mech cloud upgrade [options] [<cloud-instance>]
-
-        Options:
-            -h, --help                       Print this help
-        """
-        cloud_instance = arguments['<cloud-instance>']
-
-        if cloud_instance:
-            instances = [cloud_instance]
-        else:
-            instances = self.cloud_instances()
-
-        for cloud_name in instances:
-            mci = MechCloudInstance(cloud_name)
-            mci.read_config(cloud_name)
-            mci.upgrade()
+MECH_CLOUD_ALIASES = {
+    'delete': remove,
+    'ls': list,
+    'rm': remove,
+}
