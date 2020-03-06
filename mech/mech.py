@@ -792,7 +792,7 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
         # extracts the VM files from the singular .box archive
         if not inst.created:
             path_to_vmx_or_vbox = utils.init_box(
-                instance,
+                an_instance,
                 box=inst.box,
                 box_version=inst.box_version,
                 location=location,
