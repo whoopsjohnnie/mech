@@ -902,20 +902,6 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
     assert re.search(r'was not found in the Mechfile', '{}'.format(result.exception))
 
 
-@patch('mech.utils.start_vm')
-@patch('mech.utils.load_mechfile')
-@patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
-def test_mech_up_already_started(mock_locate, mock_load_mechfile,
-                                 mock_start_vm, mechfile_one_entry):
-    """Test 'mech up'."""
-    mock_load_mechfile.return_value = mechfile_one_entry
-    runner = CliRunner()
-    runner.invoke(cli, ['--debug', 'up', '--remove-vagrant'])
-    mock_locate.assert_called()
-    mock_load_mechfile.assert_called()
-    mock_start_vm.assert_called()
-
-
 @patch('mech.utils.report_provider', return_value=True)
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
