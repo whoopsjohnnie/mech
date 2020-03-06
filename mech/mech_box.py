@@ -61,7 +61,7 @@ def box(ctx):
 @box.command()
 @click.argument('location', required=True)
 @click.option('--box-version', metavar='VERSION', help='Constrain to specific box version.')
-@click.option('--force', is_flag=True, default=False, help='Overwrite existing Mechfile.')
+@click.option('-f', '--force', is_flag=True, default=False, help='Overwrite existing Mechfile.')
 @click.option('--provider', metavar='PROVIDER', default='vmware',
               help='Provider (`vmware` or `virtualbox`)')
 @click.pass_context

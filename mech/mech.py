@@ -225,7 +225,7 @@ def port(ctx, instance):
 
 @cli.command()
 @click.argument('instance', required=False)
-@click.option('--show-only', is_flag=True, default=False)
+@click.option('-s', '--show-only', is_flag=True, default=False)
 @click.pass_context
 def provision(ctx, instance, show_only):
     '''
@@ -349,7 +349,7 @@ def scp(ctx, src, dst, extra_ssh_args):
 @click.argument('instance', required=True)
 @click.option('--command', '-c', required=False, metavar='COMMAND',
               help='Command to run on instance.')
-@click.option('--plain', is_flag=True, default=False,
+@click.option('--plain', '-p', is_flag=True, default=False,
               help='Plain mode, leaves authentication up to user.')
 @click.argument('extra-ssh-args', required=False)
 @click.pass_context
@@ -570,7 +570,7 @@ def pause(ctx, instance):
 
 @cli.command()
 @click.argument('instance', required=False)
-@click.option('--force', is_flag=True, default=False, help='Force a hard stop.')
+@click.option('--force', '-f', is_flag=True, default=False, help='Force a hard stop.')
 @click.pass_context
 def down(ctx, instance, force):
     '''
@@ -617,7 +617,7 @@ def down(ctx, instance, force):
 
 @cli.command()
 @click.argument('instance', required=False)
-@click.option('--force', is_flag=True, default=False, help='Destroy without confirmation.')
+@click.option('-f', '--force', is_flag=True, default=False, help='Destroy without confirmation.')
 @click.pass_context
 def destroy(ctx, instance, force):
     '''
@@ -688,7 +688,7 @@ def ps(ctx, instance):
 
 
 @cli.command()
-@click.option('--purge', is_flag=True, default=False, help='Kill and remove any instances.')
+@click.option('--purge', '-p', is_flag=True, default=False, help='Kill and remove any instances.')
 @click.pass_context
 def global_status(ctx, purge):
     '''
@@ -725,7 +725,7 @@ def global_status(ctx, purge):
 @click.option('--no-nat', is_flag=True, default=False,
               help='Do not use NAT networking (i.e., use bridged).')
 @click.option('--numvcpus', metavar='VCPUS', help='Specify number of vcpus.')
-@click.option('--remove-vagrant', is_flag=True, default=False, help='Remove vagrant user.')
+@click.option('-r', '--remove-vagrant', is_flag=True, default=False, help='Remove vagrant user.')
 @click.pass_context
 def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize, no_cache,
        no_nat, numvcpus, remove_vagrant):
@@ -901,7 +901,7 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
               help='Add the current user/pubkey to guest.')
 @click.option('--box', metavar='BOXNAME', help='Name of the box (ex: bento/ubuntu-10.04).')
 @click.option('--box-version', metavar='VERSION', help='Constrain to specific box version.')
-@click.option('--force', is_flag=True, default=False, help='Overwrite existing Mechfile.')
+@click.option('--force', '-f', is_flag=True, default=False, help='Overwrite existing Mechfile.')
 @click.option('--name', metavar='INSTANCE', default='first',
               help='Name of the instance (ex: `first`).')
 @click.option('--provider', metavar='PROVIDER', default='vmware',
