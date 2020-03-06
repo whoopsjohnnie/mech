@@ -133,7 +133,7 @@ def test_mech_port_with_cloud():
         mock_cloud_run.assert_called()
 
 
-def test_mech_add_with_cloud(mech_add_arguments):
+def test_mech_add_with_cloud():
     """Test 'mech add' with cloud."""
     runner = CliRunner()
     with patch('mech.utils.cloud_run') as mock_cloud_run:
@@ -141,7 +141,7 @@ def test_mech_add_with_cloud(mech_add_arguments):
         mock_cloud_run.assert_called()
 
 
-def test_mech_up_with_cloud(mech_up_arguments):
+def test_mech_up_with_cloud():
     """Test 'mech up' with cloud."""
     runner = CliRunner()
     with patch('mech.utils.cloud_run') as mock_cloud_run:
@@ -149,7 +149,7 @@ def test_mech_up_with_cloud(mech_up_arguments):
         mock_cloud_run.assert_called()
 
 
-def test_mech_start_with_cloud(mech_up_arguments):
+def test_mech_start_with_cloud():
     """Test 'mech start' (alias) with cloud."""
     runner = CliRunner()
     with patch('mech.utils.cloud_run') as mock_cloud_run:

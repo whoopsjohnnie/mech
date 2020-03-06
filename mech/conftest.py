@@ -219,63 +219,6 @@ def catalog_as_json():
     return json.loads(CATALOG)
 
 
-@pytest.fixture
-def mech_add_arguments():
-    """Return the default 'mech add' arguments."""
-    return {
-        '--force': False,
-        '--box-version': None,
-        '--name': None,
-        '--box': None,
-        '--add-me': None,
-        '--use-me': None,
-        '--provider': None,
-        '<location>': None,
-    }
-
-
-@pytest.fixture
-def mech_up_arguments():
-    """Return the default 'mech up' arguments."""
-    return {
-        '--disable-provisioning': None,
-        '--disable-shared-folders': None,
-        '--gui': None,
-        '--memsize': None,
-        '--no-cache': None,
-        '--no-nat': None,
-        '--numvcpus': None,
-        '--remove-vagrant': None,
-        '<instance>': 'first',
-    }
-
-
-@pytest.fixture
-def mech_box_arguments():
-    """Return the default 'mech box' arguments."""
-    return {
-        '--force': False,
-        '--box-version': None,
-        '<provider>': None,
-        '<location>': None,
-    }
-
-
-@pytest.fixture
-def mech_init_arguments():
-    """Return the default 'mech init' arguments."""
-    return {
-        '--force': False,
-        '--box-version': None,
-        '--name': None,
-        '--box': None,
-        '--add-me': None,
-        '--use-me': None,
-        '--provider': None,
-        '<location>': None,
-    }
-
-
 class Helpers:
     @staticmethod
     def get_mock_data_written(a_mock):
