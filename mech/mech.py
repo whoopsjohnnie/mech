@@ -380,7 +380,7 @@ def ssh(ctx, instance, command, plain, extra_ssh_args):
 
 
 @cli.command()
-@click.argument('instance', required=True)
+@click.argument('instance', required=False)
 @click.pass_context
 def ssh_config(ctx, instance):
     '''
@@ -651,7 +651,6 @@ def destroy(ctx, instance, force):
                     vmrun.delete_vm()
                 else:
                     vbm = VBoxManage()
-
                     vbm.stop(vmname=inst.name, quiet=True)
                     vbm.unregister(vmname=inst.name, quiet=True)
 

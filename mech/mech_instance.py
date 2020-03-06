@@ -105,6 +105,7 @@ class MechInstance():
         self.path = os.path.join(utils.mech_dir(), name)
         self.vmx = None
         self.vbox = None
+        self.created = False
         if self.provider == 'vmware':
             # Note: If vmware vm has not been started vmx will be None
             vmx = utils.locate(self.path, '*.vmx')

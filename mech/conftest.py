@@ -47,6 +47,32 @@ def mechfile_one_entry():
 
 
 @pytest.fixture
+def mechfile_one_entry_virtualbox():
+    """Return one mechfile entry."""
+    return {
+        'first': {
+            'name': 'first',
+            'box': 'bento/ubuntu-18.04',
+            'box_version': '201912.04.0',
+            'provider': 'virtualbox'
+        }
+    }
+
+
+@pytest.fixture
+def mechfile_one_entry_atari():
+    """Return one mechfile entry."""
+    return {
+        'first': {
+            'name': 'first',
+            'box': 'bento/ubuntu-18.04',
+            'box_version': '201912.04.0',
+            'provider': 'atari'
+        }
+    }
+
+
+@pytest.fixture
 def mechfile_one_entry_without_box_version():
     """Return one mechfile entry."""
     return {

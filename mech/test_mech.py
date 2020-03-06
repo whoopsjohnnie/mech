@@ -85,6 +85,15 @@ def test_mech_ip_with_cloud():
         mock_cloud_run.assert_called()
 
 
+def test_mech_ssh_with_cloud():
+    """Test 'mech ssh' with cloud."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--cloud', 'foo', 'ssh', '--command', 'uptime', 'first'])
+    print('result:{}'.format(result))
+    print('result.output:{}'.format(result.output))
+    assert re.search('is not supported', '{}'.format(result.output))
+
+
 def test_mech_ssh_config_with_cloud():
     """Test 'mech ssh_config' with cloud."""
     runner = CliRunner()
@@ -222,6 +231,21 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_list_virtualbox(mock_locate, mock_load_mechfile,
+                              mechfile_one_entry_virtualbox):
+    """Test 'mech list' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_vm_info', return_value="some data") as mock_get_ip:
+        runner.invoke(cli, ['list', 'first', '-d'])
+        mock_locate.assert_called()
+        mock_load_mechfile.assert_called()
+        mock_get_ip.assert_called()
+
+
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_list_powered_on_cannot_get_ip(mock_locate, mock_load_mechfile,
                                             mechfile_two_entries):
@@ -235,6 +259,25 @@ def test_mech_list_powered_on_cannot_get_ip(mock_locate, mock_load_mechfile,
         mock_load_mechfile.assert_called()
         mock_get_ip.assert_called()
         assert re.search(r'running', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_list_powered_on_cannot_get_state(mock_locate, mock_load_mechfile,
+                                               mechfile_two_entries):
+    """Test 'mech list' powered on."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    runner = CliRunner()
+    with patch.object(mech.mech_instance.MechInstance,
+                      'get_ip', return_value=False) as mock_get_ip:
+        with patch.object(mech.mech_instance.MechInstance,
+                          'get_vm_state', return_value=None) as mock_get_state:
+            result = runner.invoke(cli, ['list', 'first'])
+            mock_locate.assert_called()
+            mock_load_mechfile.assert_called()
+            mock_get_ip.assert_called()
+            mock_get_state.assert_called()
+            assert re.search(r'running', result.output, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
@@ -274,6 +317,31 @@ def test_mech_destroy(mock_locate, mock_load_mechfile,
     mock_vmrun_stop.assert_called()
     mock_get_provider.assert_called()
     mock_vmrun_delete_vm.assert_called()
+    mock_rmtree.assert_called()
+    mock_path_exists.assert_called()
+    assert re.search(r'Deleting', result.output, re.MULTILINE)
+    assert re.search(r'Deleted', result.output, re.MULTILINE)
+
+
+@patch('os.path.exists', return_value=True)
+@patch('shutil.rmtree')
+@patch('mech.vbm.VBoxManage.unregister')
+@patch('mech.vbm.VBoxManage.stop', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_destroy_virtualbox(mock_locate, mock_load_mechfile,
+                                 mock_stop, mock_unregister,
+                                 mock_rmtree, mock_path_exists,
+                                 mechfile_one_entry_virtualbox):
+    """Test 'mech destroy' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    mock_rmtree.return_value = True
+    runner = CliRunner()
+    result = runner.invoke(cli, ['destroy', '--force', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_stop.assert_called()
+    mock_unregister.assert_called()
     mock_rmtree.assert_called()
     mock_path_exists.assert_called()
     assert re.search(r'Deleting', result.output, re.MULTILINE)
@@ -328,6 +396,38 @@ def test_mech_down(mock_locate, mock_load_mechfile,
     mock_vmrun_stop.assert_called()
     mock_installed_tools.assert_called()
     assert re.search(r'Stopped', result.output, re.MULTILINE)
+
+
+@patch('mech.vbm.VBoxManage.stop', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_down_virtualbox(mock_locate, mock_load_mechfile,
+                              mock_stop,
+                              mechfile_one_entry_virtualbox):
+    """Test 'mech down' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['down'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_stop.assert_called()
+    assert re.search(r'Stopped', result.output, re.MULTILINE)
+
+
+@patch('mech.vbm.VBoxManage.stop', return_value=None)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_down_fails_virtualbox(mock_locate, mock_load_mechfile,
+                                    mock_stop,
+                                    mechfile_one_entry_virtualbox):
+    """Test 'mech down' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['down'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_stop.assert_called()
+    assert re.search(r'Not stopped', result.output, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.installed_tools', return_value=False)
@@ -558,6 +658,19 @@ def test_mech_suspend(mock_locate, mock_load_mechfile,
     assert re.search(r'Suspended', result.output, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_suspend_virtualbox(mock_locate, mock_load_mechfile,
+                                 mechfile_one_entry_virtualbox):
+    """Test 'mech suspend' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['suspend', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'Not sure equivalent command', result.output, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.suspend', return_value=None)
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
@@ -593,7 +706,8 @@ def test_mech_ssh(mock_locate, mock_load_mechfile,
                   mock_ssh, mechfile_two_entries):
     """Test 'mech ssh'"""
     mock_load_mechfile.return_value = mechfile_two_entries
-    mock_ssh.return_value = (0, b'00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00\n', b'')
+    mock_ssh.return_value = (0, b'00:03:30 up 2 min,  load average: 0.00, 0.00, 0.00\n',
+                             b'nothing here')
     runner = CliRunner()
     runner.invoke(cli, ['--debug', 'ssh', '--command', 'uptime', 'first'])
     mock_locate.assert_called()
@@ -627,6 +741,36 @@ def test_mech_pause(mock_locate, mock_load_mechfile,
     mock_load_mechfile.assert_called()
     mock_vmrun_pause.assert_called()
     assert re.search(r'Paused', result.output, re.MULTILINE)
+
+
+@patch('mech.vbm.VBoxManage.pause', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_pause_virtualbox(mock_locate, mock_load_mechfile,
+                               mock_pause, mechfile_one_entry_virtualbox):
+    """Test 'mech pause' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['pause', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_pause.assert_called()
+    assert re.search(r'Paused', result.output, re.MULTILINE)
+
+
+@patch('mech.vbm.VBoxManage.pause', return_value=None)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_pause_fails_virtualbox(mock_locate, mock_load_mechfile,
+                                     mock_pause, mechfile_one_entry_virtualbox):
+    """Test 'mech pause' powered on."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['pause', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_pause.assert_called()
+    assert re.search(r'Not paused', result.output, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.pause', return_value=None)
@@ -695,12 +839,25 @@ def test_mech_upgrade_created_powered_off_upgrade_works(mock_locate, mock_load_m
     assert re.search(r'Upgraded', result.output, re.MULTILINE)
 
 
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_upgrade_created_virtualbox(mock_locate, mock_load_mechfile,
+                                         mechfile_one_entry_virtualbox):
+    """Test 'mech upgrade' with vm created and powered off."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['upgrade', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not available', result.output, re.MULTILINE)
+
+
 @patch('mech.vmrun.VMrun.check_tools_state', return_value="running")
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_upgrade_created__powered_on(mock_locate, mock_load_mechfile,
-                                          mock_check_tools_state,
-                                          mechfile_two_entries):
+def test_mech_upgrade_created_powered_on(mock_locate, mock_load_mechfile,
+                                         mock_check_tools_state,
+                                         mechfile_two_entries):
     """Test 'mech upgrade' with vm created and powered on."""
     mock_load_mechfile.return_value = mechfile_two_entries
     runner = CliRunner()
@@ -774,6 +931,19 @@ def test_mech_resume_not_created(mock_locate, mock_load_mechfile,
     mock_load_mechfile.return_value = mechfile_two_entries
     runner = CliRunner()
     result = runner.invoke(cli, ['resume', '--disable-shared-folders', 'first'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'VM not created', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_resume_not_created_multiple(mock_locate, mock_load_mechfile,
+                                          mechfile_two_entries):
+    """Test 'mech resume'."""
+    mock_load_mechfile.return_value = mechfile_two_entries
+    runner = CliRunner()
+    result = runner.invoke(cli, ['resume', '--disable-shared-folders'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     assert re.search(r'VM not created', result.output, re.MULTILINE)
@@ -902,6 +1072,16 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
     assert re.search(r'was not found in the Mechfile', '{}'.format(result.exception))
 
 
+@patch('mech.utils.load_mechfile')
+def test_mech_up_with_invalid_provider(mock_load_mechfile,
+                                       mechfile_one_entry_atari):
+    """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_atari
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'up', 'first'])
+    assert re.search(r'Invalid provider', result.output)
+
+
 @patch('mech.utils.report_provider', return_value=True)
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
@@ -931,6 +1111,27 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         mock_report_provider.assert_called()
         assert re.search(r'started', result.output, re.MULTILINE)
         assert re.search(r'Added auth', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.share_folders', return_value=None)
+@patch('mech.utils.init_box', return_value='/tmp/first/some.vbox')
+@patch('mech.utils.report_provider', return_value=True)
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_up_virtualbox(mock_locate, mock_load_mechfile,
+                            mock_report_provider,
+                            mock_init_box, mock_share_folders,
+                            mechfile_one_entry_virtualbox):
+    """Test 'mech up'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'up'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_report_provider.assert_called()
+    mock_init_box.assert_called()
+    mock_share_folders.assert_called()
+    assert re.search(r'started', result.output, re.MULTILINE)
 
 
 @patch('mech.utils.report_provider', return_value=True)
@@ -1084,6 +1285,19 @@ def test_mech_ssh_config_not_created(mock_locate, mock_load_mechfile,
 
 
 @patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_ssh_config_not_created_multiple(mock_locate, mock_load_mechfile,
+                                              mechfile_one_entry):
+    """Test 'mech ssh-config' when vm is not created."""
+    mock_load_mechfile.return_value = mechfile_one_entry
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'ssh-config'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    assert re.search(r'not created', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate')
 @patch('os.getcwd')
 def test_mech_ssh_config_not_started(mock_getcwd, mock_locate, mock_load_mechfile,
@@ -1166,6 +1380,25 @@ def test_mech_port_with_nat_from_mac(mock_locate, mock_load_mechfile, mock_list_
     mock_list_port_forwardings.assert_called()
     mock_platform_system.assert_called()
     assert re.search(r'Total port forwardings: 0', result.output, re.MULTILINE)
+
+
+@patch('platform.system')
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value=None)
+def test_mech_port_virtualbox(mock_locate, mock_load_mechfile,
+                              mock_platform_system,
+                              mechfile_one_entry_virtualbox):
+    """Test 'mech port' with virtualbox provider."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    a_mock = MagicMock()
+    a_mock.return_value = 'Darwin'
+    mock_platform_system.side_effect = a_mock
+    result = runner.invoke(cli, ['port'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_platform_system.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
 
 
 @patch('platform.system')
@@ -1373,6 +1606,14 @@ def test_mech_global_status(mock_list, mock_vmrun_installed):
     assert re.search(r'Total running VMs', result.output, re.MULTILINE)
 
 
+@patch('mech.utils.cleanup_dir_and_vms_from_dir', return_value=None)
+def test_mech_global_status_with_purge(mock_cleanup):
+    """Test 'mech global-status'."""
+    runner = CliRunner()
+    runner.invoke(cli, ['global-status', '--purge'])
+    mock_cleanup.assert_called()
+
+
 PROCESSES = """UID        PID  PPID  C STIME TTY          TIME CMD
 root         1     0  4 17:57 ?        00:00:00 /sbin/init
 root         2     0  0 17:57 ?        00:00:00 [kthreadd]
@@ -1436,14 +1677,6 @@ def test_mech_scp_host_to_guest(mock_locate,
     mock_load_mechfile.assert_called()
 
 
-def test_mech_scp_with_cloud():
-    """Test 'mech scp' with cloud."""
-    runner = CliRunner()
-    with patch('mech.utils.cloud_run'):
-        runner.invoke(cli, ['--cloud', 'foo', 'scp', '--extra-ssh-args',
-                            'foo', 'now', 'first:/tmp/now'])
-
-
 @patch('subprocess.run')
 @patch('os.chmod', return_value=True)
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
@@ -1503,3 +1736,26 @@ def test_mech_scp_no_guests():
     runner = CliRunner()
     result = runner.invoke(cli, ['scp', '/tmp/now', '/tmp/now2'])
     assert re.search(r'Could not determine instance name', '{}'.format(result.exception))
+
+
+def test_mech_support():
+    """Test 'mech support'."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ['support'])
+    assert re.search(r'having issues', '{}'.format(result.output))
+
+
+def test_mech_support_with_cloud():
+    """Test 'mech support' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'support'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_scp_with_cloud():
+    """Test 'mech scp' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'scp', 'now', 'first:/tmp/now', 'foo'])
+        mock_cloud_run.assert_called()
