@@ -140,6 +140,43 @@ def test_mech_snapshot_delete_snapshot(mock_os_getcwd, mock_load_mechfile,
 
 
 @patch('mech.utils.load_mechfile')
+def test_mech_snapshot_delete_snapshot_virtualbox(mock_load_mechfile,
+                                                  mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot delete'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'delete', 'snap1', 'first'])
+    mock_load_mechfile.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_snapshot_list_snapshot_virtualbox(mock_locate, mock_load_mechfile,
+                                                mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot list'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'snapshot', 'list'])
+    mock_load_mechfile.assert_called()
+    mock_locate.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_snapshot_save_snapshot_virtualbox(mock_locate, mock_load_mechfile,
+                                                mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot list'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'snapshot', 'save', 'snap1', 'first'])
+    mock_load_mechfile.assert_called()
+    mock_locate.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
 def test_mech_snapshot_list_not_created(mock_locate, mock_load_mechfile,
                                         mechfile_one_entry):

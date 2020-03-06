@@ -146,7 +146,7 @@ def test_mech_add_with_cloud():
     """Test 'mech add' with cloud."""
     runner = CliRunner()
     with patch('mech.utils.cloud_run') as mock_cloud_run:
-        runner.invoke(cli, ['--cloud', 'foo', 'port', 'third'])
+        runner.invoke(cli, ['--cloud', 'foo', 'add', 'second', 'bento/ubuntu-18.04'])
         mock_cloud_run.assert_called()
 
 
@@ -1113,6 +1113,8 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         assert re.search(r'Added auth', result.output, re.MULTILINE)
 
 
+@patch('mech.vbm.VBoxManage.cpus', return_value=None)
+@patch('mech.vbm.VBoxManage.memory', return_value=None)
 @patch('mech.utils.share_folders', return_value=None)
 @patch('mech.utils.init_box', return_value='/tmp/first/some.vbox')
 @patch('mech.utils.report_provider', return_value=True)
@@ -1121,16 +1123,19 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
 def test_mech_up_virtualbox(mock_locate, mock_load_mechfile,
                             mock_report_provider,
                             mock_init_box, mock_share_folders,
+                            mock_memory, mock_cpus,
                             mechfile_one_entry_virtualbox):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
     runner = CliRunner()
-    result = runner.invoke(cli, ['--debug', 'up'])
+    result = runner.invoke(cli, ['--debug', 'up', '--numvcpus', '3', '--memsize', '2048'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_report_provider.assert_called()
     mock_init_box.assert_called()
     mock_share_folders.assert_called()
+    mock_cpus.assert_called()
+    mock_memory.assert_called()
     assert re.search(r'started', result.output, re.MULTILINE)
 
 
@@ -1525,8 +1530,11 @@ def test_mech_init_with_invalid_provider():
 def test_mech_add_with_invalid_provider():
     """Test if we do not have a valid provider."""
     runner = CliRunner()
-    result = runner.invoke(cli, ['--debug', 'add', '--provider', 'atari', 'bento/ubuntu-18.04'])
-    assert re.search(r'SystemExit', '{}'.format(result))
+    result = runner.invoke(cli, ['--debug', 'add', '--provider',
+                                 'atari', 'second', 'bento/ubuntu-18.04'])
+    print('result:{}'.format(result))
+    print('result.output:{}'.format(result.output))
+    assert re.search(r'Invalid provider', result.output, re.MULTILINE)
 
 
 @patch('os.path.exists')

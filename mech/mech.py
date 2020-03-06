@@ -876,8 +876,8 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
         utils.cloud_run(cloud_name, ['add'])
         return
 
-    if not utils.valid_provider(provider):
-        sys.exit(click.style('Need to provide valid provider.', fg='red'))
+    if not utils.report_provider(provider):
+        return
 
     utils.report_provider(provider)
 
