@@ -313,6 +313,8 @@ class VBoxManage():
             LOGGER.debug('line:%s', line)
             parts = line.split(' ')
             if len(parts) > 0:
-                running_vms.append(parts[0].replace('"', ''))
+                vm = parts[0].replace('"', '')
+                if vm != '':
+                    running_vms.append(vm)
         LOGGER.debug('running_vms:%s', running_vms)
         return running_vms
