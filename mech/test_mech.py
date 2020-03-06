@@ -230,19 +230,26 @@ def test_mech_list_powered_on(mock_locate, mock_load_mechfile,
         assert re.search(r'192.168.', result.output, re.MULTILINE)
 
 
+@patch('mech.vbm.VBoxManage.ip', return_value='192.168.1.100')
+@patch('mech.utils.get_fallback_executable', return_value='/tmp/VBoxManage')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
 def test_mech_list_virtualbox(mock_locate, mock_load_mechfile,
+                              mock_get_fallback, mock_get_ip,
                               mechfile_one_entry_virtualbox):
     """Test 'mech list' powered on."""
     mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
     runner = CliRunner()
     with patch.object(mech.mech_instance.MechInstance,
-                      'get_vm_info', return_value="some data") as mock_get_ip:
-        runner.invoke(cli, ['list', 'first', '-d'])
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_get_ip.assert_called()
+                      'get_vm_info', return_value="some data") as mock_get_vm_info:
+        with patch.object(mech.mech_instance.MechInstance,
+                          'get_vm_state', return_value="some data") as mock_get_vm_state:
+            runner.invoke(cli, ['list', 'first', '-d'])
+            mock_locate.assert_called()
+            mock_load_mechfile.assert_called()
+            mock_get_ip.assert_called()
+            mock_get_vm_state.assert_called()
+            mock_get_vm_info.assert_called()
 
 
 @patch('mech.utils.load_mechfile')
@@ -1113,6 +1120,8 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         assert re.search(r'Added auth', result.output, re.MULTILINE)
 
 
+@patch('mech.utils.start_vm', return_value=None)
+@patch('mech.utils.get_fallback_executable', return_value='/tmp/VBoxManage')
 @patch('mech.vbm.VBoxManage.cpus', return_value=None)
 @patch('mech.vbm.VBoxManage.memory', return_value=None)
 @patch('mech.utils.share_folders', return_value=None)
@@ -1124,11 +1133,12 @@ def test_mech_up_virtualbox(mock_locate, mock_load_mechfile,
                             mock_report_provider,
                             mock_init_box, mock_share_folders,
                             mock_memory, mock_cpus,
+                            mock_get_fallback, mock_start_vm,
                             mechfile_one_entry_virtualbox):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
     runner = CliRunner()
-    result = runner.invoke(cli, ['--debug', 'up', '--numvcpus', '3', '--memsize', '2048'])
+    runner.invoke(cli, ['--debug', 'up', '--numvcpus', '3', '--memsize', '2048'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_report_provider.assert_called()
@@ -1136,7 +1146,6 @@ def test_mech_up_virtualbox(mock_locate, mock_load_mechfile,
     mock_share_folders.assert_called()
     mock_cpus.assert_called()
     mock_memory.assert_called()
-    assert re.search(r'started', result.output, re.MULTILINE)
 
 
 @patch('mech.utils.report_provider', return_value=True)
@@ -1548,18 +1557,20 @@ def test_mech_init_with_invalid_location(mock_os_getcwd, mock_os_path_exists):
     assert re.search(r'SystemExit', '{}'.format(result))
 
 
+@patch('mech.utils.report_provider', return_value=True)
 @patch('requests.get')
 @patch('os.getcwd')
 def test_mech_add_mechfile_exists(mock_os_getcwd,
-                                  mock_requests_get,
+                                  mock_requests_get, mock_report_provider,
                                   catalog_as_json):
     """Test 'mech add' when Mechfile exists'."""
     mock_os_getcwd.return_value = '/tmp'
     mock_requests_get.return_value.status_code = 200
     mock_requests_get.return_value.json.return_value = catalog_as_json
     runner = CliRunner()
-    result = runner.invoke(cli, ['add', 'second', 'bento/ubuntu-18.04'])
+    result = runner.invoke(cli, ['--debug', 'add', 'second', 'bento/ubuntu-18.04'])
     mock_os_getcwd.assert_called()
+    print('result:{}'.format(result.output))
     assert re.search(r'Loading metadata', result.output, re.MULTILINE)
 
 
