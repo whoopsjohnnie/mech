@@ -10,6 +10,8 @@ This guide should help get you started contributing to mech.
 ```sh
 # Clone the repo
 git clone git@github.com:mkinney/mech.git
+# or
+git clone https://github.com/mkinney/mech.git
 
 # Change into that cloned directory
 cd mech

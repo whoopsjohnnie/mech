@@ -41,12 +41,14 @@ def test_mech_cloud_init_no_cloud_name():
     assert re.search('SystemExit', '{}'.format(result))
 
 
-@patch('mech.utils.save_mechcloudfile')
-def test_mech_cloud_init(mock_save_mechcloudfile):
+def test_mech_cloud_init():
     """test init()."""
     runner = CliRunner()
-    runner.invoke(cli, ['cloud', 'init', 'host', 'dir', 'bob', 'somecloud'])
-    mock_save_mechcloudfile.assert_called()
+    # mock 'init' as we do not really want to init/communicate with this host
+    with patch.object(mech.mech_cloud_instance.MechCloudInstance,
+                      'init') as mock_init:
+        runner.invoke(cli, ['cloud', 'init', 'host', 'dir', 'bob', 'somecloud'])
+        mock_init.assert_called()
 
 
 @patch('mech.utils.cloud_exists', return_value=False)
