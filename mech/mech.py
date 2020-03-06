@@ -243,7 +243,8 @@ def provision(ctx, instance, show_only):
     'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
     See https://pyinfra.readthedocs.io/en/latest/ for more info.
 
-    Provisioning is run when the instance is started. This option is if you want to re-run the provisioning.
+    Provisioning is run when the instance is started.
+    This option is if you want to re-run the provisioning.
 
     An example of provisioning could be installing puppet (or your config tool of choice).
 

@@ -902,28 +902,18 @@ def test_mech_up_with_name_not_in_mechfile(mock_load_mechfile,
     assert re.search(r'was not found in the Mechfile', '{}'.format(result.exception))
 
 
-@patch('mech.utils.report_provider', return_value=True)
-@patch('mech.utils.del_user', return_value='')
-@patch('mech.vmrun.VMrun.start', return_value='')
+@patch('mech.utils.start_vm')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/one.vmx')
 def test_mech_up_already_started(mock_locate, mock_load_mechfile,
-                                 mock_vmrun_start,
-                                 mock_del_user, mock_report_provider,
-                                 mechfile_one_entry):
+                                 mock_start_vm, mechfile_one_entry):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry
     runner = CliRunner()
-    with patch.object(mech.mech_instance.MechInstance,
-                      'get_ip', return_value="192.168.1.145") as mock_get_ip:
-        result = runner.invoke(cli, ['--debug', 'up', '--remove-vagrant'])
-        mock_locate.assert_called()
-        mock_load_mechfile.assert_called()
-        mock_vmrun_start.assert_called()
-        mock_get_ip.assert_called()
-        mock_report_provider.assert_called()
-        mock_del_user.assert_called()
-        assert re.search(r'started', result.output, re.MULTILINE)
+    runner.invoke(cli, ['--debug', 'up', '--remove-vagrant'])
+    mock_locate.assert_called()
+    mock_load_mechfile.assert_called()
+    mock_start_vm.assert_called()
 
 
 @patch('mech.utils.report_provider', return_value=True)
