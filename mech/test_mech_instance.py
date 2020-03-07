@@ -71,8 +71,9 @@ def test_mech_instance_get_vm_info(mock_locate, mock_get_vm_info,
 # only run when no providers are installed.
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
 @patch('mech.utils.get_fallback_executable', return_value='/tmp/vmrun')
+@patch('mech.utils.get_provider', return_value='fusion')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
-def test_mech_instance_get_tools_state(mock_locate, mock_fallback,
+def test_mech_instance_get_tools_state(mock_locate, mock_get_provider, mock_fallback,
                                        mock_installed_tools, mechfile_one_entry):
     """Test get_tools_state method."""
     inst = mech.mech.MechInstance('first', mechfile_one_entry)

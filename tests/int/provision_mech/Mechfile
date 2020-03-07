@@ -1,0 +1,37 @@
+{
+  "first": {
+    "box": "bento/ubuntu-18.04",
+    "box_version": "201912.04.0",
+    "name": "first",
+    "provider": "vmware",
+    "provision": [
+      {
+        "type": "shell",
+        "inline": "git clone https://github.com/mkinney/mech.git"
+      },
+      {
+        "type": "shell",
+        "inline": "sudo apt-get install -y virtualenv direnv python3.7"
+      },
+      {
+        "type": "shell",
+        "inline": "cd mech; virtualenv -p python3.7 venv"
+      },
+      {
+        "type": "shell",
+        "inline": "cd mech; source venv/bin/activate; pip install -e ."
+      },
+      {
+        "type": "shell",
+        "inline": "cd mech; source venv/bin/activate; pip install requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra setuptools wheel click colorama pypsrp"
+      }
+    ],
+    "shared_folders": [
+      {
+        "host_path": ".",
+        "share_name": "mech"
+      }
+    ],
+    "url": "https://vagrantcloud.com/bento/boxes/ubuntu-18.04/versions/201912.04.0/providers/vmware_desktop.box"
+  }
+}
