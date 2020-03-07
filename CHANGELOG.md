@@ -1,3 +1,7 @@
+# v0.9.1
+
++ Major internal changes by swapping out docopt library for click.
+
 # v0.9.0
 
 + Add "winrm config" and "winrm run" operations
