@@ -8,9 +8,9 @@ Please test and provide any feedback/issues.
 
 *Newly added virtualbox functionality.* By default, the provider will be `vmware`. Tested on Ubuntu (using VMware Workstation and VirtualBox) and Mac (using VirtualBox and VMware Fusion).
 
-Did you know you can now *provision* using `pyinfra`? See `mech provision --help` for more info or look at [one of the integration tests](https://github.com/mkinney/mech/blob/master/tests/int/provision/Mechfile#L59) for how to specify `pyinfra` provisioing from a remote file. You can also have local files for provisioning.
+Did you know you can now *provision* using `pyinfra`? See `mech provision --help` for more info or look at [one of the integration tests](https://github.com/mkinney/mech/blob/master/tests/int/provision/Mechfile#L59) for how to specify `pyinfra` provisioning from a remote file. You can also have local files for provisioning.
 
-*Newly added `mech cloud` capability.* See `mech cloud --help` for more info. Ever want to start a VM on another desktop/laptop of yours? With 'mech cloud' you can do just that. 'mech cloud' is similar to the the [docker context](https://docs.docker.com/engine/reference/commandline/context/) option. (Note: 'mech cloud' was written before discovering 'docker context', otherwise would have borrowed some of docker's interface/terms.)
+*Newly added `mech cloud` capability.* See `mech cloud --help` for more info. Ever want to start a VM on another desktop/laptop? With 'mech cloud' you can do just that. 'mech cloud' is similar to the the [docker context](https://docs.docker.com/engine/reference/commandline/context/) option. (Note: 'mech cloud' was written before discovering 'docker context', otherwise would have borrowed some of docker's interface/terms.)
 
 There is `--help` on every operation.
 
