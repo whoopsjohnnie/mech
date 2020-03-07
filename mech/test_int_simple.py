@@ -55,16 +55,17 @@ def test_int_smoke():
     utils.cleanup_dir_and_vms_from_dir(test_dir)
 
     # ensure we need to provide more args
-    commands = ["mech box", "mech init", "mech ip", "mech ps", "mech scp", "mech snapshot",
-                "mech snapshot save", "mech snapshot save snap1", "mech snapshot delete",
-                "mech snapshot remove", "mech ssh"]
+    commands = ["mech box add", "mech box remove", "mech cloud add",
+                "mech cloud remove", "mech init", "mech ip", "mech ps",
+                "mech scp", "mech snapshot save", "mech snapshot save snap1",
+                "mech snapshot delete", "mech snapshot remove", "mech ssh"]
     expected = "Usage: mech "
     for command in commands:
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
         assert stdout == ''
-        assert results.returncode == 1
+        assert results.returncode != 0
         assert re.search(expected, stderr)
 
     # should init
@@ -297,9 +298,9 @@ def test_int_smoke():
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
-        assert stdout == ''
+        assert stderr == ''
         assert results.returncode == 0
-        assert re.search(expected, stderr, re.MULTILINE)
+        assert re.search(expected, stdout, re.MULTILINE)
 
     # test "mech box list" (and alias)
     commands = ["mech box list", "mech box ls"]

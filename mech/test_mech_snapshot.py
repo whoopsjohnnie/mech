@@ -4,32 +4,27 @@
 import re
 
 from unittest.mock import patch
-from pytest import raises
+from click.testing import CliRunner
 
-import mech.command
-import mech.mech
-import mech.vmrun
+from mech.mech_cli import cli
 
 
 @patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
-def test_mech_snapshot_list_no_mechdir(mock_os_getcwd, mock_load_mechfile, capfd,
+def test_mech_snapshot_list_no_mechdir(mock_os_getcwd, mock_load_mechfile,
                                        mechfile_two_entries):
     """Test 'mech snapshot list' with no '.mech' directory."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    runner = CliRunner()
     with patch('os.walk') as mock_walk:
         # root, dirs, files
         mock_walk.return_value = [('./tmp', [], []), ]
-        arguments = {'<instance>': None}
-        a_mech.list(arguments)
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'list'])
         mock_walk.assert_called()
         mock_load_mechfile.assert_called()
-        out, _ = capfd.readouterr()
         # ensure a header prints out
-        assert re.search(r'Snapshots', out, re.MULTILINE)
+        assert re.search(r'Snapshots', result.output, re.MULTILINE)
 
 
 SNAPSHOT_LIST_WITHOUT_SNAPSHOTS = """Snapshots for instance:first
@@ -40,13 +35,12 @@ Instance (second) is not created."""
 @patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
 def test_mech_snapshot_list_no_snapshots(mock_os_getcwd, mock_load_mechfile,
-                                         mock_list_snapshots, capfd,
+                                         mock_list_snapshots,
                                          mechfile_two_entries):
     """Test 'mech snapshot list' without any snapshots."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    runner = CliRunner()
     with patch('os.walk') as mock_walk:
         mock_walk.return_value = [
             ('/tmp', ['first'], []),
@@ -54,22 +48,18 @@ def test_mech_snapshot_list_no_snapshots(mock_os_getcwd, mock_load_mechfile,
         ]
 
         # with no args
-        arguments = {'<instance>': None}
-        a_mech.list(arguments)
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'list'])
         mock_walk.assert_called()
         mock_load_mechfile.assert_called()
         mock_list_snapshots.assert_called()
-        out, _ = capfd.readouterr()
-        assert re.search(r'Total snapshots: 0', out, re.MULTILINE)
-        assert re.search(r'Instance \(second\) is not created.', out, re.MULTILINE)
+        assert re.search(r'Total snapshots: 0', result.output, re.MULTILINE)
+        assert re.search(r'Instance \(second\) is not created.', result.output, re.MULTILINE)
 
         # single instance
-        arguments = {'<instance>': 'first'}
-        a_mech.list(arguments)
-        out, _ = capfd.readouterr()
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'list', 'first'])
         mock_load_mechfile.assert_called()
         mock_list_snapshots.assert_called()
-        assert re.search(r'Total snapshots: 0', out, re.MULTILINE)
+        assert re.search(r'Total snapshots: 0', result.output, re.MULTILINE)
 
 
 SNAPSHOT_LIST_WITH_SNAPSHOT = """Snapshots for instance:first
@@ -81,13 +71,12 @@ Instance (second) is not created."""
 @patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
 def test_mech_snapshot_list_with_snapshot(mock_os_getcwd, mock_load_mechfile,
-                                          mock_list_snapshots, capfd,
+                                          mock_list_snapshots,
                                           mechfile_two_entries):
     """Test 'mech snapshot list' with a snapshots."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    runner = CliRunner()
     with patch('os.walk') as mock_walk:
         mock_walk.return_value = [
             ('/tmp', ['first'], []),
@@ -95,22 +84,18 @@ def test_mech_snapshot_list_with_snapshot(mock_os_getcwd, mock_load_mechfile,
         ]
 
         # with no args
-        arguments = {'<instance>': None}
-        a_mech.list(arguments)
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'list'])
         mock_walk.assert_called()
         mock_load_mechfile.assert_called()
         mock_list_snapshots.assert_called()
-        out, _ = capfd.readouterr()
-        assert re.search(r'Total snapshots: 1', out, re.MULTILINE)
-        assert re.search(r'Instance \(second\) is not created.', out, re.MULTILINE)
+        assert re.search(r'Total snapshots: 1', result.output, re.MULTILINE)
+        assert re.search(r'Instance \(second\) is not created.', result.output, re.MULTILINE)
 
         # single instance
-        arguments = {'<instance>': 'first'}
-        a_mech.list(arguments)
-        out, _ = capfd.readouterr()
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'list', 'first'])
         mock_load_mechfile.assert_called()
         mock_list_snapshots.assert_called()
-        assert re.search(r'Total snapshots: 1', out, re.MULTILINE)
+        assert re.search(r'Total snapshots: 1', result.output, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.delete_snapshot')
@@ -118,108 +103,118 @@ def test_mech_snapshot_list_with_snapshot(mock_os_getcwd, mock_load_mechfile,
 @patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
 def test_mech_snapshot_delete_snapshot(mock_os_getcwd, mock_load_mechfile,
-                                       mock_list_snapshots, mock_delete_snapshot, capfd,
+                                       mock_list_snapshots, mock_delete_snapshot,
                                        mechfile_two_entries):
     """Test 'mech snapshot delete'."""
     mock_load_mechfile.return_value = mechfile_two_entries
     mock_os_getcwd.return_value = '/tmp'
-    global_arguments = {'--debug': False}
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
+    runner = CliRunner()
     with patch('os.walk') as mock_walk:
         mock_walk.return_value = [
             ('/tmp', ['first'], []),
             ('/tmp/first', [], ['some.vmx']),
         ]
 
-        arguments = {'<instance>': 'first'}
-        a_mech.list(arguments)
-        out, _ = capfd.readouterr()
+        result = runner.invoke(cli, ['snapshot', 'list', 'first'])
         mock_load_mechfile.assert_called()
         mock_list_snapshots.assert_called()
-        assert re.search(r'Total snapshots: 1', out, re.MULTILINE)
-
-        arguments = {'<instance>': 'first', '<name>': 'snap2'}
         mock_delete_snapshot.return_value = None
-        a_mech.delete(arguments)
-        out, _ = capfd.readouterr()
+        assert re.search(r'Total snapshots: 1', result.output, re.MULTILINE)
+
+        result = runner.invoke(cli, ['snapshot', 'delete', 'snap2', 'first'])
         mock_delete_snapshot.assert_called()
         mock_list_snapshots.assert_called()
-        assert re.search(r'Cannot delete', out, re.MULTILINE)
+        assert re.search(r'Cannot delete', result.output, re.MULTILINE)
 
-        arguments = {'<instance>': 'first', '<name>': 'snap1'}
         # Note: delete_snapshots return None if could not delete, or '' if it could
         mock_delete_snapshot.return_value = ''
-        a_mech.delete(arguments)
-        out, _ = capfd.readouterr()
+        result = runner.invoke(cli, ['--debug', 'snapshot', 'delete', 'snap1', 'first'])
         mock_delete_snapshot.assert_called()
-        assert re.search(r' deleted', out, re.MULTILINE)
+        assert re.search(r' deleted', result.output, re.MULTILINE)
 
-        arguments = {'<instance>': 'first'}
         mock_list_snapshots.return_value = SNAPSHOT_LIST_WITHOUT_SNAPSHOTS
-        a_mech.list(arguments)
-        out, _ = capfd.readouterr()
+        result = runner.invoke(cli, ['snapshot', 'list', 'first'])
         mock_list_snapshots.assert_called()
         mock_delete_snapshot.assert_called()
-        assert re.search(r'Total snapshots: 0', out, re.MULTILINE)
+        assert re.search(r'Total snapshots: 0', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+def test_mech_snapshot_delete_snapshot_virtualbox(mock_load_mechfile,
+                                                  mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot delete'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'delete', 'snap1', 'first'])
+    mock_load_mechfile.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_snapshot_list_snapshot_virtualbox(mock_locate, mock_load_mechfile,
+                                                mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot list'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'snapshot', 'list'])
+    mock_load_mechfile.assert_called()
+    mock_locate.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
+
+
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_mech_snapshot_save_snapshot_virtualbox(mock_locate, mock_load_mechfile,
+                                                mechfile_one_entry_virtualbox):
+    """Test 'mech snapshot list'."""
+    mock_load_mechfile.return_value = mechfile_one_entry_virtualbox
+    runner = CliRunner()
+    result = runner.invoke(cli, ['--debug', 'snapshot', 'save', 'snap1', 'first'])
+    mock_load_mechfile.assert_called()
+    mock_locate.assert_called()
+    assert re.search(r'Not yet implemented', result.output, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_snapshot_list_not_created(mock_locate, mock_load_mechfile, capfd,
+def test_mech_snapshot_list_not_created(mock_locate, mock_load_mechfile,
                                         mechfile_one_entry):
     """Test 'mech snapshot list' when vm is not created."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
-    arguments = {
-        '<instance>': 'first',
-    }
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
-    arguments = {'<instance>': 'first'}
-    a_mech.list(arguments)
-    out, _ = capfd.readouterr()
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'list', 'first'])
     mock_load_mechfile.assert_called()
     mock_locate.assert_called()
-    assert re.search(r'not created', out, re.MULTILINE)
+    assert re.search(r'not created', result.output, re.MULTILINE)
 
 
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value=None)
-def test_mech_snapshot_save_not_created(mock_locate, mock_load_mechfile, capfd,
+def test_mech_snapshot_save_not_created(mock_locate, mock_load_mechfile,
                                         mechfile_one_entry):
     """Test 'mech snapshot save' when vm is not created."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
-    arguments = {
-        '<instance>': 'first',
-    }
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
-    arguments = {'<instance>': 'first', '<name>': 'snap1'}
-    a_mech.save(arguments)
-    out, _ = capfd.readouterr()
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'save', 'snap1', 'first'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
-    assert re.search(r'not created', out, re.MULTILINE)
+    assert re.search(r'not created', result.output, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.snapshot', return_value='Snapshot (snap1) on VM (first) taken')
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_snapshot_save_success(mock_locate, mock_load_mechfile,
-                                    mock_snapshot, capfd, mechfile_one_entry):
+                                    mock_snapshot, mechfile_one_entry):
     """Test 'mech snapshot save' successful."""
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
-    arguments = {
-        '<instance>': 'first',
-    }
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
-    arguments = {'<instance>': 'first', '<name>': 'snap1'}
-    a_mech.save(arguments)
-    out, _ = capfd.readouterr()
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'save', 'snap1', 'first'])
     mock_locate.assert_called()
     mock_load_mechfile.assert_called()
     mock_snapshot.assert_called()
-    assert re.search(r' taken', out, re.MULTILINE)
+    assert re.search(r' taken', result.output, re.MULTILINE)
 
 
 @patch('mech.vmrun.VMrun.snapshot', return_value=None)
@@ -230,11 +225,6 @@ def test_mech_snapshot_save_failure(mock_locate, mock_load_mechfile,
     """Test 'mech snapshot save' failure."""
     mock_locate.return_value = '/tmp/first/some.vmx'
     mock_load_mechfile.return_value = mechfile_one_entry
-    global_arguments = {'--debug': False}
-    arguments = {
-        '<instance>': 'first',
-    }
-    a_mech = mech.mech.MechSnapshot(arguments=global_arguments)
-    arguments = {'<instance>': 'first', '<name>': 'snap1'}
-    with raises(SystemExit, match=r"Warning: Could not take snapshot."):
-        a_mech.save(arguments)
+    runner = CliRunner()
+    result = runner.invoke(cli, ['snapshot', 'save', 'snap1', 'first'])
+    assert re.search('Warning: Could not take snapshot', '{}'.format(result))

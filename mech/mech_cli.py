@@ -1,6 +1,6 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #
+# Copyright (c) 2016-2017 Kevin Chung
 # Copyright (c) 2018 German Mendez Bravo (Kronuz)
 # Copyright (c) 2020 Mike Kinney
 #
@@ -22,24 +22,18 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
-"""Main entry for 'mech' command."""
-
-from __future__ import absolute_import
-
-import sys
-
-from . import VERSION
-from .mech import Mech
+from .mech import cli
+from .mech_box import box
+from .mech_cloud import cloud
+from .mech_snapshot import snapshot
+from .mech_winrm import winrm
 
 
-def main():
-    """Main function."""
-    try:
-        arguments = Mech.docopt(Mech.__doc__, argv=sys.argv[1:], version=VERSION)
-        return Mech(arguments)()
-    except KeyboardInterrupt:
-        sys.stderr.write('\n')
+cli.add_command(box)
+cli.add_command(cloud)
+cli.add_command(snapshot)
+cli.add_command(winrm)
 
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    cli()

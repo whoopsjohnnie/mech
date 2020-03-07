@@ -232,12 +232,12 @@ def test_int_smoke_virtualbox():
     else:
         # test "mech port"
         command = "mech port"
-        expected = r"This command is not supported on this OS"
+        expected = r"Not yet implemented on this platform"
         results = subprocess.run(command, cwd=test_dir, shell=True, capture_output=True)
         stdout = results.stdout.decode('utf-8')
         stderr = results.stderr.decode('utf-8')
-        assert stdout == ''
-        assert re.search(expected, stderr, re.MULTILINE)
+        assert stderr == ''
+        assert re.search(expected, stdout, re.MULTILINE)
         assert results.returncode == 0
 
     # test "mech box list" (and alias)

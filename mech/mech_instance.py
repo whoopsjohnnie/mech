@@ -37,7 +37,7 @@ from . import utils
 from .vmrun import VMrun
 from .vbm import VBoxManage
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 DEFAULT_USER = 'vagrant'
 DEFAULT_PASSWORD = 'vagrant'
@@ -105,6 +105,7 @@ class MechInstance():
         self.path = os.path.join(utils.mech_dir(), name)
         self.vmx = None
         self.vbox = None
+        self.created = False
         if self.provider == 'vmware':
             # Note: If vmware vm has not been started vmx will be None
             vmx = utils.locate(self.path, '*.vmx')
@@ -148,6 +149,7 @@ class MechInstance():
 
     def get_ip(self, wait=False, quiet=True):
         """ Get the ip address."""
+        LOGGER.debug("self.ip:%s self.provider:%s", self.ip, self.provider)
         if self.ip:
             return self.ip
         else:

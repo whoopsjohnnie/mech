@@ -36,7 +36,7 @@ from .compat import b2s
 from . import utils
 
 
-LOGGER = logging.getLogger(__name__)
+LOGGER = logging.getLogger('mech')
 
 
 class VMrun():  # pylint: disable=too-many-public-methods

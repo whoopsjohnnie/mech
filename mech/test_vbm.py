@@ -327,3 +327,15 @@ Monitor count:               1
     with patch.object(mech.vbm.VBoxManage, 'get_vm_info', return_value=output):
         got = vbm.vm_state('first')
         assert got == expected
+
+
+def test_vbm_list_running():
+    """Test list_running method."""
+    vbm = mech.vbm.VBoxManage(executable='/bin/VBoxManage', test_mode=True)
+    output = '''"first" {a4bd2549-246f-455e-b358-20b25ea0bfc9}
+"second" {5fd303d1-a776-4acd-960c-e5a7d52b1c38}
+'''
+    expected = ['first', 'second']
+    with patch.object(mech.vbm.VBoxManage, 'run', return_value=output):
+        got = vbm.list_running()
+        assert got == expected

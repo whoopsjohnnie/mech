@@ -10,6 +10,8 @@ This guide should help get you started contributing to mech.
 ```sh
 # Clone the repo
 git clone git@github.com:mkinney/mech.git
+# or
+git clone https://github.com/mkinney/mech.git
 
 # Change into that cloned directory
 cd mech
@@ -32,7 +34,7 @@ source venv/bin/activate
 pip install -e .
 
 # if doing development
-pip install docopt requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra setuptools wheel click colorama pypsrp
+pip install requests flake8 pytest pytest_mock mock pytest-cov pylint pytest-xdist pytest-timeout twine pyinfra setuptools wheel click colorama pypsrp
 
 # also optional
 pip install autopep8
@@ -87,3 +89,8 @@ pytest -m"virtualbox" -vv -l
 # Or, just one run int test like this (with verbose and show local variables):
 pytest -m"int" -k"provision" -v -l
 ```
+
+Coding standards:
+- use single quotes where possible
+- flake8 should not emit any warnings
+- all "help" should be sentences, complete with a period ('.') at the end
