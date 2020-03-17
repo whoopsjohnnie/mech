@@ -1,6 +1,9 @@
-# TBD
+# v0.9.2
+
 + Enable "cloud" on subcommands (cloud, box, and snapshot)
 + Add more unit tests
++ Remove unused code
++ Handle legacy box files better in "box list"
 
 # v0.9.1
 
