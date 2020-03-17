@@ -2037,3 +2037,20 @@ def test_preferred_interface_enp5s0(mock_get_interfaces):
     mock_get_interfaces.return_value = ['lo', 'enp5s0']
     assert mech.utils.preferred_interface() == 'enp5s0'
     mock_get_interfaces.assert_called()
+
+
+@patch('subprocess.run')
+@patch('mech.utils.load_mechcloudfile')
+def test_cloud_run(mock_load, mock_subprocess, mechcloudfile_one_entry):
+    """Test cloud_run()."""
+    mock_good = subprocess.CompletedProcess(args='', returncode=0, stdout=b'foo', stderr=b'bar')
+    mock_subprocess.return_value = mock_good
+    mock_load.return_value = mechcloudfile_one_entry
+    inst = mech.mech_cloud_instance.MechCloudInstance('tophat', mechcloudfile_one_entry)
+    inst.read_config('tophat')
+    testargs = ["mech", "--cloud", "tophat", "list"]
+    with patch.object(sys, 'argv', testargs):
+        return_code, stdout, stderr = mech.utils.cloud_run("tophat", "list")
+        assert return_code == 0
+        assert stdout == 'foo'
+        assert stderr == 'bar'
