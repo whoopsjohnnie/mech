@@ -67,6 +67,11 @@ def delete(ctx, name, instance):
     LOGGER.debug('cloud_name:%s name:%s instance:%s',
                  cloud_name, name, instance)
 
+    if cloud_name:
+        # Note: All snapshot ops are supported.
+        utils.cloud_run(cloud_name, ['snapshot'])
+        return
+
     inst = MechInstance(instance)
 
     if inst.provider == 'vmware':
@@ -89,6 +94,11 @@ def list(ctx, instance):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s',
                  cloud_name, instance)
+
+    if cloud_name:
+        # Note: All snapshot ops are supported.
+        utils.cloud_run(cloud_name, ['snapshot'])
+        return
 
     if instance:
         # single instance
@@ -124,6 +134,11 @@ def save(ctx, name, instance):
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s instance:%s', cloud_name, name, instance)
+
+    if cloud_name:
+        # Note: All snapshot ops are supported.
+        utils.cloud_run(cloud_name, ['snapshot'])
+        return
 
     inst = MechInstance(instance)
     if inst.created:

@@ -81,6 +81,11 @@ def add(ctx, location, box_version, force, provider):
                  'force:%s provider:%s', cloud_name,
                  location, box_version, force, provider)
 
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
+
     if not utils.valid_provider(provider):
         sys.exit(click.style('Need to provide valid provider.', fg='red'))
 
@@ -94,6 +99,14 @@ def list(ctx):
     """
     List all available boxes in the catalog.
     """
+
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s', cloud_name)
+
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
 
     print("{}\t{}\t{}".format(
         'BOX'.rjust(35),
@@ -126,6 +139,11 @@ def remove(ctx, name, provider, version):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s provider:%s version:%s',
                  cloud_name, name, provider, version)
+
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
 
     if not utils.valid_provider(provider):
         sys.exit(click.style("Need to provide valid provider.", fg="red"))

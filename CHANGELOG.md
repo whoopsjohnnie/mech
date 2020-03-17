@@ -1,3 +1,7 @@
+# TBD
++ Enable "cloud" on subcommands (cloud, box, and snapshot)
++ Add more unit tests
+
 # v0.9.1
 
 + Major internal changes by swapping out docopt library for click.
