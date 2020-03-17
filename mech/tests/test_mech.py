@@ -366,7 +366,7 @@ def test_mech_destroy_prompted_and_answered_no(mock_locate, mock_load_mechfile,
     runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'N'
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('mech.utils.input', a_mock):
         result = runner.invoke(cli, ['destroy', 'first'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
@@ -1089,6 +1089,7 @@ def test_mech_up_with_invalid_provider(mock_load_mechfile,
     assert re.search(r'Invalid provider', result.output)
 
 
+@patch('mech.utils.del_user')
 @patch('mech.utils.report_provider', return_value=True)
 @patch('mech.vmrun.VMrun.run_script_in_guest', return_value='')
 @patch('mech.vmrun.VMrun.installed_tools', return_value='running')
@@ -1100,14 +1101,15 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
                                              mock_vmrun_start, mock_vmrun_get_ip,
                                              mock_installed_tools,
                                              mock_run_script_in_guest,
-                                             mock_report_provider,
+                                             mock_report_provider, mock_del_user,
                                              mechfile_one_entry_with_auth):
     """Test 'mech up'."""
     mock_load_mechfile.return_value = mechfile_one_entry_with_auth
     runner = CliRunner()
     mock_file = mock_open(read_data='some_pub_key_data')
     with patch('builtins.open', mock_file, create=True):
-        result = runner.invoke(cli, ['up', '--disable-shared-folders', '--disable-provisioning'])
+        result = runner.invoke(cli, ['up', '--disable-shared-folders',
+                                     '--disable-provisioning', '--remove-vagrant'])
         mock_file.assert_called()
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()
@@ -1116,6 +1118,7 @@ def test_mech_up_already_started_with_add_me(mock_locate, mock_load_mechfile,
         mock_run_script_in_guest.assert_called()
         mock_vmrun_get_ip.assert_called()
         mock_report_provider.assert_called()
+        mock_del_user.assert_called()
         assert re.search(r'started', result.output, re.MULTILINE)
         assert re.search(r'Added auth', result.output, re.MULTILINE)
 

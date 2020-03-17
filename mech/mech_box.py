@@ -81,6 +81,11 @@ def add(ctx, location, box_version, force, provider):
                  'force:%s provider:%s', cloud_name,
                  location, box_version, force, provider)
 
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
+
     if not utils.valid_provider(provider):
         sys.exit(click.style('Need to provide valid provider.', fg='red'))
 
@@ -95,6 +100,14 @@ def list(ctx):
     List all available boxes in the catalog.
     """
 
+    cloud_name = ctx.obj['cloud_name']
+    LOGGER.debug('cloud_name:%s', cloud_name)
+
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
+
     print("{}\t{}\t{}".format(
         'BOX'.rjust(35),
         'VERSION'.rjust(12),
@@ -103,8 +116,13 @@ def list(ctx):
     path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
     for root, _, filenames in os.walk(path):
         for filename in fnmatch.filter(filenames, '*.box'):
-            directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
-            provider, account, box, version = directory.split('/', 3)
+            # Note: The directory has a leading '/', so we need to discard that value
+            directory = root.replace(path, '')
+            try:
+                _, provider, account, box, version = directory.split('/', 4)
+            except ValueError:
+                provider = ''
+                _, account, box, version = directory.split('/', 3)
             print("{}\t{}\t{}".format(
                 "{}/{}".format(account, box).rjust(35),
                 version.rjust(12),
@@ -126,6 +144,11 @@ def remove(ctx, name, provider, version):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s provider:%s version:%s',
                  cloud_name, name, provider, version)
+
+    if cloud_name:
+        # Note: All box ops are supported.
+        utils.cloud_run(cloud_name, ['box'])
+        return
 
     if not utils.valid_provider(provider):
         sys.exit(click.style("Need to provide valid provider.", fg="red"))

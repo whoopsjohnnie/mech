@@ -46,7 +46,6 @@ import click
 
 from .vmrun import VMrun
 import mech.vbm
-from .compat import b2s, PY3, raw_input
 from .mech_cloud_instance import MechCloudInstance
 
 LOGGER = logging.getLogger('mech')
@@ -139,7 +138,7 @@ def confirm(prompt, default='y'):
     prompt = prompt + ' ' + choicebox + ' '
 
     while True:
-        some_input = raw_input(prompt).strip()
+        some_input = input(prompt).strip()
         if some_input == '':
             if default == 'y':
                 return True
@@ -419,12 +418,12 @@ def tar_cmd(*args, **kwargs):
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
         # run the 'tar --help' command to see what capabilities are available
         proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, startupinfo=startupinfo)
+                                stderr=subprocess.PIPE, startupinfo=startupinfo, text=True)
     except OSError:
         return None
     if proc.returncode:
         return None
-    stdoutdata, _ = map(b2s, proc.communicate())
+    stdoutdata, _ = proc.communicate()
     tar = ['tar']
     # if the tar_cmd has the option enabled *and* the capability was in the 'tar --help'
     # then append that option to the tar command (which is a list of strings)
@@ -1339,10 +1338,7 @@ def get_darwin_executable(command_name='vmrun'):
 def get_win32_executable():
     """Get the full path for the 'vmrun' command on a Windows host.
     """
-    if PY3:
-        import winreg
-    else:
-        import _winreg as winreg
+    import winreg
     reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
     try:
         key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
@@ -1387,7 +1383,7 @@ def get_provider(vmrun_executable):
         except OSError:
             pass
 
-        map(b2s, proc.communicate())
+        proc.communicate()
         if proc.returncode == 0:
             return provider
 
@@ -1520,11 +1516,11 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
    """
     # remove from virtualbox
     for name in names:
-        results = subprocess.run(args="VBoxManage unregistervm {}".format(name),
-                                 shell=True, capture_output=True)
+        subprocess.run(args="VBoxManage unregistervm {}".format(name),
+                       shell=True, capture_output=True)
     # kill vmware processes
     kill_pids(find_pids('vmware-vmx.*' + a_dir + '/.mech/'))
-    # tryy to stop, then kill virtualbox processes (if any), then unregister
+    # try to stop, then kill virtualbox processes (if any), then unregister
     for name in names:
         subprocess.run(args="VBoxManage controlvm {} poweroff".format(name),
                        shell=True, capture_output=True)
@@ -1574,10 +1570,12 @@ def get_interfaces():
     if results.returncode == 0:
         each_line = results.stdout.decode('utf-8').split('\n')
         for line in each_line:
-            parts = line.split()
-            if len(parts) > 1:
-                if parts[0].endswith(':'):
-                    interfaces.append(parts[0][:-1])
+            print('line:{}'.format(line))
+            if len(line) > 0 and line[0] != ' ' and line[0] != '\t':
+                parts = line.split()
+                if len(parts) > 1:
+                    if parts[0].endswith(':'):
+                        interfaces.append(parts[0][:-1])
         return interfaces
     else:
         # try "ip"

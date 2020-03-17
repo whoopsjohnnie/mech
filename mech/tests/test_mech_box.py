@@ -43,16 +43,37 @@ def test_mech_box_list_one_box(mock_os_getcwd):
     mock_os_getcwd.return_value = '/tmp'
     runner = CliRunner()
     with patch('os.walk') as mock_walk:
-        # simulate: bento/ubuntu-18.04/201912.04.0/vmware_desktop.box
+        # simulate: vmware/bento/ubuntu-18.04/201912.04.0/vmware_desktop.box
         mock_walk.return_value = [
-            ('/tmp', ['boxes'], []),
-            ('/tmp/boxes', ['bento'], []),
-            ('/tmp/boxes/vmware/bento', ['ubuntu-18.04'], []),
-            ('/tmp/boxes/vmware/bento/ubuntu-18.04', ['201912.04.0'], []),
-            ('/tmp/boxes/vmware/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
+            ('/tmp', ['.mech'], []),
+            ('/tmp/.mech', ['boxes'], []),
+            ('/tmp/.mech/boxes', ['vmware'], []),
+            ('/tmp/.mech/boxes/vmware', ['bento'], []),
+            ('/tmp/.mech/boxes/vmware/bento', ['ubuntu-18.04'], []),
+            ('/tmp/.mech/boxes/vmware/bento/ubuntu-18.04', ['201912.04.0'], []),
+            ('/tmp/.mech/boxes/vmware/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
         ]
         result = runner.invoke(cli, ['box', 'list'])
         mock_walk.assert_called()
+        print('result.output:{}'.format(result.output))
+        assert re.search(r'ubuntu-18.04', result.output, re.MULTILINE)
+
+
+@patch('os.getcwd')
+def test_mech_box_list_one_box_legacy(mock_os_getcwd):
+    """Test 'mech box list' with a legacy box present.
+       This is so we can handle the initial box files. (before provider was added)
+    """
+    mock_os_getcwd.return_value = '/tmp'
+    runner = CliRunner()
+    with patch('os.walk') as mock_walk:
+        # simulate: bento/ubuntu-18.04/201912.04.0/vmware_desktop.box
+        mock_walk.return_value = [
+            ('/tmp/.mech/boxes/bento/ubuntu-18.04/201912.04.0', [], ['vmware_desktop.box']),
+        ]
+        result = runner.invoke(cli, ['box', 'list'])
+        mock_walk.assert_called()
+        print('result.output:{}'.format(result.output))
         assert re.search(r'ubuntu-18.04', result.output, re.MULTILINE)
 
 

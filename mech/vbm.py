@@ -32,7 +32,6 @@ import logging
 import subprocess
 import time
 
-from .compat import b2s
 from . import utils
 
 
@@ -107,8 +106,9 @@ class VBoxManage():
             cmds,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            startupinfo=startupinfo)
-        stdoutdata, stderrdata = map(b2s, proc.communicate())
+            startupinfo=startupinfo,
+            text=True)
+        stdoutdata, stderrdata = proc.communicate()
 
         if stderrdata and not quiet:
             LOGGER.error(stderrdata.strip())

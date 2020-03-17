@@ -7,7 +7,7 @@ import subprocess
 import pytest
 
 
-from . import utils
+from mech import utils
 
 
 @pytest.mark.vmware

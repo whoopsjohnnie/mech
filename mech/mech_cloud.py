@@ -120,6 +120,11 @@ def init(ctx, hostname, directory, username, name):
     LOGGER.debug('cloud_name:%s hostname:%s directory:%s username:%s name:%s',
                  cloud_name, hostname, directory, username, name)
 
+    if cloud_name:
+        # Note: All cloud ops are supported.
+        utils.cloud_run(cloud_name, ['cloud'])
+        return
+
     inst = MechCloudInstance(name)
     inst.set_hostname(hostname)
     inst.set_directory(directory)
@@ -136,6 +141,12 @@ def remove(ctx, name):
     """
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s', cloud_name, name)
+
+    if cloud_name:
+        # Note: All cloud ops are supported.
+        utils.cloud_run(cloud_name, ['cloud'])
+        return
+
     if utils.cloud_exists(name):
         utils.remove_mechcloudfile_entry(name=name)
         print("Removed ({}) from mech cloud.".format(name))
@@ -152,6 +163,11 @@ def list(ctx):
     """
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s', cloud_name)
+
+    if cloud_name:
+        # Note: All cloud ops are supported.
+        utils.cloud_run(cloud_name, ['cloud'])
+        return
 
     print('=== mech clouds: ===')
     clouds = utils.cloud_instances()
