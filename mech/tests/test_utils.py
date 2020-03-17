@@ -56,6 +56,39 @@ def test_start_vm_vbm_no_nat(mock_share_folder, mechfile_one_entry):
                     mock_share_folder.assert_called()
 
 
+@patch('mech.vbm.VBoxManage.ip', return_value='192.168.1.100')
+@patch('mech.utils.get_fallback_executable', return_value='/tmp/VBoxManage')
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_share_folders_virtualbox(mock_locate, mock_load_mechfile,
+                                  mock_get_fallback, mock_get_ip,
+                                  mechfile_one_entry_virtualbox):
+    """Test share_folders()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_virtualbox)
+    inst.disable_shared_folders = False
+    with patch.object(mech.vbm.VBoxManage, 'sharedfolder_add',
+                      return_value=None) as mock_sharedfolder_add:
+        mech.utils.share_folders(inst)
+        mock_sharedfolder_add.assert_called()
+        mock_locate.assert_called()
+
+
+@patch('mech.utils.ssh')
+@patch('mech.vbm.VBoxManage.ip', return_value='192.168.1.100')
+@patch('mech.utils.get_fallback_executable', return_value='/tmp/VBoxManage')
+@patch('mech.utils.load_mechfile')
+@patch('mech.utils.locate', return_value='/tmp/first/some.vbox')
+def test_virtualbox_share_folder_post_boot(mock_locate, mock_load_mechfile,
+                                           mock_get_fallback, mock_get_ip,
+                                           mock_ssh,
+                                           mechfile_one_entry_virtualbox):
+    """Test virtualbox_share_folders_post_boot()."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_virtualbox)
+    inst.disable_shared_folders = False
+    mech.utils.virtualbox_share_folder_post_boot(inst)
+    mock_ssh.assert_called()
+
+
 def test_start_vm_vbm(mechfile_one_entry):
     """Test start_vm()."""
     inst = mech.mech_instance.MechInstance('first', mechfile_one_entry)
@@ -1794,3 +1827,213 @@ def test_report_provider_when_virtualbox_is_installed():
     with patch.object(mech.vbm.VBoxManage, 'installed', return_value=True) as mock_vbm:
         assert mech.utils.report_provider('virtualbox')
         mock_vbm.assert_called()
+
+
+def test_report_provider_when_virtualbox_is_not_installed():
+    """Test report_provider."""
+    with patch.object(mech.vbm.VBoxManage, 'installed', return_value=False):
+        assert not mech.utils.report_provider('virtualbox')
+
+
+@patch('mech.utils.load_mechcloudfile')
+def test_cloud_exists(mock_load, mechcloudfile_one_entry):
+    """Test cloud_exists()."""
+    mock_load.return_value = mechcloudfile_one_entry
+    assert mech.utils.cloud_exists("tophat")
+    assert not mech.utils.cloud_exists("some_fake_cloud")
+    assert not mech.utils.cloud_exists("")
+    assert not mech.utils.cloud_exists(None)
+
+
+def test_ssh_with_username():
+    """Test ssh_with_username()."""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=0,
+                                                               stdout=b'bar',
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        return_code, stdout, stderr = mech.utils.ssh_with_username(hostname='foo',
+                                                                   username='vagrant',
+                                                                   command='uptime')
+        assert return_code == 0
+        assert stdout == 'bar'
+        assert stderr == ''
+
+
+def test_kill_pids_success():
+    """Test kill_pids()."""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=0,
+                                                               stdout=b'bar',
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        mech.utils.kill_pids([1000, 1002, 1003])
+        mock_subprocess.assert_called()
+
+
+def test_kill_pids_failed():
+    """Test kill_pids()."""
+    mock_subprocess = MagicMock()
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=127,
+                                                               stdout=b'bar',
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        mech.utils.kill_pids([1000, 1002, 1003])
+        mock_subprocess.assert_called()
+
+
+def test_find_pids():
+    """Test find_pids()."""
+    mock_subprocess = MagicMock()
+    ps_output = b"""501 78825 78817   0 11:39AM ??         0:21.64 /Applications/VirtualBox.app/Contents/MacOS/VBoxHeadless --comment first --startvm 3b8fec52-55b0-4e4d-aad3-41b75c9f1d90 --vrde config
+    501 78829 78817   0 11:39AM ??         0:21.64 /Applications/VirtualBox.app/Contents/MacOS/VBoxHeadless --comment second --startvm 2b8fec33-55b0-4e4d-aad3-41b75c9f1d90 --vrde config"""  # noqa: E501  pylint: disable=line-too-long
+    mock_subprocess.return_value = subprocess.CompletedProcess(args='',
+                                                               returncode=0,
+                                                               stdout=ps_output,
+                                                               stderr=b'')
+    with patch('subprocess.run', mock_subprocess):
+        pids = mech.utils.find_pids('VBoxHeadless --comment')
+        mock_subprocess.assert_called()
+        assert pids == ['78825', '78829']
+
+
+@patch('subprocess.run')
+@patch('mech.utils.find_pids', return_value=[])
+@patch('mech.utils.kill_pids')
+def test_cleanup_dir_and_vms_from_dir(mock_kill, mock_find, mock_subprocess):
+    """Test cleanup_dir_and_vms_from_dir()."""
+    mock_good = subprocess.CompletedProcess(args='', returncode=0, stdout=b'', stderr=b'')
+    mock_list_vms = subprocess.CompletedProcess(args='', returncode=0,
+        stdout=b'''"second" {5fd303d1-a776-4acd-960c-e5a7d52b1c38}\n"first" {3b8fec52-55b0-4e4d-aad3-41b75c9f1d90}''',  # noqa: E501 pylint: disable=line-too-long
+        stderr=b'')
+    mock_subprocess.side_effect = [mock_good, mock_good, mock_good, mock_list_vms,
+                                   mock_good, mock_good, mock_good, mock_good]
+    with patch('mech.utils.rmtree') as mock_rmtree:
+        with patch('os.mkdir') as mock_mkdir:
+            mech.utils.cleanup_dir_and_vms_from_dir("/tmp/some_fake_dir",
+                                                    names=['some_fake_name'],
+                                                    all_vms=True)
+            mock_kill.assert_called()
+            mock_find.assert_called()
+            mock_rmtree.assert_called()
+            mock_mkdir.assert_called()
+            mock_subprocess.assert_called()
+
+
+# Note: Patching subprocess.run like this (and not using MagicMock) seemed to work better
+#       when using an iterable and "side_effect".
+@patch('subprocess.run')
+@patch('mech.utils.find_pids', return_value=[])
+@patch('mech.utils.kill_pids')
+def test_cleanup_dir_and_vms_from_dir_dead_virtualbox(mock_kill, mock_find, mock_subprocess):
+    """Test cleanup_dir_and_vms_from_dir()."""
+    mock_good = subprocess.CompletedProcess(args='', returncode=0, stdout=b'', stderr=b'')
+    mock_list_vms = subprocess.CompletedProcess(args='', returncode=0,
+                                                stdout=b'''"<inaccessible>" {5fd303d1-a776-4acd-960c-e5a7d52b1c38}\n''',  # noqa: E501 pylint: disable=line-too-long
+                                                stderr=b'')
+    mock_subprocess.side_effect = [mock_good, mock_good, mock_good, mock_list_vms,
+                                   mock_good, mock_good, mock_good, mock_good]
+    with patch('mech.utils.rmtree') as mock_rmtree:
+        with patch('os.mkdir') as mock_mkdir:
+            mech.utils.cleanup_dir_and_vms_from_dir("/tmp/some_fake_dir",
+                                                    names=['some_fake_name'],
+                                                    all_vms=False)
+            mock_kill.assert_called()
+            mock_find.assert_called()
+            mock_rmtree.assert_called()
+            mock_mkdir.assert_called()
+            mock_subprocess.assert_called()
+
+
+@patch('subprocess.run')
+def test_get_interfaces_ifconfig(mock_subprocess):
+    """Test get_interfaces()."""
+    ifconfig_output = b"""lo0: flags=8049<UP,LOOPBACK,RUNNING,MULTICAST> mtu 16384
+	options=1203<RXCSUM,TXCSUM,TXSTATUS,SW_TIMESTAMP>
+	inet 127.0.0.1 netmask 0xff000000
+	inet6 ::1 prefixlen 128
+	inet6 fe80::1%lo0 prefixlen 64 scopeid 0x1
+	nd6 options=201<PERFORMNUD,DAD>
+en5: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500
+	ether bc:de:48:00:11:22
+	inet6 fe80::aede:48ff:fe00:1122%en5 prefixlen 64 scopeid 0x4
+	nd6 options=201<PERFORMNUD,DAD>
+	media: autoselect (100baseTX <full-duplex>)
+	status: active"""  # noqa: W191,E101
+    mock_good = subprocess.CompletedProcess(args='', returncode=0, stdout=ifconfig_output, stderr=b'')  # noqa: W191,E101,E501
+    mock_subprocess.return_value = mock_good
+    assert mech.utils.get_interfaces() == ['lo0', 'en5']
+
+
+@patch('subprocess.run')
+def test_get_interfaces_ip_addr(mock_subprocess):
+    """Test get_interfaces()."""
+    ip_output = b"""1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+2: enp109s0f1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 89:fb:5b:5d:04:ab brd ff:ff:ff:ff:ff:ff
+    inet 192.168.0.175/24 brd 192.168.0.255 scope global noprefixroute enp109s0f1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::387:221:f239:abd3/64 scope link noprefixroute
+       valid_lft forever preferred_lft forever"""  # noqa: E501
+    mock_bad = subprocess.CompletedProcess(args='', returncode=127, stdout=b'',
+                                           stderr=b'Command not found')
+    mock_good = subprocess.CompletedProcess(args='', returncode=0, stdout=ip_output, stderr=b'')
+    mock_subprocess.side_effect = [mock_bad, mock_good]
+    assert mech.utils.get_interfaces() == ['lo', 'enp109s0f1']
+
+
+@patch('subprocess.run')
+def test_get_interfaces_no_ifconfig_nor_ip(mock_subprocess):
+    """Test get_interfaces()."""
+    mock_bad = subprocess.CompletedProcess(args='', returncode=127, stdout=b'',
+                                           stderr=b'Command not found')
+    mock_subprocess.side_effect = [mock_bad, mock_bad]
+    assert mech.utils.get_interfaces() == []
+
+
+@patch('mech.utils.get_interfaces')
+def test_preferred_interface_en0(mock_get_interfaces):
+    """Test preferred_interface()."""
+    mock_get_interfaces.return_value = ['lo', 'en0', 'eno1', 'eth0', 'enp5s0']
+    assert mech.utils.preferred_interface() == 'en0'
+    mock_get_interfaces.assert_called()
+
+
+@patch('mech.utils.get_interfaces')
+def test_preferred_interface_default(mock_get_interfaces):
+    """Test preferred_interface()."""
+    mock_get_interfaces.return_value = []
+    assert mech.utils.preferred_interface() == 'en0'
+    mock_get_interfaces.assert_called()
+
+
+@patch('mech.utils.get_interfaces')
+def test_preferred_interface_eno1(mock_get_interfaces):
+    """Test preferred_interface()."""
+    mock_get_interfaces.return_value = ['lo', 'eno1', 'eth0', 'enp5s0']
+    assert mech.utils.preferred_interface() == 'eno1'
+    mock_get_interfaces.assert_called()
+
+
+@patch('mech.utils.get_interfaces')
+def test_preferred_interface_eth0(mock_get_interfaces):
+    """Test preferred_interface()."""
+    mock_get_interfaces.return_value = ['lo', 'eth0', 'enp5s0']
+    assert mech.utils.preferred_interface() == 'eth0'
+    mock_get_interfaces.assert_called()
+
+
+@patch('mech.utils.get_interfaces')
+def test_preferred_interface_enp5s0(mock_get_interfaces):
+    """Test preferred_interface()."""
+    mock_get_interfaces.return_value = ['lo', 'enp5s0']
+    assert mech.utils.preferred_interface() == 'enp5s0'
+    mock_get_interfaces.assert_called()

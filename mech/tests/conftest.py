@@ -54,7 +54,13 @@ def mechfile_one_entry_virtualbox():
             'name': 'first',
             'box': 'bento/ubuntu-18.04',
             'box_version': '201912.04.0',
-            'provider': 'virtualbox'
+            'provider': 'virtualbox',
+            'shared_folders': [
+                {
+                    "host_path": ".",
+                    "share_name": "mech"
+                }
+            ]
         }
     }
 

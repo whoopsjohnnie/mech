@@ -1520,11 +1520,11 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
    """
     # remove from virtualbox
     for name in names:
-        results = subprocess.run(args="VBoxManage unregistervm {}".format(name),
-                                 shell=True, capture_output=True)
+        subprocess.run(args="VBoxManage unregistervm {}".format(name),
+                       shell=True, capture_output=True)
     # kill vmware processes
     kill_pids(find_pids('vmware-vmx.*' + a_dir + '/.mech/'))
-    # tryy to stop, then kill virtualbox processes (if any), then unregister
+    # try to stop, then kill virtualbox processes (if any), then unregister
     for name in names:
         subprocess.run(args="VBoxManage controlvm {} poweroff".format(name),
                        shell=True, capture_output=True)
@@ -1574,10 +1574,12 @@ def get_interfaces():
     if results.returncode == 0:
         each_line = results.stdout.decode('utf-8').split('\n')
         for line in each_line:
-            parts = line.split()
-            if len(parts) > 1:
-                if parts[0].endswith(':'):
-                    interfaces.append(parts[0][:-1])
+            print('line:{}'.format(line))
+            if len(line) > 0 and line[0] != ' ' and line[0] != '\t':
+                parts = line.split()
+                if len(parts) > 1:
+                    if parts[0].endswith(':'):
+                        interfaces.append(parts[0][:-1])
         return interfaces
     else:
         # try "ip"
