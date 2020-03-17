@@ -116,8 +116,13 @@ def list(ctx):
     path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
     for root, _, filenames in os.walk(path):
         for filename in fnmatch.filter(filenames, '*.box'):
-            directory = os.path.dirname(os.path.join(root, filename))[len(path) + 1:]
-            provider, account, box, version = directory.split('/', 3)
+            # Note: The directory has a leading '/', so we need to discard that value
+            directory = root.replace(path, '')
+            try:
+                _, provider, account, box, version = directory.split('/', 4)
+            except ValueError:
+                provider = ''
+                _, account, box, version = directory.split('/', 3)
             print("{}\t{}\t{}".format(
                 "{}/{}".format(account, box).rjust(35),
                 version.rjust(12),
