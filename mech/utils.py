@@ -1338,10 +1338,7 @@ def get_darwin_executable(command_name='vmrun'):
 def get_win32_executable():
     """Get the full path for the 'vmrun' command on a Windows host.
     """
-    if PY3:
-        import winreg
-    else:
-        import _winreg as winreg
+    import winreg
     reg = winreg.ConnectRegistry(None, winreg.HKEY_LOCAL_MACHINE)
     try:
         key = winreg.OpenKey(reg, 'SOFTWARE\\VMware, Inc.\\VMware Workstation')
