@@ -366,7 +366,7 @@ def test_mech_destroy_prompted_and_answered_no(mock_locate, mock_load_mechfile,
     runner = CliRunner()
     a_mock = MagicMock()
     a_mock.return_value = 'N'
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('mech.utils.input', a_mock):
         result = runner.invoke(cli, ['destroy', 'first'])
         mock_locate.assert_called()
         mock_load_mechfile.assert_called()

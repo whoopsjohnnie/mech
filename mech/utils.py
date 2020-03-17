@@ -46,7 +46,6 @@ import click
 
 from .vmrun import VMrun
 import mech.vbm
-from .compat import b2s, PY3, raw_input
 from .mech_cloud_instance import MechCloudInstance
 
 LOGGER = logging.getLogger('mech')
@@ -139,7 +138,7 @@ def confirm(prompt, default='y'):
     prompt = prompt + ' ' + choicebox + ' '
 
     while True:
-        some_input = raw_input(prompt).strip()
+        some_input = input(prompt).strip()
         if some_input == '':
             if default == 'y':
                 return True
@@ -419,12 +418,12 @@ def tar_cmd(*args, **kwargs):
             startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
         # run the 'tar --help' command to see what capabilities are available
         proc = subprocess.Popen(['tar', '--help'], stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE, startupinfo=startupinfo)
+                                stderr=subprocess.PIPE, startupinfo=startupinfo, text=True)
     except OSError:
         return None
     if proc.returncode:
         return None
-    stdoutdata, _ = map(b2s, proc.communicate())
+    stdoutdata, _ = proc.communicate()
     tar = ['tar']
     # if the tar_cmd has the option enabled *and* the capability was in the 'tar --help'
     # then append that option to the tar command (which is a list of strings)
@@ -1387,7 +1386,7 @@ def get_provider(vmrun_executable):
         except OSError:
             pass
 
-        map(b2s, proc.communicate())
+        proc.communicate()
         if proc.returncode == 0:
             return provider
 

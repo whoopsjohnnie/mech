@@ -169,7 +169,7 @@ def test_confirm_yes():
     """Test confirm."""
     a_mock = MagicMock()
     a_mock.return_value = 'Y'
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('builtins.input', a_mock):
         assert mech.utils.confirm("Is this silly?")
 
 
@@ -177,7 +177,7 @@ def test_confirm_yes_by_default():
     """Test confirm."""
     a_mock = MagicMock()
     a_mock.return_value = ''
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('builtins.input', a_mock):
         assert mech.utils.confirm("Is this silly?")
 
 
@@ -185,7 +185,7 @@ def test_confirm_no_by_default():
     """Test confirm."""
     a_mock = MagicMock()
     a_mock.return_value = ''
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('builtins.input', a_mock):
         assert not mech.utils.confirm("Is this silly?", 'n')
 
 
@@ -193,7 +193,7 @@ def test_confirm_no():
     """Test confirm."""
     a_mock = MagicMock()
     a_mock.return_value = 'n'
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('builtins.input', a_mock):
         assert not mech.utils.confirm("Is this silly?")
 
 
@@ -201,7 +201,7 @@ def test_confirm_nonstandard_default():
     """Test confirm."""
     a_mock = MagicMock()
     a_mock.return_value = 'y'
-    with patch('mech.utils.raw_input', a_mock):
+    with patch('builtins.input', a_mock):
         assert mech.utils.confirm("Is this silly?", 'q')
 
 
