@@ -51,7 +51,10 @@ class MechSnapshotAliasedGroup(click.Group):
 
 @click.group(context_settings=utils.context_settings(), cls=MechSnapshotAliasedGroup)
 def snapshot():
-    '''Snapshot operations.'''
+    '''Snapshot operations.
+
+    Use snapshots to save a point-in-time of the instance.
+    '''
 
 
 @snapshot.command()

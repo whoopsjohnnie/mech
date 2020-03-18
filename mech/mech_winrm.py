@@ -39,7 +39,14 @@ LOGGER = logging.getLogger('mech')
 
 @click.group(context_settings=utils.context_settings())
 def winrm():
-    '''Winrm operations.'''
+    '''Winrm operations.
+
+    Copy files to a Windows instance.
+
+    Fetch files from a Windows instance.
+
+    Run command or powershell on a Windows instance.
+    '''
 
 
 @winrm.command()

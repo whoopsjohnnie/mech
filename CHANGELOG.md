@@ -1,10 +1,10 @@
 # TBD
 
-+ Enable "cloud" on subcommands (winrm)
++ Enable "cloud" on subcommand (winrm)
 + Add more unit tests
 + Add help text for 'mech -h'
-+ Show provisioning details
-+ Windows provisioning using inline/powershell (no args)
++ Show provisioning details during provisioning
++ Windows provisioning using inline/powershell (args not yet supported)
 
 # v0.9.2
 
