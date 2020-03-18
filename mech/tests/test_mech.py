@@ -1628,6 +1628,29 @@ def test_mech_global_status(mock_list, mock_vmrun_installed):
     assert re.search(r'Total running VMs', result.output, re.MULTILINE)
 
 
+@patch('mech.utils.get_provider')
+@patch('os.path.exists', return_value=True)
+@patch('mech.vbm.VBoxManage.list', return_value="")
+@patch('mech.vmrun.VMrun.list', return_value="")
+@patch('mech.vmrun.VMrun.installed', return_value=True)
+@patch('mech.vbm.VBoxManage.installed', return_value=True)
+@patch('mech.utils.get_fallback_executable')
+def test_mech_global_status_virtualbox(mock_get_fallback, mock_vbm_installed,
+                                       mock_vmrun_installed, mock_vmrun_list,
+                                       mock_vbm_list, mock_exists,
+                                       mock_get_provider):
+    """Test 'mech global-status'."""
+    runner = CliRunner()
+    mock_get_fallback.side_effect = ['/tmp/vmrun', '/tmp/VBoxManage']
+    mock_get_provider.side_effect = ['ws', 'virtualbox']
+    result = runner.invoke(cli, ['--debug', 'global-status'])
+    print('result:{}'.format(result))
+    mock_vbm_installed.assert_called()
+    mock_vbm_list.assert_called()
+    mock_get_provider.assert_called()
+    assert re.search(r'===VirtualBox VMs===', result.output, re.MULTILINE)
+
+
 @patch('mech.utils.cleanup_dir_and_vms_from_dir', return_value=None)
 def test_mech_global_status_with_purge(mock_cleanup):
     """Test 'mech global-status'."""

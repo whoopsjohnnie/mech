@@ -51,6 +51,7 @@ class MechCloudInstance():
         self.directory = None
 
     def read_config(self, name):
+        '''Read the configuration.'''
         clouds = utils.load_mechcloudfile(False)
         LOGGER.debug("clouds:%s", clouds)
 
@@ -65,11 +66,13 @@ class MechCloudInstance():
         self.username = clouds[name].get('username')
 
     def set_hostname(self, hostname):
+        '''Setter for hostname.'''
         if hostname is None or hostname == '':
             sys.exit(click.style("A non-blank hostname is required.", fg="red"))
         self.hostname = hostname
 
     def set_directory(self, directory):
+        '''Setter for directory.'''
         if directory is None or directory == '':
             sys.exit(click.style("A non-blank directory is required.", fg="red"))
         if ' ' in directory:
@@ -77,6 +80,7 @@ class MechCloudInstance():
         self.directory = directory
 
     def set_username(self, username):
+        '''Setter for username.'''
         if username is None or username == '':
             sys.exit(click.style("A non-blank username is required.", fg="red"))
         self.username = username

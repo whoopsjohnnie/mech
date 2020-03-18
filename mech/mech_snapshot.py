@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech snapshot functionality.'''
 import logging
 import sys
 
@@ -49,10 +50,11 @@ class MechSnapshotAliasedGroup(click.Group):
 
 
 @click.group(context_settings=utils.context_settings(), cls=MechSnapshotAliasedGroup)
-@click.pass_context
-def snapshot(ctx):
-    '''Snapshot operations.'''
-    pass
+def snapshot():
+    '''Snapshot operations.
+
+    Use snapshots to save a point-in-time of the instance.
+    '''
 
 
 @snapshot.command()

@@ -27,6 +27,14 @@ def test_mech_instance(mock_locate, mock_get_ip_address,
     mock_get_ip_address.assert_called()
 
 
+@patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
+def test_mech_instance_windows(mock_locate, mechfile_one_entry_windows):
+    """Test mech instance class."""
+    inst = mech.mech.MechInstance('first', mechfile_one_entry_windows)
+    mock_locate.assert_called()
+    assert inst.windows is True
+
+
 @patch('mech.vmrun.VMrun.get_guest_ip_address', return_value="192.168.1.100")
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_instance_get_ip(mock_locate, mock_get_ip_address,

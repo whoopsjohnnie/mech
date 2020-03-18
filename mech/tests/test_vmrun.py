@@ -669,3 +669,60 @@ def test_vmrun_installed_tools_running(mock_tools_state):
     vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/tmp/vmrun',
                              provider='ws', test_mode=True)
     assert vmrun.check_tools_state()
+
+
+@patch('mech.vmrun.VMrun.check_tools_state', return_value='running')
+def test_installed_tools(mock_tools_state):
+    """Test installed_tools."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    assert vmrun.installed_tools()
+    mock_tools_state.assert_called()
+
+
+@patch('os.path.isfile', return_value=True)
+def test_vm_state_started(mock_isfile):
+    """Test vm_state."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    a_mock = mock_open()
+    a_mock = mock_open(read_data='blah\nReporting power state change (opcode=2, err=0)\nblah')
+    with patch('builtins.open', a_mock, create=True):
+        assert vmrun.vm_state() == "started"
+        mock_isfile.assert_called()
+
+
+@patch('os.path.isfile', return_value=True)
+def test_vm_state_stopped(mock_isfile):
+    """Test vm_state."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    a_mock = mock_open()
+    a_mock = mock_open(read_data='blah\nVMX exit (0)\nblah')
+    with patch('builtins.open', a_mock, create=True):
+        assert vmrun.vm_state() == "stopped"
+        mock_isfile.assert_called()
+
+
+@patch('os.path.isfile', return_value=True)
+def test_vm_state_unpaused(mock_isfile):
+    """Test vm_state."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    a_mock = mock_open()
+    a_mock = mock_open(read_data='blah\nVMAutomation_Pause: pause = FALSE\nblah')
+    with patch('builtins.open', a_mock, create=True):
+        assert vmrun.vm_state() == "unpaused"
+        mock_isfile.assert_called()
+
+
+@patch('os.path.isfile', return_value=True)
+def test_vm_state_paused(mock_isfile):
+    """Test vm_state."""
+    vmrun = mech.vmrun.VMrun('/tmp/first/some.vmx', executable='/bin/vmrun',
+                             user='admin', password='1234', provider='ws', test_mode=True)
+    a_mock = mock_open()
+    a_mock = mock_open(read_data='blah\nVMAutomation_Pause: pause = TRUE\nblah')
+    with patch('builtins.open', a_mock, create=True):
+        assert vmrun.vm_state() == "paused"
+        mock_isfile.assert_called()

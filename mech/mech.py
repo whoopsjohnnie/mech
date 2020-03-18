@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech cli functionality.'''
 import logging
 import os
 import platform
@@ -58,6 +59,14 @@ class MechAliasedGroup(click.Group):
 @click.version_option(version=__version__, message='%(prog)s v%(version)s')
 @click.pass_context
 def cli(ctx, debug, cloud):
+    '''Mech is a command line utility for virtual machine automation.
+
+    Create, start, stop, destroy virtual machines (aka instances) with ease.
+
+    VMware Fusion, VMware Workstation, and/or Oracle VirtualBox can be used.
+
+    Mech is similar to Hashicorp's vagrant utility.
+    '''
     logger = logging.getLogger()
     handler = logging.StreamHandler(sys.stderr)
     formatter = logging.Formatter('%(filename)s:%(lineno)s %(funcName)s() '
@@ -205,11 +214,11 @@ def port(ctx, instance):
         instances = utils.instances()
 
     # FUTURE: implement port forwarding?
-    for instance in instances:
-        inst = MechInstance(instance)
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
 
         if inst.provider == 'vmware':
-            click.echo('Instance ({}):'. format(instance))
+            click.echo('Instance ({}):'. format(an_instance))
             nat_found = False
             vmrun = VMrun(inst.vmx)
             for line in vmrun.list_host_networks().split('\n'):
@@ -233,20 +242,20 @@ def provision(ctx, instance, show_only):
 
     Notes:
 
-    There are a few provision types: 'file', 'shell', and 'pyinfra'.
+    Provision types are: 'file', 'shell' (Bash), 'ps' (Powershell), and 'pyinfra'.
 
-    'shell' can be inline.
+    'shell' or 'ps' can be inline.
 
-    'shell' and 'pyinfra' can have a remote endpoint ('http', 'https', 'ftp') for the script.
+    'shell', 'ps', and 'pyinfra' can have a remote endpoint ('http', 'https', 'ftp') for the script.
     (ex: 'http://example.com/somefile.sh' or ex: 'ftp://foo.com/install.sh')
 
     'pyinfra' scripts must end with '.py' and 'pyinfra' must be installed.
     See https://pyinfra.readthedocs.io/en/latest/ for more info.
 
-    Provisioning is run when the instance is started.
-    This option is if you want to re-run the provisioning.
+    Provisioning is run when the instance is started or you can re-run the provisioning.
 
-    An example of provisioning could be installing puppet (or your config tool of choice).
+    An example of provisioning could be installing puppet (or your config tool of choice)
+    or preparing the instance "just the way you want it".
 
     '''
 
@@ -368,13 +377,14 @@ def ssh(ctx, instance, command, plain, extra_ssh_args):
     inst = MechInstance(instance)
 
     if inst.created:
-        rc, stdout, stderr = utils.ssh(inst, command, plain, extra_ssh_args)
-        LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
+        return_code, stdout, stderr = utils.ssh(inst, command, plain, extra_ssh_args)
+        LOGGER.debug('command:%s return_code:%d stdout:%s stderr:%s',
+                     command, return_code, stdout, stderr)
         if stdout:
             click.echo(stdout)
         if stderr:
             click.echo(stderr)
-        sys.exit(rc)
+        sys.exit(return_code)
     else:
         click.echo('VM not created.')
 
@@ -800,6 +810,7 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
                 numvcpus=numvcpus,
                 memsize=memsize,
                 no_nat=no_nat,
+                windows=inst.windows,
                 provider=inst.provider)
             if inst.provider == 'vmware':
                 inst.vmx = path_to_vmx_or_vbox
@@ -856,8 +867,9 @@ def remove(ctx, name):
               help='Provider (`vmware` or `virtualbox`)')
 @click.option('--use-me', '-u', is_flag=True, default=False,
               help='Use the current user for mech interactions.')
+@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
-def add(ctx, name, location, add_me, box, box_version, provider, use_me):
+def add(ctx, name, location, add_me, box, box_version, provider, use_me, windows):
     '''
     Add instance to the Mechfile.
 
@@ -869,8 +881,8 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s location:%s add_me:%s box:%s box_version:%s '
-                 'provider:%s use_me:%s', cloud_name, name, location, add_me, box,
-                 box_version, provider, use_me)
+                 'provider:%s use_me:%s windows:%s', cloud_name, name, location, add_me, box,
+                 box_version, provider, use_me, windows)
 
     if cloud_name:
         utils.cloud_run(cloud_name, ['add'])
@@ -890,7 +902,8 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
         box_version=box_version,
         add_me=add_me,
         use_me=use_me,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     click.secho('Added to the Mechfile.', fg='green')
 
 
@@ -907,8 +920,9 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
               help='Provider (`vmware` or `virtualbox`)')
 @click.option('--use-me', '-u', is_flag=True, default=False,
               help='Use the current user for mech interactions.')
+@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
-def init(ctx, location, add_me, box, box_version, force, name, provider, use_me):
+def init(ctx, location, add_me, box, box_version, force, name, provider, use_me, windows):
     '''
     Initialize Mechfile.
 
@@ -933,12 +947,15 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
 
     The 'use-me' option will use the currently logged in user for
     future interactions with the guest instead of the vagrant user.
+
+    The 'windows' flag is used for provisioning. When enabled, winrm will
+    be used instead of scp.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s location:%s add_me:%s box:%s box_version:%s '
-                 'force:%s name:%s provider:%s use_me:%s', cloud_name,
+                 'force:%s name:%s provider:%s use_me:%s windows:%s', cloud_name,
                  location, add_me, box, box_version,
-                 force, name, provider, use_me)
+                 force, name, provider, use_me, windows)
 
     if not utils.valid_provider(provider):
         sys.exit(click.style('Need to provide valid provider.', fg='red'))
@@ -961,7 +978,8 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
         box_version=box_version,
         add_me=add_me,
         use_me=use_me,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     click.secho('A `Mechfile` has been initialized and placed in this directory. \n'
                 'You are now ready to `mech up` your first virtual environment!', fg='green')
 

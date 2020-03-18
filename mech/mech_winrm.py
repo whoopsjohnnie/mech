@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech winrm (windows remote management) class.'''
 import logging
 import sys
 
@@ -37,10 +38,15 @@ LOGGER = logging.getLogger('mech')
 
 
 @click.group(context_settings=utils.context_settings())
-@click.pass_context
-def winrm(ctx):
-    '''Winrm operations.'''
-    pass
+def winrm():
+    '''Winrm operations.
+
+    Copy files to a Windows instance.
+
+    Fetch files from a Windows instance.
+
+    Run command or powershell on a Windows instance.
+    '''
 
 
 @winrm.command()
@@ -52,6 +58,11 @@ def config(ctx, instance):
     """
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
+
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
 
     if instance:
         # single instance
@@ -81,12 +92,17 @@ def run(ctx, instance, command, powershell):
 
     Notes:
         Example command: 'date /T'
-        Example powershell: 'Write-Host hello'
+        Example powershell: 'Write-Output hello'
 
     """
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s command:%s powershell:%s',
                  cloud_name, instance, command, powershell)
+
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
 
     if (command is None or command == '') and (powershell is None or powershell == ''):
         sys.exit(click.style("Command or Powershell is required", fg="red"))
@@ -94,23 +110,10 @@ def run(ctx, instance, command, powershell):
     inst = MechInstance(instance)
 
     if inst.created:
-        LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
-                     " password:%s", inst.get_ip(), inst.user, inst.password)
-        utils.suppress_urllib3_errors()
-        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
         if command:
-            stdout, stderr, rc = client.execute_cmd(command)
-            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
-            if stdout:
-                click.echo(stdout)
-            if stderr:
-                click.echo(stderr)
-        else:
-            output, streams, had_errors = client.execute_ps(powershell)
-            LOGGER.debug('powershell:%s output:%s streams:%s '
-                         'had_errors:%s', powershell, output, streams, had_errors)
-            if output:
-                click.echo(output)
+            utils.winrm_execute_cmd(inst, command)
+        if powershell:
+            utils.winrm_execute_ps(inst, powershell)
 
     else:
         click.echo("VM not created.")
@@ -129,12 +132,15 @@ def copy(ctx, local, remote, instance):
     LOGGER.debug('cloud_name:%s local:%s remote:%s instance:%s',
                  cloud_name, local, remote, instance)
 
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
+
     inst = MechInstance(instance)
 
     if inst.created:
-        utils.suppress_urllib3_errors()
-        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-        client.copy(local, remote)
+        utils.winrm_copy(inst, local, remote)
         click.echo("Copied")
 
 
@@ -150,6 +156,11 @@ def fetch(ctx, remote, local, instance):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s remote:%s local:%s instance:%s',
                  cloud_name, remote, local, instance)
+
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
 
     inst = MechInstance(instance)
 

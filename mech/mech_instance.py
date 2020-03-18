@@ -91,6 +91,14 @@ class MechInstance():
         self.url = mechfile[name].get('url', None)
         self.box_file = mechfile[name].get('file', None)
         self.provision = mechfile[name].get('provision', None)
+
+        self.windows = False
+        windows = mechfile[name].get('windows', False)
+        LOGGER.debug("windows:%s", windows)
+        if windows and windows.lower() == "true":
+            self.windows = True
+        LOGGER.debug("self.windows:%s", self.windows)
+
         self.enable_ip_lookup = False
         self.config = {}
         self.ip = None
@@ -208,7 +216,8 @@ class MechInstance():
                 '{sep}auth:{auth}{sep}use_psk:{use_psk}{sep}provider:{provider}'
                 '{sep}no_nat:{no_nat}{sep}remove_vagrant:{remove_vagrant}'
                 '{sep}gui:{gui}{sep}disable_provisioning:{disable_provisioning}'
-                '{sep}disable_shared_folders:{disable_shared_folders}'.
+                '{sep}disable_shared_folders:{disable_shared_folders}'
+                '{sep}windows:{windows}'.
                 format(name=self.name, created=self.created,
                        box=self.box, box_version=self.box_version,
                        url=self.url, box_file=self.box_file,
@@ -222,6 +231,7 @@ class MechInstance():
                        remove_vagrant=self.remove_vagrant, gui=self.gui,
                        disable_provisioning=self.disable_provisioning,
                        disable_shared_folders=self.disable_shared_folders,
+                       windows=self.windows,
                        sep=sep))
 
     def config_ssh(self):

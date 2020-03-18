@@ -12,6 +12,38 @@ import mech.vmrun
 from mech.mech_cli import cli
 
 
+def test_mech_winrm_config_with_cloud():
+    """Test 'mech winrm config' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'winrm', 'config'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_winrm_run_with_cloud():
+    """Test 'mech winrm run' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'winrm', 'run', '--command', 'date /T', 'first'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_winrm_copy_with_cloud():
+    """Test 'mech winrm copy' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'winrm', 'copy', 'now', 'now', 'first'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_winrm_fetch_with_cloud():
+    """Test 'mech winrm fetch' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'winrm', 'fetch', 'now', 'now', 'first'])
+        mock_cloud_run.assert_called()
+
+
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_winrm_config(mock_locate, mock_load_mechfile, mechfile_one_entry):
@@ -65,7 +97,6 @@ def test_mech_winrm_run_command(mock_locate, mock_load_mechfile,
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value="192.168.1.145") as mock_get_ip:
         with patch.object(Client, 'execute_cmd', return_value=mock_rv) as mock_client_execute:
-            # hmm... space in arg... ok?
             result = runner.invoke(cli, ['winrm', 'run', '--command', 'date /T', 'first'])
             mock_locate.assert_called()
             mock_load_mechfile.assert_called()

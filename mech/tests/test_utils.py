@@ -770,6 +770,7 @@ def test_build_mechfile_entry_https_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'https://foo'
     }
@@ -782,6 +783,7 @@ def test_build_mechfile_entry_http_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url':
         'http://foo'
@@ -795,6 +797,7 @@ def test_build_mechfile_entry_ftp_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
@@ -807,6 +810,7 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
         'box_version': 'ccc',
         'name': 'aaa',
         'provider': 'vmware',
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
@@ -1070,6 +1074,134 @@ def test_provision_shell(mock_create_tempfile, mock_isfile,
     assert re.search(r'Configuring script', out, re.MULTILINE)
     assert re.search(r'Configuring environment', out, re.MULTILINE)
     assert re.search(r'Executing program', out, re.MULTILINE)
+
+
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+@patch('os.path.isfile', return_value=True)
+def test_provision_ps_file(mock_isfile, mock_winrm, capfd, mechfile_one_entry_windows):
+    """Test provision_ps."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision_ps(inst, inline=False, script_path='file1.ps')
+        out, _ = capfd.readouterr()
+        mock_isfile.assert_called()
+        mock_winrm.assert_called()
+        assert re.search(r'Executing powershell', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_ps', return_value=(0, '', ''))
+def test_provision_with_ps(mock_provision_ps, capfd,
+                           mechfile_one_entry_windows, ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst)
+        out, _ = capfd.readouterr()
+        mock_provision_ps.assert_called()
+        assert re.search(r'Inline ps', out, re.MULTILINE)
+        assert re.search(r'Provision 2', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_ps', return_value=None)
+def test_provision_with_ps_fails(mock_provision_ps, capfd,
+                                 mechfile_one_entry_windows, ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst)
+        out, _ = capfd.readouterr()
+        mock_provision_ps.assert_called()
+        assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+def test_provision_with_ps_show(capfd, mechfile_one_entry_windows,
+                                ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst, show=True)
+        out, _ = capfd.readouterr()
+        assert re.search(r'instance.name', out, re.MULTILINE)
+
+
+@patch('os.path.isfile', return_value=False)
+def test_provision_ps_badfile(mock_isfile, capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_ps(inst, inline=False, script_path='file1.ps')
+    out, _ = capfd.readouterr()
+    mock_isfile.assert_called()
+    assert re.search(r'Cannot open', out, re.MULTILINE)
+
+
+def test_provision_ps_none(capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_ps(inst, inline=None, script_path=None)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Need to provide', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+@patch('os.path.isfile', return_value=False)
+def test_provision_ps_http(mock_isfile, mock_winrm, mock_requests_get,
+                           capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'echo hello'
+    mech.utils.provision_ps(inst, inline=False, script_path='http://example.com/file1.ps')
+    out, _ = capfd.readouterr()
+    mock_isfile.assert_called()
+    mock_winrm.assert_called()
+    mock_requests_get.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+    assert re.search(r'Executing powershell', out, re.MULTILINE)
+
+
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+def test_provision_ps_inline(mock_winrm, capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision_ps(inst, inline='echo hello', script_path=None)
+        out, _ = capfd.readouterr()
+        mock_winrm.assert_called()
+        assert re.search(r'Executing powershell', out, re.MULTILINE)
 
 
 @patch('mech.utils.create_tempfile_in_guest', return_value=None)
@@ -1914,7 +2046,7 @@ def test_cleanup_dir_and_vms_from_dir(mock_kill, mock_find, mock_subprocess):
     with patch('mech.utils.rmtree') as mock_rmtree:
         with patch('os.mkdir') as mock_mkdir:
             mech.utils.cleanup_dir_and_vms_from_dir("/tmp/some_fake_dir",
-                                                    names=['some_fake_name'],
+                                                    names=None,
                                                     all_vms=True)
             mock_kill.assert_called()
             mock_find.assert_called()
@@ -2054,3 +2186,68 @@ def test_cloud_run(mock_load, mock_subprocess, mechcloudfile_one_entry):
         assert return_code == 0
         assert stdout == 'foo'
         assert stderr == 'bar'
+
+
+def test_save_mechcloudfile(mechcloudfile_one_entry):
+    """Test save_mechcloudfile()."""
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.save_mechcloudfile(mechcloudfile_one_entry)
+        a_mock.assert_called()
+
+
+@patch('mech.utils.save_mechcloudfile', return_value=True)
+@patch('mech.utils.load_mechcloudfile')
+def test_remove_mechcloudfile_entry(mock_load, mock_save, mechcloudfile_one_entry):
+    """Test remove_mechcloudfile_entry()."""
+    mock_load.return_value = mechcloudfile_one_entry
+    assert mech.utils.remove_mechcloudfile_entry("tophat")
+    mock_load.assert_called()
+    mock_save.assert_called()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile_empty(mock_os_getcwd, mock_os_path_isfile,
+                                  mock_json_loads):
+    """Test load_mechcloudfile()."""
+    expected = {}
+    mock_os_getcwd.return_value = '/tmp'
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.load_mechcloudfile() == expected
+        a_mock.assert_called()
+        mock_os_getcwd.assert_called()
+        mock_os_path_isfile.assert_called()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile(mock_os_getcwd, mock_os_path_isfile, mock_json_loads,
+                            mechcloudfile_one_entry):
+    """Test load_mechcloudfile()."""
+    expected = mechcloudfile_one_entry
+    mock_os_getcwd.return_value = '/tmp'
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.load_mechcloudfile() == expected
+        a_mock.assert_called()
+        mock_os_getcwd.assert_called()
+        mock_os_path_isfile.assert_called()
+
+
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile_file_not_present_but_should_be(mock_os_getcwd,
+                                                           mock_os_path_isfile):
+    """Test load_mechcloudfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    mock_os_path_isfile.return_value = False
+    with raises(SystemExit, match=r"Could not find a Mechcloudfile"):
+        mech.utils.load_mechcloudfile(True)

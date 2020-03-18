@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech cli (command line interface).'''
 from .mech import cli
 from .mech_box import box
 from .mech_cloud import cloud
@@ -33,7 +34,3 @@ cli.add_command(box)
 cli.add_command(cloud)
 cli.add_command(snapshot)
 cli.add_command(winrm)
-
-
-if __name__ == '__main__':
-    cli()

@@ -22,6 +22,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech box functionality. (a box file is a tar file containing all of the files
+   for a virtual machine)'''
 import fnmatch
 import logging
 import os
@@ -48,14 +50,12 @@ class MechBoxAliasedGroup(click.Group):
 
 
 @click.group(context_settings=utils.context_settings(), cls=MechBoxAliasedGroup)
-@click.pass_context
-def box(ctx):
+def box():
     '''Box operations.
 
     A box is typically a compressed tar file that contains all files necessary for
     VMware or Virtualbox to import/use.
     '''
-    pass
 
 
 @box.command()
@@ -115,16 +115,16 @@ def list(ctx):
     ))
     path = os.path.abspath(os.path.join(utils.mech_dir(), 'boxes'))
     for root, _, filenames in os.walk(path):
-        for filename in fnmatch.filter(filenames, '*.box'):
+        for _ in fnmatch.filter(filenames, '*.box'):
             # Note: The directory has a leading '/', so we need to discard that value
             directory = root.replace(path, '')
             try:
-                _, provider, account, box, version = directory.split('/', 4)
+                _, provider, account, a_box, version = directory.split('/', 4)
             except ValueError:
                 provider = ''
-                _, account, box, version = directory.split('/', 3)
+                _, account, a_box, version = directory.split('/', 3)
             print("{}\t{}\t{}".format(
-                "{}/{}".format(account, box).rjust(35),
+                "{}/{}".format(account, a_box).rjust(35),
                 version.rjust(12),
                 provider.rjust(12),
             ))

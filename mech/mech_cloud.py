@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech cloud functionality.'''
 import logging
 
 
@@ -47,8 +48,7 @@ class MechCloudAliasedGroup(click.Group):
 
 
 @click.group(context_settings=utils.context_settings(), cls=MechCloudAliasedGroup)
-@click.pass_context
-def cloud(ctx):
+def cloud():
     '''Cloud operations.
 
     Notes:
@@ -88,7 +88,6 @@ def cloud(ctx):
         Virtualbox instances are "global". So, you can have only one
         instance named "first".
     '''
-    pass
 
 
 @cloud.command()
@@ -171,9 +170,9 @@ def list(ctx):
 
     print('=== mech clouds: ===')
     clouds = utils.cloud_instances()
-    for cloud in clouds:
-        mci = MechCloudInstance(cloud)
-        mci.read_config(cloud)
+    for a_cloud in clouds:
+        mci = MechCloudInstance(a_cloud)
+        mci.read_config(a_cloud)
         print(mci)
         print()
 
