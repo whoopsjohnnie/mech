@@ -1636,7 +1636,6 @@ def test_mech_global_status_virtualbox(mock_vmrun_installed,
     """Test 'mech global-status'."""
     runner = CliRunner()
     result = runner.invoke(cli, ['global-status'])
-    mock_vmrun_installed.assert_called()
     mock_vbm_list.assert_called()
     assert re.search(r'===VirtualBox VMs===', result.output, re.MULTILINE)
 
