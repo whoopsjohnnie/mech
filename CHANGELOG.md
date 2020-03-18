@@ -3,6 +3,7 @@
 + Enable "cloud" on subcommands (winrm)
 + Add more unit tests
 + Add help text for 'mech -h'
++ Show provisioning details
 
 # v0.9.2
 

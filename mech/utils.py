@@ -981,6 +981,8 @@ def provision(instance, show=False):
                                 "destination:{}".format(instance.name, provision_type,
                                                         source, destination), fg="green")
                 else:
+                    click.secho("File provisioning (source:{} destination:{})".format(
+                        source, destination), fg="green")
                     results = provision_file(instance, source, destination)
                     LOGGER.debug('results:%s', results)
                     if results is None:
@@ -1000,6 +1002,8 @@ def provision(instance, show=False):
                                 "args:{}".format(instance.name, provision_type,
                                                  inline, path, args), fg="green")
                 else:
+                    click.secho("Inline provisioining (inline:{} path:{} args:{}".format(
+                                inline, path, args), fg="green")
                     if provision_shell(instance, inline, path, args) is None:
                         click.secho("Not Provisioned", fg="red")
                         return
@@ -1016,6 +1020,8 @@ def provision(instance, show=False):
                                 "args:{}".format(instance.name, provision_type,
                                                  path, args), fg="green")
                 else:
+                    click.secho("pyinfra provisioining (path:{} args:{}".format(
+                                path, args), fg="green")
                     return_code, stdout, stderr = provision_pyinfra(instance, path, args)
                     if return_code is None:
                         click.secho("Not Provisioned", fg="red")
