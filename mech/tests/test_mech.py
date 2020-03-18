@@ -1630,17 +1630,14 @@ def test_mech_global_status(mock_list, mock_vmrun_installed):
 
 @patch('mech.vbm.VBoxManage.list', return_value="")
 @patch('mech.utils.get_fallback_executable', return_value='/tmp/VBoxManage')
-@patch('mech.vmrun.VMrun.installed', return_value=True)
-@patch('mech.vmrun.VMrun.list', return_value="Total running VMs: 0")
-def test_mech_global_status_virtualbox(mock_vmrun_list, mock_vmrun_installed,
+@patch('mech.vmrun.VMrun.installed', return_value=False)
+def test_mech_global_status_virtualbox(mock_vmrun_installed,
                                        mock_get_fallback, mock_vbm_list):
     """Test 'mech global-status'."""
     runner = CliRunner()
     result = runner.invoke(cli, ['global-status'])
-    mock_vmrun_list.assert_called()
     mock_vmrun_installed.assert_called()
     mock_vbm_list.assert_called()
-    assert re.search(r'Total running VMs', result.output, re.MULTILINE)
     assert re.search(r'===VirtualBox VMs===', result.output, re.MULTILINE)
 
 
