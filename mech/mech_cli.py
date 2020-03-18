@@ -33,7 +33,3 @@ cli.add_command(box)
 cli.add_command(cloud)
 cli.add_command(snapshot)
 cli.add_command(winrm)
-
-
-if __name__ == '__main__':
-    cli()

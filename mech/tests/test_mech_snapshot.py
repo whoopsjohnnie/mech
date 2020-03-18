@@ -9,6 +9,30 @@ from click.testing import CliRunner
 from mech.mech_cli import cli
 
 
+def test_mech_snapshot_delete_with_cloud():
+    """Test 'mech snapshot delete' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'snapshot', 'delete', 'snap2', 'first'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_snapshot_list_with_cloud():
+    """Test 'mech snapshot list' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'snapshot', 'list'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_snapshot_save_with_cloud():
+    """Test 'mech snapshot save' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'snapshot', 'save', 'snap1', 'first'])
+        mock_cloud_run.assert_called()
+
+
 @patch('mech.utils.load_mechfile')
 @patch('os.getcwd')
 def test_mech_snapshot_list_no_mechdir(mock_os_getcwd, mock_load_mechfile,

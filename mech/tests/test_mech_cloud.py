@@ -13,6 +13,30 @@ import mech.mech_cloud_instance
 from mech.mech_cli import cli
 
 
+def test_mech_cloud_init_with_cloud():
+    """Test 'mech cloud init' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'cloud', 'init', 'host', 'dir', 'bob', 'somecloud'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_cloud_remove_with_cloud():
+    """Test 'mech cloud remove' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'cloud', 'remove', 'somecloud'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_cloud_list_with_cloud():
+    """Test 'mech cloud list' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'cloud', 'list'])
+        mock_cloud_run.assert_called()
+
+
 def test_mech_cloud_init_no_host():
     """Test init()."""
     runner = CliRunner()
