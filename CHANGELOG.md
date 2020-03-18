@@ -1,3 +1,9 @@
+# TBD
+
++ Enable "cloud" on subcommands (winrm)
++ Add more unit tests
++ Add help text for 'mech -h'
+
 # v0.9.2
 
 + Enable "cloud" on subcommands (cloud, box, and snapshot)

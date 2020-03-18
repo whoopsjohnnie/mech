@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech cli functionality.'''
 import logging
 import os
 import platform
@@ -213,11 +214,11 @@ def port(ctx, instance):
         instances = utils.instances()
 
     # FUTURE: implement port forwarding?
-    for instance in instances:
-        inst = MechInstance(instance)
+    for an_instance in instances:
+        inst = MechInstance(an_instance)
 
         if inst.provider == 'vmware':
-            click.echo('Instance ({}):'. format(instance))
+            click.echo('Instance ({}):'. format(an_instance))
             nat_found = False
             vmrun = VMrun(inst.vmx)
             for line in vmrun.list_host_networks().split('\n'):
@@ -376,13 +377,14 @@ def ssh(ctx, instance, command, plain, extra_ssh_args):
     inst = MechInstance(instance)
 
     if inst.created:
-        rc, stdout, stderr = utils.ssh(inst, command, plain, extra_ssh_args)
-        LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
+        return_code, stdout, stderr = utils.ssh(inst, command, plain, extra_ssh_args)
+        LOGGER.debug('command:%s return_code:%d stdout:%s stderr:%s',
+                     command, return_code, stdout, stderr)
         if stdout:
             click.echo(stdout)
         if stderr:
             click.echo(stderr)
-        sys.exit(rc)
+        sys.exit(return_code)
     else:
         click.echo('VM not created.')
 

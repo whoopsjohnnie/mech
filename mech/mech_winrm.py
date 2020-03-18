@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech winrm (windows remote management) class.'''
 import logging
 import sys
 
@@ -37,10 +38,8 @@ LOGGER = logging.getLogger('mech')
 
 
 @click.group(context_settings=utils.context_settings())
-@click.pass_context
-def winrm(ctx):
+def winrm():
     '''Winrm operations.'''
-    pass
 
 
 @winrm.command()
@@ -109,8 +108,9 @@ def run(ctx, instance, command, powershell):
         utils.suppress_urllib3_errors()
         client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
         if command:
-            stdout, stderr, rc = client.execute_cmd(command)
-            LOGGER.debug('command:%s rc:%d stdout:%s stderr:%s', command, rc, stdout, stderr)
+            stdout, stderr, return_code = client.execute_cmd(command)
+            LOGGER.debug('command:%s return_code:%d stdout:%s stderr:%s',
+                         command, return_code, stdout, stderr)
             if stdout:
                 click.echo(stdout)
             if stderr:

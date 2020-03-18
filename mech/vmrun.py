@@ -740,7 +740,7 @@ class VMrun():  # pylint: disable=too-many-public-methods
         state = self.check_tools_state(quiet=quiet)
         return state in ('installed', 'running')
 
-    def vm_state(self, quiet=False):
+    def vm_state(self):
         '''Return info about the state of the VM.
 
            Note: This is totally a hack as the VMware vmrun api does not provide much of

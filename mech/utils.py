@@ -1462,23 +1462,23 @@ def ssh_with_username(hostname, username, command):
 
 def report_provider(provider):
     """Check if this provider is available."""
-    ok = True
+    okay = True
     if not valid_provider(provider):
         click.secho("Invalid provider ({})".format(provider), fg="red")
-        ok = False
+        okay = False
     if provider == 'vmware':
         vmrun = VMrun()
         if not vmrun.installed():
             click.secho("Warning: Provider is not available.", fg="red")
             click.secho("Install VMware or change provider.", fg="red")
-            ok = False
+            okay = False
     elif provider == 'virtualbox':
         vbm = mech.vbm.VBoxManage()
         if not vbm.installed():
             click.secho("Warning: Provider is not available.", fg="red")
             click.secho("Install Virtualbox or change provider.", fg="red")
-            ok = False
-    return ok
+            okay = False
+    return okay
 
 
 def kill_pids(pids):
@@ -1505,7 +1505,7 @@ def find_pids(search_string):
     return pids
 
 
-def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
+def cleanup_dir_and_vms_from_dir(a_dir, names=None, all_vms=False):
     """Kill processes and remove directory and re-create the directory.
        For VMware VMs, look for the .vmx part_of_dir matches the full path.
        For virtualbox look 'VBoxHeadless --comment <name of the instance>'
@@ -1514,6 +1514,8 @@ def cleanup_dir_and_vms_from_dir(a_dir, names=['first'], all_vms=False):
        virtualbox.
        Use a_dir to '' and all_vms=True to kill and remove all.
    """
+    if names is None:
+        names = ['first']
     # remove from virtualbox
     for name in names:
         subprocess.run(args="VBoxManage unregistervm {}".format(name),

@@ -155,7 +155,7 @@ class VBoxManage():
     def _ip(self, vmname, quiet=False):
         """Get ip address of VM."""
         line = self.run('guestproperty', 'get', vmname,
-                        '/VirtualBox/GuestInfo/Net/0/V4/IP', quiet=False)
+                        '/VirtualBox/GuestInfo/Net/0/V4/IP', quiet=quiet)
         if line and line != 'No value set!':
             parts = line.split()
             if len(parts) > 1:

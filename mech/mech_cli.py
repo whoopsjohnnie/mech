@@ -22,6 +22,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #
+'''Mech cli (command line interface).'''
 from .mech import cli
 from .mech_box import box
 from .mech_cloud import cloud
