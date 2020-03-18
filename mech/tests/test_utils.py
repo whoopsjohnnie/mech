@@ -770,6 +770,7 @@ def test_build_mechfile_entry_https_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'https://foo'
     }
@@ -782,6 +783,7 @@ def test_build_mechfile_entry_http_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url':
         'http://foo'
@@ -795,6 +797,7 @@ def test_build_mechfile_entry_ftp_location():
         'box_version': None,
         'name': None,
         'provider': None,
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }
@@ -807,6 +810,7 @@ def test_build_mechfile_entry_ftp_location_with_other_values():
         'box_version': 'ccc',
         'name': 'aaa',
         'provider': 'vmware',
+        'windows': False,
         'shared_folders': [{'host_path': '.', 'share_name': 'mech'}],
         'url': 'ftp://foo'
     }

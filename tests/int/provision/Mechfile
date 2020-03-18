@@ -1,65 +1,94 @@
 {
+  "fifth": {
+    "box": "StefanScherer/windows_10",
+    "box_version": "2020.02.12",
+    "name": "fifth",
+    "provider": "vmware",
+    "windows": "True",
+    "provision": [
+      {
+        "destination": "file1.txt",
+        "source": "file1.txt",
+        "type": "file"
+      },
+      {
+        "inline": "echo hello from inline > inline_test.out",
+        "type": "ps"
+      },
+      {
+        "path": "file3.ps",
+        "type": "ps"
+      }
+    ],
+    "shared_folders": [
+      {
+        "host_path": ".",
+        "share_name": "mech"
+      }
+    ],
+    "url": "https://vagrantcloud.com/StefanScherer/boxes/windows_10/versions/2020.02.12/providers/vmware_desktop.box"
+  },
   "first": {
     "box": "mrlesmithjr/alpine311",
     "box_version": "1578437753",
     "name": "first",
-    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
     "provision": [
       {
-        "type": "file",
+        "destination": "/tmp/file1.txt",
         "source": "file1.txt",
-        "destination": "/tmp/file1.txt"
+        "type": "file"
       },
       {
-        "type": "file",
+        "destination": "/tmp/file2.txt",
         "source": "file2.txt",
-        "destination": "/tmp/file2.txt"
+        "type": "file"
       }
-    ]
-  },
-  "second": {
-    "box": "mrlesmithjr/alpine311",
-    "box_version": "1578437753",
-    "name": "second",
-    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
-    "provision": [
-      {
-        "type": "shell",
-        "path": "file1.sh",
-        "args": [
-          "a=1",
-          "b=true"
-        ]
-      },
-      {
-        "type": "shell",
-        "path": "file2.sh",
-        "args": []
-      },
-      {
-        "type": "shell",
-        "inline": "echo hello from inline > /tmp/inline_test.out"
-      }
-    ]
-  },
-  "third": {
-    "box": "mrlesmithjr/alpine311",
-    "box_version": "1578437753",
-    "name": "third",
-    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
-    "provision": []
+    ],
+    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box"
   },
   "fourth": {
     "box": "mrlesmithjr/alpine311",
     "box_version": "1578437753",
     "name": "fourth",
-    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box",
     "provision": [
       {
-        "type": "pyinfra",
+        "args": [],
         "path": "https://raw.githubusercontent.com/Fizzadar/pyinfra/master/examples/apk.py",
-        "args": []
+        "type": "pyinfra"
       }
-    ]
+    ],
+    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box"
+  },
+  "second": {
+    "box": "mrlesmithjr/alpine311",
+    "box_version": "1578437753",
+    "name": "second",
+    "provision": [
+      {
+        "args": [
+          "a=1",
+          "b=true"
+        ],
+        "path": "file1.sh",
+        "type": "shell"
+      },
+      {
+        "args": [],
+        "path": "file2.sh",
+        "type": "shell"
+      },
+      {
+        "inline": "echo hello from inline > /tmp/inline_test.out",
+        "type": "shell"
+      }
+    ],
+    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box"
+  },
+  "third": {
+    "box": "mrlesmithjr/alpine311",
+    "box_version": "1578437753",
+    "name": "third",
+    "provision": [],
+    "url": "https://vagrantcloud.com/mrlesmithjr/boxes/alpine311/versions/1578437753/providers/vmware_desktop.box"
   }
 }

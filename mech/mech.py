@@ -735,9 +735,10 @@ def global_status(ctx, purge):
               help='Do not use NAT networking (i.e., use bridged).')
 @click.option('--numvcpus', metavar='VCPUS', help='Specify number of vcpus.')
 @click.option('-r', '--remove-vagrant', is_flag=True, default=False, help='Remove vagrant user.')
+@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
 def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize, no_cache,
-       no_nat, numvcpus, remove_vagrant):
+       no_nat, numvcpus, remove_vagrant, windows):
     '''
     Starts and provisions instance(s).
 
@@ -763,12 +764,15 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
     guest VM which is what 'mech' uses to communicate with the VM.
     Be sure you can connect/admin the instance before using this option.
     Be sure to check that root cannot ssh, or change the root password.
+
+    The 'windows' flag is used for provisioning. When enabled, winrm will
+    be used instead of scp.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s disable_provisioning:%s disable_shared_folders:%s '
-                 'gui:%s memsize:%s no_cache:%s no_nat:%s numvcpus:%s remove_vagrant:%s',
+                 'gui:%s memsize:%s no_cache:%s no_nat:%s numvcpus:%s remove_vagrant:%s windows:%s',
                  cloud_name, instance, disable_provisioning, disable_shared_folders,
-                 gui, memsize, no_cache, no_nat, numvcpus, remove_vagrant)
+                 gui, memsize, no_cache, no_nat, numvcpus, remove_vagrant, windows)
 
     if cloud_name:
         utils.cloud_run(cloud_name, ['up', 'start'])
@@ -789,6 +793,7 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
         inst.disable_provisioning = disable_provisioning
         inst.remove_vagrant = remove_vagrant
         inst.no_nat = no_nat
+        inst.windows = windows
 
         if not utils.report_provider(inst.provider):
             return
@@ -809,6 +814,7 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
                 save=not no_cache,
                 numvcpus=numvcpus,
                 memsize=memsize,
+                windows=windows,
                 no_nat=no_nat,
                 provider=inst.provider)
             if inst.provider == 'vmware':

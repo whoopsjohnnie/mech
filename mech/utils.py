@@ -43,6 +43,7 @@ from shutil import copyfile, rmtree
 
 import requests
 import click
+from pypsrp.client import Client
 
 from .vmrun import VMrun
 import mech.vbm
@@ -318,10 +319,10 @@ def default_shared_folders():
 
 
 def build_mechfile_entry(location, box=None, name=None, box_version=None,
-                         shared_folders=None, provider=None):
+                         shared_folders=None, provider=None, windows=None):
     """Build the Mechfile from the inputs."""
-    LOGGER.debug("location:%s name:%s box:%s box_version:%s provider:%s",
-                 location, name, box, box_version, provider)
+    LOGGER.debug("location:%s name:%s box:%s box_version:%s provider:%s windows:%s",
+                 location, name, box, box_version, provider, windows)
     mechfile_entry = {}
 
     if location is None:
@@ -331,6 +332,9 @@ def build_mechfile_entry(location, box=None, name=None, box_version=None,
     mechfile_entry['box'] = box
     mechfile_entry['box_version'] = box_version
     mechfile_entry['provider'] = provider
+    if windows is None:
+        windows = False
+    mechfile_entry['windows'] = windows
 
     if shared_folders is None:
         shared_folders = default_shared_folders()
@@ -438,7 +442,8 @@ def tar_cmd(*args, **kwargs):
 
 
 def init_box(name, box=None, box_version=None, location=None, force=False, save=True,
-             instance_path=None, numvcpus=None, memsize=None, no_nat=False, provider=None):
+             instance_path=None, numvcpus=None, memsize=None, no_nat=False, provider=None,
+             windows=None):
     """Initialize the box. This includes uncompressing the files
        from the box file and updating the vmx file with
        desired settings (if vmware).
@@ -448,8 +453,8 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
        VMware will just use the files as extracted.
        VirtualBox needs to "import" the ovf. It creates a .vbox file.
     """
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s provider:%s",
-                 name, box, box_version, location, provider)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s provider:%s windows:%s",
+                 name, box, box_version, location, provider, windows)
     if provider is None:
         provider = 'vmware'
 
@@ -474,7 +479,8 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
             location=location,
             force=force,
             save=save,
-            provider=provider)
+            provider=provider,
+            windows=windows)
         if not name_version_box:
             sys.exit(click.style("Cannot find a valid box with a VMX/OVF "
                                  "file in boxfile", fg="red"))
@@ -529,18 +535,19 @@ def init_box(name, box=None, box_version=None, location=None, force=False, save=
 
 
 def add_box(name=None, box=None, box_version=None, location=None,
-            force=False, save=True, provider=None):
+            force=False, save=True, provider=None, windows=None):
     """Add a box."""
     # build the dict
-    LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s',
-                 name, box, box_version, location, provider)
+    LOGGER.debug('name:%s box:%s box_version:%s location:%s provider:%s windows:%s',
+                 name, box, box_version, location, provider, windows)
 
     mechfile_entry = build_mechfile_entry(
         box=box,
         name=name,
         location=location,
         box_version=box_version,
-        provider=provider)
+        provider=provider,
+        windows=windows)
 
     return add_mechfile(
         mechfile_entry,
@@ -550,38 +557,44 @@ def add_box(name=None, box=None, box_version=None, location=None,
         box_version=box_version,
         force=force,
         save=save,
-        provider=provider)
+        provider=provider,
+        windows=windows)
 
 
 def add_mechfile(mechfile_entry, name=None, box=None, box_version=None,
-                 location=None, force=False, save=True, provider=None):
+                 location=None, force=False, save=True, provider=None,
+                 windows=None):
     """Add a mechfile entry."""
-    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s provider:%s',
-                 mechfile_entry, name, box, box_version, location, provider)
+    LOGGER.debug('mechfile_entry:%s name:%s box:%s box_version:%s location:%s '
+                 'provider:%s windows:%s', mechfile_entry, name, box,
+                 box_version, location, provider, windows)
 
     box = mechfile_entry.get('box')
     name = mechfile_entry.get('name')
     box_version = mechfile_entry.get('box_version')
     provider = mechfile_entry.get('provider')
+    windows = mechfile_entry.get('windows')
 
     url = mechfile_entry.get('url')
     box_file = mechfile_entry.get('file')
 
     if box_file:
         return add_box_file(box=box, box_version=box_version, filename=box_file,
-                            force=force, save=save, provider=provider)
+                            force=force, save=save, provider=provider,
+                            windows=windows)
 
     if url:
         return add_box_url(name=name, box=box, box_version=box_version,
-                           url=url, force=force, save=save, provider=provider)
+                           url=url, force=force, save=save,
+                           provider=provider, windows=windows)
     click.secho("Could not find a VMWare compatible VM for '{}'{}".format(
         name, " ({})".format(box_version) if box_version else ""), fg="red")
 
 
-def add_box_url(name, box, box_version, url, force=False, save=True, provider=None):
+def add_box_url(name, box, box_version, url, force=False, save=True, provider=None, windows=None):
     """Add a box using the URL."""
-    LOGGER.debug('name:%s box:%s box_version:%s url:%s provider:%s',
-                 name, box, box_version, url, provider)
+    LOGGER.debug('name:%s box:%s box_version:%s url:%s provider:%s windows:%s',
+                 name, box, box_version, url, provider, windows)
     box_parts = box.split('/')
     first_box_part = box_parts[0]
     second_box_part = ''
@@ -622,12 +635,13 @@ def add_box_url(name, box, box_version, url, force=False, save=True, provider=No
                             name=name,
                             box_version=box_version,
                             force=force,
-                            save=save)
+                            save=save,
+                            windows=windows)
                     else:
                         # Otherwise it must be a valid box:
                         return add_box_file(box=box, box_version=box_version,
                                             filename=the_file.name, url=url, force=force,
-                                            save=save, provider=provider)
+                                            save=save, provider=provider, windows=windows)
                 finally:
                     os.unlink(the_file.name)
         except requests.HTTPError as exc:
@@ -638,7 +652,7 @@ def add_box_url(name, box, box_version, url, force=False, save=True, provider=No
 
 
 def add_box_file(box=None, box_version=None, filename=None, url=None,
-                 force=False, save=True, provider=None):
+                 force=False, save=True, provider=None, windows=None):
     """Add a box using a file as the source. Returns box and box_version."""
     click.secho("\nChecking integrity of provider:{} box:'{}' "
                 "\nfilename:{}...".format(provider, box, filename), fg="blue")
@@ -698,16 +712,18 @@ def get_info_for_auth(mech_use=False):
 
 
 def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
-                  use_me=None, provider=None):
+                  use_me=None, provider=None, windows=None):
     """Initialize the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s provider:%s",
-                 name, box, box_version, location, add_me, use_me, provider)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s"
+                 " provider:%s windows:%s", name, box, box_version, location,
+                 add_me, use_me, provider, windows)
     mechfile_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     if add_me:
         mechfile_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('mechfile_entry:%s', mechfile_entry)
@@ -715,16 +731,18 @@ def init_mechfile(location=None, box=None, name=None, box_version=None, add_me=N
 
 
 def add_to_mechfile(location=None, box=None, name=None, box_version=None, add_me=None,
-                    use_me=None, provider=None):
+                    use_me=None, provider=None, windows=None):
     """Add entry to the Mechfile."""
-    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s provider:%s",
-                 name, box, box_version, location, add_me, use_me, provider)
+    LOGGER.debug("name:%s box:%s box_version:%s location:%s add_me:%s use_me:%s "
+                 "provider:%s windows:%s", name, box, box_version, location,
+                 add_me, use_me, provider, windows)
     this_mech_entry = build_mechfile_entry(
         location=location,
         box=box,
         name=name,
         box_version=box_version,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     if add_me:
         this_mech_entry.update(get_info_for_auth(use_me))
     LOGGER.debug('this_mech_entry:%s', this_mech_entry)
@@ -1002,9 +1020,28 @@ def provision(instance, show=False):
                                 "args:{}".format(instance.name, provision_type,
                                                  inline, path, args), fg="green")
                 else:
-                    click.secho("Inline provisioining (inline:{} path:{} args:{}".format(
+                    click.secho("Inline shell provisioining (inline:{} path:{} args:{}".format(
                                 inline, path, args), fg="green")
                     if provision_shell(instance, inline, path, args) is None:
+                        click.secho("Not Provisioned", fg="red")
+                        return
+                provisioned += 1
+
+            elif provision_type == 'ps':
+                inline = pro.get('inline')
+                path = pro.get('path')
+
+                args = pro.get('args')
+                if not isinstance(args, list):
+                    args = [args]
+                if show:
+                    click.secho(" instance.name:{} provision_type:{} inline:{} path:{} "
+                                "args:{}".format(instance.name, provision_type,
+                                                 inline, path, args), fg="green")
+                else:
+                    click.secho("Inline ps provisioining (inline:{} path:{} args:{}".format(
+                                inline, path, args), fg="green")
+                    if provision_ps(instance, inline, path) is None:
                         click.secho("Not Provisioned", fg="red")
                         return
                 provisioned += 1
@@ -1030,13 +1067,75 @@ def provision(instance, show=False):
                 provisioned += 1
 
             else:
-                click.secho("Not Provisioned ({}".format(i), fg="red")
+                click.secho("Not Provisioned - unknown provision type ({}) "
+                            "(entries:{})".format(provision_type, i), fg="red")
                 return
         else:
             click.secho("VM ({}) Provision {} "
                         "entries".format(instance.name, provisioned), fg="green")
     else:
         click.secho("Nothing to provision", fg="blue")
+
+
+def winrm_copy(instance, local, remote):
+    '''Copy file using winrm.'''
+    suppress_urllib3_errors()
+    client = Client(instance.get_ip(), username=instance.user,
+                    password=instance.password, ssl=False)
+    client.copy(local, remote)
+    click.echo("Copied")
+    # return code, stdout, stderr
+    return 0, '', ''
+
+
+def winrm_execute_cmd(instance, command):
+    '''Run command prompt command using winrm.
+
+       Returns:
+          return_code
+          stdout
+          stderr
+    '''
+    LOGGER.debug('instance.name:%s command:%s', instance.name, command)
+    suppress_urllib3_errors()
+    client = Client(instance.get_ip(), username=instance.user,
+                    password=instance.password, ssl=False)
+    stdout, stderr, return_code = client.execute_cmd(command)
+    LOGGER.debug('command:%s return_code:%d stdout:%s stderr:%s',
+                 command, return_code, stdout, stderr)
+    if stdout:
+        click.echo(stdout.strip())
+    if stderr:
+        click.echo(stderr)
+    return return_code, stdout, stderr
+
+
+def winrm_execute_ps(instance, powershell, args=None):
+    '''Run powershell using winrm.
+
+       Returns:
+          return_code
+          stdout
+          stderr (which will be '')
+    '''
+    LOGGER.debug('instance.name:%s powershell:%s args:%s', instance.name, powershell, args)
+    suppress_urllib3_errors()
+
+    powershell_with_args = powershell
+    if args is not None:
+        powershell_with_args = '{} {}'.format(powershell, args)
+
+    client = Client(instance.get_ip(), username=instance.user,
+                    password=instance.password, ssl=False)
+    output, _, had_errors = client.execute_ps(powershell_with_args)
+    LOGGER.debug('powershell:%s output:%s had_errors:%s', powershell, output, had_errors)
+
+    return_code = 0
+    if had_errors:
+        return_code = 1
+    if output:
+        click.echo(output)
+    return return_code, output, ''
 
 
 def provision_file(instance, source, destination):
@@ -1047,12 +1146,21 @@ def provision_file(instance, source, destination):
         source (str): full path of a file to copy
         source (str): full path where the file is to be copied to
 
+    Returns:
+        return_code
+        stdout
+        stderr
+
     Notes:
        This function copies a file from host to guest.
 
     """
     click.secho("Copying ({}) to ({})".format(source, destination), fg="blue")
-    return scp(instance, source, destination, True)
+    if instance.windows is True:
+        click.secho("Note: Windows instance.", fg="blue")
+        return winrm_copy(instance, source, destination)
+    else:
+        return scp(instance, source, destination, True)
 
 
 def create_tempfile_in_guest(instance):
@@ -1062,8 +1170,17 @@ def create_tempfile_in_guest(instance):
     return stdout
 
 
+def winrm_create_tempfile_in_guest(instance):
+    """Create a tempfile in the guest using wirrm."""
+    ps = '$file=New-TemporaryFile; $file.fullname'
+    _, stdout, _ = winrm_execute_ps(instance=instance, powershell=ps)
+    return stdout
+
+
 def provision_shell(instance, inline, script_path, args=None):
     """Provision from shell.
+
+       Note: The script must be copied to guest, then run from there.
 
     Args:
         instance (MechInstance): instance of the MechInstance class
@@ -1131,6 +1248,61 @@ def provision_shell(instance, inline, script_path, args=None):
 
     finally:
         return ssh(instance, 'rm -f "{}"'.format(tmp_path))
+
+
+def provision_ps(instance, inline, script_path):
+    """Provision from powershell.
+
+       Notes:
+          1) The script will be run from the host, not the guest.
+          2) Args are not used at this time.
+
+    Args:
+        instance (MechInstance): instance of the MechInstance class
+        inline (bool): run the script inline
+        script_path (str): path to the script to run
+        args (list of str): arguments to the script
+
+    """
+    LOGGER.debug('inline:%s script_path:%s', inline, script_path)
+
+    ps = ''
+
+    if script_path and os.path.isfile(script_path):
+        # we have a local file with powershell, no need to download
+        # just load into a variable
+        with open(script_path, 'r') as script_file:
+            ps = script_file.read().strip()
+    else:
+        if script_path:
+            if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                # looks like we need to download the powershell
+                click.secho("Downloading {}...".format(script_path), fg="blue")
+                try:
+                    response = requests.get(script_path)
+                    response.raise_for_status()
+                    inline = response.read()
+                except requests.HTTPError:
+                    return
+                except requests.ConnectionError:
+                    return
+
+            else:
+                click.secho("Cannot open {}".format(script_path), fg="red")
+                return
+
+        # Note: "inline" can come from remote source in script_file or
+        #       it can come from "inline" variable
+        if not inline:
+            click.secho("No script to execute", fg="red")
+            return
+
+        ps = inline
+
+    click.secho("Executing powershell...({})".format(ps), fg="blue")
+    return_code, stdout, stderr = winrm_execute_ps(instance=instance,
+                                                   powershell=ps)
+    return return_code, stdout, stderr
 
 
 def provision_pyinfra(instance, script_path, args=None):

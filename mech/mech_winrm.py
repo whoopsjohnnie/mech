@@ -85,7 +85,7 @@ def run(ctx, instance, command, powershell):
 
     Notes:
         Example command: 'date /T'
-        Example powershell: 'Write-Host hello'
+        Example powershell: 'Write-Output hello'
 
     """
     cloud_name = ctx.obj['cloud_name']
@@ -103,24 +103,10 @@ def run(ctx, instance, command, powershell):
     inst = MechInstance(instance)
 
     if inst.created:
-        LOGGER.debug("connecting to pypsrp using: server:%s username:%s"
-                     " password:%s", inst.get_ip(), inst.user, inst.password)
-        utils.suppress_urllib3_errors()
-        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
         if command:
-            stdout, stderr, return_code = client.execute_cmd(command)
-            LOGGER.debug('command:%s return_code:%d stdout:%s stderr:%s',
-                         command, return_code, stdout, stderr)
-            if stdout:
-                click.echo(stdout)
-            if stderr:
-                click.echo(stderr)
-        else:
-            output, streams, had_errors = client.execute_ps(powershell)
-            LOGGER.debug('powershell:%s output:%s streams:%s '
-                         'had_errors:%s', powershell, output, streams, had_errors)
-            if output:
-                click.echo(output)
+            utils.winrm_execute_cmd(inst, command)
+        if powershell:
+            utils.winrm_execute_ps(inst, powershell)
 
     else:
         click.echo("VM not created.")
@@ -147,9 +133,7 @@ def copy(ctx, local, remote, instance):
     inst = MechInstance(instance)
 
     if inst.created:
-        utils.suppress_urllib3_errors()
-        client = Client(inst.get_ip(), username=inst.user, password=inst.password, ssl=False)
-        client.copy(local, remote)
+        utils.winrm_copy(inst, local, remote)
         click.echo("Copied")
 
 

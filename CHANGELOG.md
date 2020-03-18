@@ -4,6 +4,7 @@
 + Add more unit tests
 + Add help text for 'mech -h'
 + Show provisioning details
++ Windows provisioning using inline/powershell (no args)
 
 # v0.9.2
 
