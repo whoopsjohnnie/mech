@@ -1076,6 +1076,134 @@ def test_provision_shell(mock_create_tempfile, mock_isfile,
     assert re.search(r'Executing program', out, re.MULTILINE)
 
 
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+@patch('os.path.isfile', return_value=True)
+def test_provision_ps_file(mock_isfile, mock_winrm, capfd, mechfile_one_entry_windows):
+    """Test provision_ps."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision_ps(inst, inline=False, script_path='file1.ps')
+        out, _ = capfd.readouterr()
+        mock_isfile.assert_called()
+        mock_winrm.assert_called()
+        assert re.search(r'Executing powershell', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_ps', return_value=(0, '', ''))
+def test_provision_with_ps(mock_provision_ps, capfd,
+                           mechfile_one_entry_windows, ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst)
+        out, _ = capfd.readouterr()
+        mock_provision_ps.assert_called()
+        assert re.search(r'Inline ps', out, re.MULTILINE)
+        assert re.search(r'Provision 2', out, re.MULTILINE)
+
+
+@patch('mech.utils.provision_ps', return_value=None)
+def test_provision_with_ps_fails(mock_provision_ps, capfd,
+                                 mechfile_one_entry_windows, ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst)
+        out, _ = capfd.readouterr()
+        mock_provision_ps.assert_called()
+        assert re.search(r'Not Provisioned', out, re.MULTILINE)
+
+
+def test_provision_with_ps_show(capfd, mechfile_one_entry_windows,
+                                ps_provision_config):
+    """Test provision."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    inst.provision = ps_provision_config
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision(inst, show=True)
+        out, _ = capfd.readouterr()
+        assert re.search(r'instance.name', out, re.MULTILINE)
+
+
+@patch('os.path.isfile', return_value=False)
+def test_provision_ps_badfile(mock_isfile, capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_ps(inst, inline=False, script_path='file1.ps')
+    out, _ = capfd.readouterr()
+    mock_isfile.assert_called()
+    assert re.search(r'Cannot open', out, re.MULTILINE)
+
+
+def test_provision_ps_none(capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mech.utils.provision_ps(inst, inline=None, script_path=None)
+    out, _ = capfd.readouterr()
+    assert re.search(r'Need to provide', out, re.MULTILINE)
+
+
+@patch('requests.get')
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+@patch('os.path.isfile', return_value=False)
+def test_provision_ps_http(mock_isfile, mock_winrm, mock_requests_get,
+                           capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    mock_requests_get.return_value.status_code = 200
+    mock_requests_get.return_value.raise_for_status.return_value = None
+    mock_requests_get.return_value.read.return_value = 'echo hello'
+    mech.utils.provision_ps(inst, inline=False, script_path='http://example.com/file1.ps')
+    out, _ = capfd.readouterr()
+    mock_isfile.assert_called()
+    mock_winrm.assert_called()
+    mock_requests_get.assert_called()
+    assert re.search(r'Downloading', out, re.MULTILINE)
+    assert re.search(r'Executing powershell', out, re.MULTILINE)
+
+
+@patch('mech.utils.winrm_execute_ps', return_value=(0, '', ''))
+def test_provision_ps_inline(mock_winrm, capfd, mechfile_one_entry_windows):
+    """Test provision_shell."""
+    inst = mech.mech_instance.MechInstance('first', mechfile_one_entry_windows)
+    some_vmx = '/tmp/first/some.vmx'
+    inst.vmx = some_vmx
+    inst.created = True
+    a_mock = mock_open(read_data='echo hello')
+    with patch('builtins.open', a_mock, create=True):
+        mech.utils.provision_ps(inst, inline='echo hello', script_path=None)
+        out, _ = capfd.readouterr()
+        mock_winrm.assert_called()
+        assert re.search(r'Executing powershell', out, re.MULTILINE)
+
+
 @patch('mech.utils.create_tempfile_in_guest', return_value=None)
 def test_provision_shell_cannot_create_temp_file_in_guest(mock_create_tempfile,
                                                           capfd,

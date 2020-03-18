@@ -47,6 +47,19 @@ def mechfile_one_entry():
 
 
 @pytest.fixture
+def mechfile_one_entry_windows():
+    """Return one mechfile entry that is windows."""
+    return {
+        'first': {
+            'name': 'first',
+            'box': 'StefanScherer/windows_10',
+            'box_version': '2020.02.12',
+            'windows': 'True'
+        }
+    }
+
+
+@pytest.fixture
 def mechfile_one_entry_virtualbox():
     """Return one mechfile entry."""
     return {
@@ -209,6 +222,20 @@ def shell_provision_config():
             "type": "shell",
             "inline": "echo hello2 from inline",
             "args": []
+        }
+    ]
+
+
+@pytest.fixture
+def ps_provision_config():
+    return [
+        {
+            "type": "ps",
+            "path": "file1.ps"
+        },
+        {
+            "type": "ps",
+            "inline": "echo hello from inline"
         }
     ]
 

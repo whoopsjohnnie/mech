@@ -735,10 +735,9 @@ def global_status(ctx, purge):
               help='Do not use NAT networking (i.e., use bridged).')
 @click.option('--numvcpus', metavar='VCPUS', help='Specify number of vcpus.')
 @click.option('-r', '--remove-vagrant', is_flag=True, default=False, help='Remove vagrant user.')
-@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
 def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize, no_cache,
-       no_nat, numvcpus, remove_vagrant, windows):
+       no_nat, numvcpus, remove_vagrant):
     '''
     Starts and provisions instance(s).
 
@@ -764,15 +763,12 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
     guest VM which is what 'mech' uses to communicate with the VM.
     Be sure you can connect/admin the instance before using this option.
     Be sure to check that root cannot ssh, or change the root password.
-
-    The 'windows' flag is used for provisioning. When enabled, winrm will
-    be used instead of scp.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s disable_provisioning:%s disable_shared_folders:%s '
-                 'gui:%s memsize:%s no_cache:%s no_nat:%s numvcpus:%s remove_vagrant:%s windows:%s',
+                 'gui:%s memsize:%s no_cache:%s no_nat:%s numvcpus:%s remove_vagrant:%s',
                  cloud_name, instance, disable_provisioning, disable_shared_folders,
-                 gui, memsize, no_cache, no_nat, numvcpus, remove_vagrant, windows)
+                 gui, memsize, no_cache, no_nat, numvcpus, remove_vagrant)
 
     if cloud_name:
         utils.cloud_run(cloud_name, ['up', 'start'])
@@ -793,7 +789,6 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
         inst.disable_provisioning = disable_provisioning
         inst.remove_vagrant = remove_vagrant
         inst.no_nat = no_nat
-        inst.windows = windows
 
         if not utils.report_provider(inst.provider):
             return
@@ -814,8 +809,8 @@ def up(ctx, instance, disable_provisioning, disable_shared_folders, gui, memsize
                 save=not no_cache,
                 numvcpus=numvcpus,
                 memsize=memsize,
-                windows=windows,
                 no_nat=no_nat,
+                windows=inst.windows,
                 provider=inst.provider)
             if inst.provider == 'vmware':
                 inst.vmx = path_to_vmx_or_vbox
@@ -872,8 +867,9 @@ def remove(ctx, name):
               help='Provider (`vmware` or `virtualbox`)')
 @click.option('--use-me', '-u', is_flag=True, default=False,
               help='Use the current user for mech interactions.')
+@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
-def add(ctx, name, location, add_me, box, box_version, provider, use_me):
+def add(ctx, name, location, add_me, box, box_version, provider, use_me, windows):
     '''
     Add instance to the Mechfile.
 
@@ -885,8 +881,8 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s name:%s location:%s add_me:%s box:%s box_version:%s '
-                 'provider:%s use_me:%s', cloud_name, name, location, add_me, box,
-                 box_version, provider, use_me)
+                 'provider:%s use_me:%s windows:%s', cloud_name, name, location, add_me, box,
+                 box_version, provider, use_me, windows)
 
     if cloud_name:
         utils.cloud_run(cloud_name, ['add'])
@@ -906,7 +902,8 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
         box_version=box_version,
         add_me=add_me,
         use_me=use_me,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     click.secho('Added to the Mechfile.', fg='green')
 
 
@@ -923,8 +920,9 @@ def add(ctx, name, location, add_me, box, box_version, provider, use_me):
               help='Provider (`vmware` or `virtualbox`)')
 @click.option('--use-me', '-u', is_flag=True, default=False,
               help='Use the current user for mech interactions.')
+@click.option('--windows', '-w', is_flag=True, default=False, help='Windows instance')
 @click.pass_context
-def init(ctx, location, add_me, box, box_version, force, name, provider, use_me):
+def init(ctx, location, add_me, box, box_version, force, name, provider, use_me, windows):
     '''
     Initialize Mechfile.
 
@@ -949,12 +947,15 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
 
     The 'use-me' option will use the currently logged in user for
     future interactions with the guest instead of the vagrant user.
+
+    The 'windows' flag is used for provisioning. When enabled, winrm will
+    be used instead of scp.
     '''
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s location:%s add_me:%s box:%s box_version:%s '
-                 'force:%s name:%s provider:%s use_me:%s', cloud_name,
+                 'force:%s name:%s provider:%s use_me:%s windows:%s', cloud_name,
                  location, add_me, box, box_version,
-                 force, name, provider, use_me)
+                 force, name, provider, use_me, windows)
 
     if not utils.valid_provider(provider):
         sys.exit(click.style('Need to provide valid provider.', fg='red'))
@@ -977,7 +978,8 @@ def init(ctx, location, add_me, box, box_version, force, name, provider, use_me)
         box_version=box_version,
         add_me=add_me,
         use_me=use_me,
-        provider=provider)
+        provider=provider,
+        windows=windows)
     click.secho('A `Mechfile` has been initialized and placed in this directory. \n'
                 'You are now ready to `mech up` your first virtual environment!', fg='green')
 

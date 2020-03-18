@@ -94,8 +94,10 @@ class MechInstance():
 
         self.windows = False
         windows = mechfile[name].get('windows', False)
+        LOGGER.debug("windows:%s", windows)
         if windows and windows.lower() == "true":
             self.windows = True
+        LOGGER.debug("self.windows:%s", self.windows)
 
         self.enable_ip_lookup = False
         self.config = {}

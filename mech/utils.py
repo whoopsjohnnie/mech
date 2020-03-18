@@ -1274,30 +1274,28 @@ def provision_ps(instance, inline, script_path):
         with open(script_path, 'r') as script_file:
             ps = script_file.read().strip()
     else:
-        if script_path:
-            if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
-                # looks like we need to download the powershell
-                click.secho("Downloading {}...".format(script_path), fg="blue")
-                try:
-                    response = requests.get(script_path)
-                    response.raise_for_status()
-                    inline = response.read()
-                except requests.HTTPError:
+        if inline:
+            # we have inline script to run
+            ps = inline
+        else:
+            if script_path:
+                if any(script_path.startswith(s) for s in ('https://', 'http://', 'ftp://')):
+                    # looks like we need to download the powershell
+                    click.secho("Downloading {}...".format(script_path), fg="blue")
+                    try:
+                        response = requests.get(script_path)
+                        response.raise_for_status()
+                        ps = response.read()
+                    except requests.HTTPError:
+                        return
+                    except requests.ConnectionError:
+                        return
+                else:
+                    click.secho("Cannot open {}".format(script_path), fg="red")
                     return
-                except requests.ConnectionError:
-                    return
-
             else:
-                click.secho("Cannot open {}".format(script_path), fg="red")
+                click.secho("Need to provide inline or script to run powershell", fg="red")
                 return
-
-        # Note: "inline" can come from remote source in script_file or
-        #       it can come from "inline" variable
-        if not inline:
-            click.secho("No script to execute", fg="red")
-            return
-
-        ps = inline
 
     click.secho("Executing powershell...({})".format(ps), fg="blue")
     return_code, stdout, stderr = winrm_execute_ps(instance=instance,
