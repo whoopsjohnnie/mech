@@ -53,6 +53,11 @@ def config(ctx, instance):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s', cloud_name, instance)
 
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
+
     if instance:
         # single instance
         instances = [instance]
@@ -87,6 +92,11 @@ def run(ctx, instance, command, powershell):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s instance:%s command:%s powershell:%s',
                  cloud_name, instance, command, powershell)
+
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
 
     if (command is None or command == '') and (powershell is None or powershell == ''):
         sys.exit(click.style("Command or Powershell is required", fg="red"))
@@ -129,6 +139,11 @@ def copy(ctx, local, remote, instance):
     LOGGER.debug('cloud_name:%s local:%s remote:%s instance:%s',
                  cloud_name, local, remote, instance)
 
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
+
     inst = MechInstance(instance)
 
     if inst.created:
@@ -150,6 +165,11 @@ def fetch(ctx, remote, local, instance):
     cloud_name = ctx.obj['cloud_name']
     LOGGER.debug('cloud_name:%s remote:%s local:%s instance:%s',
                  cloud_name, remote, local, instance)
+
+    if cloud_name:
+        # Note: All winrm ops are supported.
+        utils.cloud_run(cloud_name, ['winrm'])
+        return
 
     inst = MechInstance(instance)
 

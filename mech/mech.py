@@ -58,6 +58,14 @@ class MechAliasedGroup(click.Group):
 @click.version_option(version=__version__, message='%(prog)s v%(version)s')
 @click.pass_context
 def cli(ctx, debug, cloud):
+    '''Mech is a command line utility for virtual machine automation.
+
+    Create, start, stop, destroy virtual machines (aka instances) with ease.
+
+    VMware Fusion, VMware Workstation, and/or Oracle VirtualBox can be used.
+
+    Mech is similar to Hashicorp's vagrant utility.
+    '''
     logger = logging.getLogger()
     handler = logging.StreamHandler(sys.stderr)
     formatter = logging.Formatter('%(filename)s:%(lineno)s %(funcName)s() '

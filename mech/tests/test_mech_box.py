@@ -9,6 +9,31 @@ from click.testing import CliRunner
 from mech.mech_cli import cli
 
 
+def test_mech_box_add_with_cloud():
+    """Test 'mech box add' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'box', 'add', 'bento/ubuntu-18.04'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_box_list_with_cloud():
+    """Test 'mech box list' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'box', 'list'])
+        mock_cloud_run.assert_called()
+
+
+def test_mech_box_remove_with_cloud():
+    """Test 'mech box remove' with cloud."""
+    runner = CliRunner()
+    with patch('mech.utils.cloud_run') as mock_cloud_run:
+        runner.invoke(cli, ['--cloud', 'foo', 'box', 'remove', '--version', 'somever',
+                            '--name', 'bento/ubuntu-18.04'])
+        mock_cloud_run.assert_called()
+
+
 @patch('os.getcwd')
 def test_mech_box_list_no_mechdir(mock_os_getcwd):
     """Test 'mech box list' with no '.mech' directory."""
@@ -90,6 +115,21 @@ def test_mech_box_add_new(mock_os_getcwd, mock_os_path_exists,
     mock_requests_get.return_value.json.return_value = catalog_as_json
     result = runner.invoke(cli, ['box', 'add', '--provider', 'vmware', 'bento/ubuntu-18.04'])
     assert re.search(r'Checking integrity', result.output, re.MULTILINE)
+
+
+def test_mech_box_add_with_invalid_provider():
+    """Test 'mech box add'."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ['box', 'add', '--provider', 'atari', 'bento/ubuntu-18.04'])
+    assert re.search(r'Need to provide valid provider', result.output, re.MULTILINE)
+
+
+def test_mech_box_remove_with_invalid_provider():
+    """Test 'mech box remove'."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ['box', 'remove', '--version', 'somever',
+                                 '--provider', 'atari', '--name', 'bento/ubuntu-18.04'])
+    assert re.search(r'Need to provide valid provider', result.output, re.MULTILINE)
 
 
 @patch('requests.get')
