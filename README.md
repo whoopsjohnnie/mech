@@ -18,6 +18,14 @@ There is `--help` on every operation.
 ```
 Usage: mech [OPTIONS] COMMAND [ARGS]...
 
+  Mech is a command line utility for virtual machine automation.
+
+  Create, start, stop, destroy virtual machines (aka instances) with ease.
+
+  VMware Fusion, VMware Workstation, and/or Oracle VirtualBox can be used.
+
+  Mech is similar to Hashicorp's vagrant utility.
+
 Options:
   --debug
   --cloud TEXT
@@ -151,6 +159,7 @@ Options:
   --box-version VERSION  Constrain to specific box version.
   --provider PROVIDER    Provider (`vmware` or `virtualbox`)
   -u, --use-me           Use the current user for mech interactions.
+  -w, --windows          Windows instance
   -h, --help             Show this message and exit.
 ```
 

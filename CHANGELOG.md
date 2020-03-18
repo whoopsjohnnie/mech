@@ -1,4 +1,4 @@
-# TBD
+# v0.9.3
 
 + Enable "cloud" on subcommand (winrm)
 + Add more unit tests
