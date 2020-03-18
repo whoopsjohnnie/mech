@@ -1914,7 +1914,7 @@ def test_cleanup_dir_and_vms_from_dir(mock_kill, mock_find, mock_subprocess):
     with patch('mech.utils.rmtree') as mock_rmtree:
         with patch('os.mkdir') as mock_mkdir:
             mech.utils.cleanup_dir_and_vms_from_dir("/tmp/some_fake_dir",
-                                                    names=['some_fake_name'],
+                                                    names=None,
                                                     all_vms=True)
             mock_kill.assert_called()
             mock_find.assert_called()
@@ -2054,3 +2054,68 @@ def test_cloud_run(mock_load, mock_subprocess, mechcloudfile_one_entry):
         assert return_code == 0
         assert stdout == 'foo'
         assert stderr == 'bar'
+
+
+def test_save_mechcloudfile(mechcloudfile_one_entry):
+    """Test save_mechcloudfile()."""
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.save_mechcloudfile(mechcloudfile_one_entry)
+        a_mock.assert_called()
+
+
+@patch('mech.utils.save_mechcloudfile', return_value=True)
+@patch('mech.utils.load_mechcloudfile')
+def test_remove_mechcloudfile_entry(mock_load, mock_save, mechcloudfile_one_entry):
+    """Test remove_mechcloudfile_entry()."""
+    mock_load.return_value = mechcloudfile_one_entry
+    assert mech.utils.remove_mechcloudfile_entry("tophat")
+    mock_load.assert_called()
+    mock_save.assert_called()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile_empty(mock_os_getcwd, mock_os_path_isfile,
+                                  mock_json_loads):
+    """Test load_mechcloudfile()."""
+    expected = {}
+    mock_os_getcwd.return_value = '/tmp'
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.load_mechcloudfile() == expected
+        a_mock.assert_called()
+        mock_os_getcwd.assert_called()
+        mock_os_path_isfile.assert_called()
+
+
+@patch('json.loads')
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile(mock_os_getcwd, mock_os_path_isfile, mock_json_loads,
+                            mechcloudfile_one_entry):
+    """Test load_mechcloudfile()."""
+    expected = mechcloudfile_one_entry
+    mock_os_getcwd.return_value = '/tmp'
+    mock_json_loads.return_value = expected
+    mock_os_path_isfile.return_value = True
+    a_mock = mock_open()
+    with patch('builtins.open', a_mock, create=True):
+        assert mech.utils.load_mechcloudfile() == expected
+        a_mock.assert_called()
+        mock_os_getcwd.assert_called()
+        mock_os_path_isfile.assert_called()
+
+
+@patch('os.path.isfile')
+@patch('os.getcwd')
+def test_load_mechcloudfile_file_not_present_but_should_be(mock_os_getcwd,
+                                                           mock_os_path_isfile):
+    """Test load_mechcloudfile()."""
+    mock_os_getcwd.return_value = '/tmp'
+    mock_os_path_isfile.return_value = False
+    with raises(SystemExit, match=r"Could not find a Mechcloudfile"):
+        mech.utils.load_mechcloudfile(True)
