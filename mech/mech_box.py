@@ -69,6 +69,7 @@ def add(ctx, location, box_version, force, provider):
     """
     Add a box to the catalog of available boxes.
 
+   \b
     Notes:
         The location can be a:
             URL (ex: 'http://example.com/foo.box'),

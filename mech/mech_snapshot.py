@@ -131,6 +131,7 @@ def save(ctx, name, instance):
     Take a snapshot of the current state of the instance.
 
     Notes:
+
         Snapshots are useful for experimenting in a machine for being able
         to rollback quickly.
     '''

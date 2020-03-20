@@ -52,6 +52,7 @@ def cloud():
     '''Cloud operations.
 
     Notes:
+
         Mech Cloud is an easy way to expose resources for non-local use.
 
         If you have a spare desktop/laptop:
@@ -60,80 +61,66 @@ def cloud():
 
         2. Install pre-requisites ("python3.7+" and "virtualenv")
 
+           \b
            For Ubuntu:
-
              sudo apt-get install python3.7 python3-pip
-
              sudo pip3 install virtualenv
 
+           \b
            For Fedora:
-
              sudo dnf install python37 python3-pip
-
              sudo pip3 install virtualenv
 
+           \b
            For Windows:
 
+             \b
              0. Consider creating a new local windows account for this. If so,
-
                 add the new account as Admin and run the next steps logged in
-
                 as that user.
 
+             \b
              1. Download python3.7 from
+                https://www.python.org/downloads/windows/
 
-                 https://www.python.org/downloads/windows/
-
+             \b
              2. Install python3.7 (enable the add python to path and fix long path options).
                 Ensure you can run this:
+                    python --version
 
-                python --version
-
+             \b
              3. Ensure you can run scripts: (open powershell as admin)
+                    Set-ExecutionPolicy Unrestricted
 
-                 Set-ExecutionPolicy Unrestricted
-
+             \b
              4. Enable winrm (open powershell as admin)
+                    Enable-PSRemoting -Force -SkipNetworkProfileCheck
 
-                 Enable-PSRemoting -Force -SkipNetworkProfileCheck
-
+             \b
              5. Install virtualenv
+                    pip install virtualenv
 
-                pip install virtualenv
-
-             6. Ensure VMware Workstation and/or Virtualbox is installed.
-
-             7. If using Virtualbox:
-
-                a. Consider running this: (open powershell as admin)
-
-                   setx PATH "$env:path;c:\\Program Files\\Oracle\\VirtualBox" -m
-
-                b. Check that VBoxManage works by opening a NEW powershell:
-
-                   VBoxManage -v
-
-
+        \b
         See https://github.com/Fizzadar/pyinfra/tree/master/examples/virtualbox
         to install virtualbox using `pyinfra` on Ubuntu.
 
+        \b
         Then add that host as a mech "cloud-instance" using the
-        "mech cloud init" command.
-
-        This would allow you to spin up/down virtual machines on that
-        computer. For instance, if you have a could-instance called "top",
-        you could init and start a VM on the remote computer using:
-
+        "mech cloud init" command. This enables the spinning up/down of
+        virtual machines on that computer. For instance, if you have a
+        could-instance called "top", you could init and start a VM on
+        the remote computer using:
             mech -C top init bento/ubuntu-18.04
-
             mech -C top up
 
 
+        \b
         The host's directory needs to have a virtual environment setup in
         "venv" and "mech" needs to be installed under that virtual
         environment, such as: "pip install mikemech". The 'mech cloud init'
         takes care of this for you.
 
+        \b
         Virtualbox instances are "global". So, you can have only one
         instance named "first".
     '''

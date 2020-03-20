@@ -1,3 +1,8 @@
+# TBD
+
++ First version using a Windows cloud host
++ Minor reformatting of some help pages
+
 # v0.9.3
 
 + Enable "cloud" on subcommand (winrm)

@@ -90,6 +90,7 @@ def run(ctx, instance, command, powershell):
     """
     Run command or powershell using winrm
 
+    \b
     Notes:
         Example command: 'date /T'
         Example powershell: 'Write-Output hello'
