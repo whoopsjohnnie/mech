@@ -108,15 +108,15 @@ def test_mech_winrm_run_command(mock_locate, mock_load_mechfile,
 @patch('mech.utils.load_mechfile')
 @patch('mech.utils.locate', return_value='/tmp/first/some.vmx')
 def test_mech_winrm_run_powershell(mock_locate, mock_load_mechfile,
-                                   mechfile_one_entry):
+                                   mechfile_one_entry_windows):
     """Test 'mech winrm run'."""
-    mock_load_mechfile.return_value = mechfile_one_entry
+    mock_load_mechfile.return_value = mechfile_one_entry_windows
     runner = CliRunner()
     mock_rv = ('hello', None, False)
     with patch.object(mech.mech_instance.MechInstance,
                       'get_ip', return_value="192.168.1.145") as mock_get_ip:
         with patch.object(Client, 'execute_ps', return_value=mock_rv) as mock_client_execute:
-            result = runner.invoke(cli, ['winrm', 'run', '--powershell',
+            result = runner.invoke(cli, ['--debug', 'winrm', 'run', '--powershell',
                                          'Write-Host hello', 'first'])
             mock_locate.assert_called()
             mock_load_mechfile.assert_called()

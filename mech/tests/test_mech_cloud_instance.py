@@ -26,12 +26,15 @@ def test_mech_cloud_instance(mock_load, mechcloudfile_one_entry):
     inst = mech.mech_cloud_instance.MechCloudInstance('tophat', mechcloudfile_one_entry)
     inst.read_config('tophat')
     expected_config = {'name': 'tophat', 'hostname': 'tophat.example.com',
-                       'directory': '~/test1', 'username': 'bob'}
+                       'directory': '~/test1', 'username': 'bob', 'password': '',
+                       'hosttype': 'ubuntu'}
     assert inst.config() == expected_config
     assert inst.name == 'tophat'
     assert inst.hostname == 'tophat.example.com'
     assert inst.directory == '~/test1'
     assert inst.username == 'bob'
+    assert inst.password == ''
+    assert inst.hosttype == 'ubuntu'
     mock_load.assert_called()
     with raises(SystemExit):
         inst.set_hostname('')

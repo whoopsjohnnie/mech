@@ -17,7 +17,8 @@ def test_mech_cloud_init_with_cloud():
     """Test 'mech cloud init' with cloud."""
     runner = CliRunner()
     with patch('mech.utils.cloud_run') as mock_cloud_run:
-        runner.invoke(cli, ['--cloud', 'foo', 'cloud', 'init', 'host', 'dir', 'bob', 'somecloud'])
+        runner.invoke(cli, ['--cloud', 'foo', 'cloud', 'init', 'host',
+                            'dir', 'bob', '', 'somecloud'])
         mock_cloud_run.assert_called()
 
 
@@ -71,7 +72,7 @@ def test_mech_cloud_init():
     # mock 'init' as we do not really want to init/communicate with this host
     with patch.object(mech.mech_cloud_instance.MechCloudInstance,
                       'init') as mock_init:
-        runner.invoke(cli, ['cloud', 'init', 'host', 'dir', 'bob', 'somecloud'])
+        runner.invoke(cli, ['cloud', 'init', 'host', 'dir', 'bob', '', 'somecloud'])
         mock_init.assert_called()
 
 

@@ -26,6 +26,7 @@
 
 from __future__ import print_function, absolute_import
 
+import re
 import sys
 import logging
 
@@ -48,7 +49,9 @@ class MechCloudInstance():
         self.name = name
         self.hostname = None
         self.username = None
+        self.password = None
         self.directory = None
+        self.hosttype = None
 
     def read_config(self, name):
         '''Read the configuration.'''
@@ -64,6 +67,12 @@ class MechCloudInstance():
         self.hostname = clouds[name].get('hostname')
         self.directory = clouds[name].get('directory')
         self.username = clouds[name].get('username')
+        self.password = clouds[name].get('password', None)
+        hosttype = clouds[name].get('hosttype', None)
+        if hosttype is None:
+            self.hosttype = 'ubuntu'
+        else:
+            self.hosttype = hosttype
 
     def set_hostname(self, hostname):
         '''Setter for hostname.'''
@@ -85,13 +94,25 @@ class MechCloudInstance():
             sys.exit(click.style("A non-blank username is required.", fg="red"))
         self.username = username
 
+    def set_password(self, password):
+        '''Setter for username.'''
+        self.password = password
+
+    def set_hosttype(self, hosttype):
+        '''Setter for hosttype.'''
+        if hosttype is None or hosttype == '':
+            sys.exit(click.style("A non-blank hosttype is required.", fg="red"))
+        self.hosttype = hosttype
+
     def __repr__(self):
         """Return a representation of a Mech Cloud instance."""
         sep = '\n'
         return ('name:{name}{sep}hostname:{hostname}{sep}directory:{directory}'
-                '{sep}username:{username}'.
+                '{sep}username:{username}{sep}password:{password}{sep}'
+                'hosttype:{hosttype}'.
                 format(name=self.name, hostname=self.hostname, directory=self.directory,
-                       username=self.username, sep=sep))
+                       username=self.username, password=self.password,
+                       hosttype=self.hosttype, sep=sep))
 
     def config(self):
         """Return the configuration for this mech clould instance."""
@@ -100,6 +121,8 @@ class MechCloudInstance():
         entry['hostname'] = self.hostname
         entry['directory'] = self.directory
         entry['username'] = self.username
+        entry['password'] = self.password
+        entry['hosttype'] = self.hosttype
         return entry
 
     def init(self):
@@ -110,42 +133,88 @@ class MechCloudInstance():
         clouds = utils.load_mechcloudfile(False)
         clouds[self.name] = self.config()
         utils.save_mechcloudfile(clouds)
-        # create remote directory, if it does not exist
-        # Note: If using ~/mike for the directory, then ~ will not be expanded
-        # when surrounded by quotes. For this reason, directory should not have
-        # any spaces in it.
-        click.secho("Creating directory (if necessary)...", fg="blue")
-        self.ssh('if ! [ -d {directory} ]; then mkdir {directory} ; fi'
-                 .format(directory=self.directory))
-        # create virtualenv, if not already created
-        click.secho("Creating python virtual environment (if necessary)...", fg="blue")
-        self.ssh('cd {directory}; virtualenv -p python3.7 venv'
-                 .format(directory=self.directory))
-        # install mikemech into that python virtual environment using pip
-        click.secho("Installing mikemech into that python virtual environment...", fg="blue")
-        self.ssh('source {}/venv/bin/activate && pip install mikemech'.format(self.directory))
-        vmrun_found, _, _ = self.ssh('which vmrun', False)
-        if vmrun_found == 0:
-            click.secho("VMware vmrun was found.", fg="green")
+
+        if self.hosttype == 'ubuntu' or self.hosttype == '':
+            # create remote directory, if it does not exist
+            # Note: If using ~/mike for the directory, then ~ will not be expanded
+            # when surrounded by quotes. For this reason, directory should not have
+            # any spaces in it.
+            click.secho("Creating directory (if necessary)...", fg="blue")
+            self.ssh('if ! [ -d {directory} ]; then mkdir {directory} ; fi'
+                     .format(directory=self.directory))
+            # create virtualenv, if not already created
+            click.secho("Creating python virtual environment (if necessary)...", fg="blue")
+            self.ssh('cd {directory}; virtualenv -p python3.7 venv'
+                     .format(directory=self.directory))
+            # install mikemech into that python virtual environment using pip
+            click.secho("Installing mikemech into that python virtual environment...", fg="blue")
+            self.ssh('source {}/venv/bin/activate && pip install mikemech'.format(self.directory))
+            vmrun_found, _, _ = self.ssh('which vmrun', False)
+            if vmrun_found == 0:
+                click.secho("VMware vmrun was found.", fg="green")
+            else:
+                click.secho("VMware vmrun was not found.", fg="yellow")
+            vbm_found, _, _ = self.ssh('which VBoxManage', False)
+            if vbm_found == 0:
+                click.secho("Oracle VBoxManage was found.", fg="green")
+            else:
+                click.secho("Oracle VBoxManage was not found.", fg="yellow")
+            if vmrun_found != 0 and vbm_found != 0:
+                click.secho("Neither VMware vmrun nor Oracle VBoxManage was found.", fg="red")
+                click.secho("The 'mech' command will not be very useful.", fg="red")
         else:
-            click.secho("VMware vmrun was not found.", fg="yellow")
-        vbm_found, _, _ = self.ssh('which VBoxManage', False)
-        if vbm_found == 0:
-            click.secho("Oracle VBoxManage was found.", fg="green")
-        else:
-            click.secho("Oracle VBoxManage was not found.", fg="yellow")
-        if vmrun_found != 0 and vbm_found != 0:
-            click.secho("Neither VMware vmrun nor Oracle VBoxManage was found.", fg="red")
-            click.secho("The 'mech' command will not be very useful.", fg="red")
+            # create remote directory, if it does not exist
+            click.secho("Creating directory (if necessary)...", fg="blue")
+            self.ps('$path = "{directory}"; if (! (Test-Path $path)) {{ New-Item -ItemType '
+                    'Directory -Force -Path $path }}'.format(directory=self.directory))
+            # create virtualenv, if not already created
+            click.secho("Creating python virtual environment (if necessary)...", fg="blue")
+            self.ps('cd "{}"; virtualenv venv'.format(self.directory))
+            # install mikemech into that python virtual environment using pip
+            click.secho("Installing mikemech into that python virtual environment...", fg="blue")
+            self.ps('cd "{}"; .\\venv\\Scripts\\activate ;'
+                    'pip install mikemech'.format(self.directory))
+            vmrun_found = False
+            vbm_found = False
+            _, vmrun_stdout, _ = self.ps('Get-ChildItem -Recurse -Filter "vmrun.exe"'
+                                         ' -File -Path "C:\\"')
+            if re.search('vmrun.exe', vmrun_stdout, re.MULTILINE):
+                click.secho("VMware vmrun was found.", fg="green")
+                vmrun_found = True
+            else:
+                click.secho("VMware vmrun was not found.", fg="yellow")
+            _, vbm_stdout, _ = self.ps('Get-ChildItem -Recurse -Filter "VBoxManage.exe" '
+                                       '-File -Path "C:\\"')
+            if re.search('VBoxManage.exe', vbm_stdout, re.MULTILINE):
+                click.secho("Oracle VBoxManage was found.", fg="green")
+                vbm_found = True
+            else:
+                click.secho("Oracle VBoxManage was not found.", fg="yellow")
+            if vmrun_found is False and vbm_found is False:
+                click.secho("Neither VMware vmrun nor Oracle VBoxManage was found.", fg="red")
+                click.secho("The 'mech' command will not be very useful.", fg="red")
+
         click.echo("Done.")
 
     def upgrade(self):
         """Upgrade the cloud instance.
         """
         click.secho("Updating pip on cloud instance:({})...".format(self.name), fg="blue")
-        self.ssh('source {}/venv/bin/activate && pip install -U pip'.format(self.directory))
-        click.secho("Updating mikemech...", fg="blue")
-        self.ssh('source {}/venv/bin/activate && pip install -U mikemech'.format(self.directory))
+        LOGGER.debug("self.hosttype:%s", self.hosttype)
+
+        if self.hosttype == 'ubuntu' or self.hosttype == '':
+            self.ssh('source {}/venv/bin/activate && '
+                     'pip install -U pip'.format(self.directory))
+            click.secho("Updating mikemech...", fg="blue")
+            self.ssh('source {}/venv/bin/activate && '
+                     'pip install -U mikemech'.format(self.directory))
+        else:
+            self.ps('cd "{}"; .\\venv\\Scripts\\activate ;'
+                    'pip install -U pip'.format(self.directory))
+            click.secho("Updating mikemech...", fg="blue")
+            self.ps('cd "{}"; .\\venv\\Scripts\\activate ;'
+                    'pip install -U mikemech'.format(self.directory))
+
         click.echo("Done.")
 
     def ssh(self, command, print_output_on_error=True):
@@ -167,4 +236,23 @@ class MechCloudInstance():
                     click.echo(stdout)
                 if stderr:
                     click.echo(stderr)
+        return return_code, stdout, stderr
+
+    def ps(self, powershell):
+        """Run powershell using internal variables (like username, password and hostname) and print output.
+
+           Parameters:
+              powershell(str): command to execute (ex: 'mkdir foo')
+
+        """
+        return_code, stdout, stderr = utils.ps_with_username_and_password(hostname=self.hostname,
+                                                                          username=self.username,
+                                                                          password=self.password,
+                                                                          powershell=powershell)
+        LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
+        if return_code != 0:
+            click.secho('Warning: Command did not complete successfully.'
+                        '(return_code:{})'.format(return_code), fg="red")
+            if stdout:
+                click.echo(stdout)
         return return_code, stdout, stderr

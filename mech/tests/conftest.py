@@ -13,7 +13,9 @@ def mechcloudfile_one_entry():
             'name': 'tophat',
             'hostname': 'tophat.example.com',
             'directory': '~/test1',
-            'username': 'bob'
+            'username': 'bob',
+            'password': '',
+            'hosttype': 'ubuntu'
         }
     }
 

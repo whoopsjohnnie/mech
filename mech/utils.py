@@ -1110,7 +1110,8 @@ def winrm_execute_cmd(instance, command):
     return return_code, stdout, stderr
 
 
-def winrm_execute_ps(instance, powershell, args=None):
+def winrm_execute_ps_with_user_pass(hostname, username, password,
+                                    powershell, args=None):
     '''Run powershell using winrm.
 
        Returns:
@@ -1118,24 +1119,35 @@ def winrm_execute_ps(instance, powershell, args=None):
           stdout
           stderr (which will be '')
     '''
-    LOGGER.debug('instance.name:%s powershell:%s args:%s', instance.name, powershell, args)
+    LOGGER.debug('hostname:%s username:%s password:%s powershell:%s args:%s',
+                 hostname, username, password, powershell, args)
     suppress_urllib3_errors()
 
     powershell_with_args = powershell
     if args is not None:
         powershell_with_args = '{} {}'.format(powershell, args)
 
-    client = Client(instance.get_ip(), username=instance.user,
-                    password=instance.password, ssl=False)
+    client = Client(hostname, username=username,
+                    password=password, ssl=False)
     output, _, had_errors = client.execute_ps(powershell_with_args)
     LOGGER.debug('powershell:%s output:%s had_errors:%s', powershell, output, had_errors)
 
     return_code = 0
     if had_errors:
         return_code = 1
-    if output:
-        click.echo(output)
+        if output:
+            click.echo(output)
     return return_code, output, ''
+
+
+def winrm_execute_ps(instance, powershell, args=None):
+    '''Run powershell using winrm.
+    '''
+    LOGGER.debug('instance:%s powershell:%s args:%s', instance, powershell, args)
+    LOGGER.debug('instance.name:%s instance.get_ip():%s',
+                 instance.name, instance.get_ip())
+    return winrm_execute_ps_with_user_pass(instance.get_ip(), instance.user,
+                                           instance.password, powershell, args)
 
 
 def provision_file(instance, source, destination):
@@ -1172,8 +1184,8 @@ def create_tempfile_in_guest(instance):
 
 def winrm_create_tempfile_in_guest(instance):
     """Create a tempfile in the guest using wirrm."""
-    ps = '$file=New-TemporaryFile; $file.fullname'
-    _, stdout, _ = winrm_execute_ps(instance=instance, powershell=ps)
+    powershell = '$file=New-TemporaryFile; $file.fullname'
+    _, stdout, _ = winrm_execute_ps(instance=instance, powershell=powershell)
     return stdout
 
 
@@ -1634,6 +1646,26 @@ def ssh_with_username(hostname, username, command):
         stdout = result.stdout.decode('utf-8')
         stderr = result.stderr.decode('utf-8')
         return result.returncode, stdout, stderr
+
+
+def ps_with_username_and_password(hostname, username, password, powershell, args=None):
+    """Run the powershell on a host using the username/password.
+    """
+    LOGGER.debug("hostname:%s username:%s password:%s powershell:%s",
+                 hostname, username, password, powershell)
+    if hostname == '' or hostname is None:
+        click.secho("Hostname cannot be blank", fg="red")
+        return
+
+    if password == '' or password is None:
+        click.secho("Password cannot be blank", fg="red")
+        return
+
+    if powershell == '' or powershell is None:
+        click.secho("Powershell cannot be blank", fg="red")
+        return
+
+    return winrm_execute_ps_with_user_pass(hostname, username, password, powershell, args)
 
 
 def report_provider(provider):
