@@ -1861,6 +1861,9 @@ def cloud_run(cloud_name, operations):
         for arg in sys.argv:
             if arg in operations:
                 found_operation = True
+            # pass the debug flag to the cloud host
+            if arg == '--debug':
+                args_list.append('--debug')
             if found_operation:
                 args_list.append(arg)
         args_string = ' '.join(args_list)

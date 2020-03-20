@@ -2,6 +2,7 @@
 
 + First version using a Windows cloud host
 + Minor reformatting of some help pages
++ Pass 'debug' flag when used on 'mech cloud' operations
 
 # v0.9.3
 
