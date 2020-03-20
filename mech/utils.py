@@ -1866,21 +1866,40 @@ def cloud_run(cloud_name, operations):
         args_string = ' '.join(args_list)
         LOGGER.debug('cloud_name:%s operations:%s args_list:%s args_string:%s',
                      cloud_name, operations, args_list, args_string)
-        command = ('''ssh {username}@{hostname} -- "cd {directory}; '''
-                   '''source {directory}/venv/bin/activate && '''
-                   '''mech {args_string}"''').format(hostname=mci.hostname,
-                                                     directory=mci.directory,
-                                                     username=mci.username,
-                                                     args_string=args_string)
-        LOGGER.debug('command:%s', command)
-        result = subprocess.run(command, shell=True, capture_output=True)
-        stdout = result.stdout.decode('utf-8')
-        stderr = result.stderr.decode('utf-8')
-        if stdout:
-            click.echo(stdout)
-        if stderr:
-            click.echo(stderr)
-        return result.returncode, stdout, stderr
+        if mci.hosttype == 'ubuntu' or mci.hosttype == '':
+            command = ('''ssh {username}@{hostname} -- "cd {directory}; '''
+                       '''source {directory}/venv/bin/activate && '''
+                       '''mech {args_string}"''').format(hostname=mci.hostname,
+                                                         directory=mci.directory,
+                                                         username=mci.username,
+                                                         args_string=args_string)
+            LOGGER.debug('command:%s', command)
+            result = subprocess.run(command, shell=True, capture_output=True)
+            stdout = result.stdout.decode('utf-8')
+            stderr = result.stderr.decode('utf-8')
+            if stdout:
+                click.echo(stdout)
+            if stderr:
+                click.echo(stderr)
+            return result.returncode, stdout, stderr
+        else:
+            command = ('''cd "{directory}"; '''
+                       '''.\\venv\\Scripts\\activate ; '''
+                       '''mech {args_string}''').format(directory=mci.directory,
+                                                        args_string=args_string)
+            LOGGER.debug('command:%s', command)
+            return_code, stdout, stderr = ps_with_username_and_password(hostname=mci.hostname,
+                                                                        username=mci.username,
+                                                                        password=mci.password,
+                                                                        powershell=command)
+
+            LOGGER.debug('return_code:%d stdout:%s stderr:%s', return_code, stdout, stderr)
+            if return_code != 0:
+                click.secho('Warning: Command did not complete successfully.'
+                            '(return_code:{})'.format(return_code), fg="red")
+            if stdout:
+                click.echo(stdout)
+            return return_code, stdout, stderr
 
 
 # for short and long help options
