@@ -44,6 +44,8 @@ from shutil import copyfile, rmtree
 import requests
 import click
 from pypsrp.client import Client
+from pypsrp.shell import Process, SignalCode, WinRS
+from pypsrp.wsman import WSMan
 
 from .vmrun import VMrun
 import mech.vbm
@@ -1140,6 +1142,37 @@ def winrm_execute_ps_with_user_pass(hostname, username, password,
     return return_code, output, ''
 
 
+def winrm_execute_ps_with_user_pass2(hostname, username, password,
+                                     powershell, args=None):
+    '''Run powershell using winrm using WinRS
+
+       Returns:
+          return_code
+          stdout
+          stderr
+    '''
+    LOGGER.debug('hostname:%s username:%s password:%s powershell:%s args:%s',
+                 hostname, username, password, powershell, args)
+    suppress_urllib3_errors()
+
+    powershell_with_args = powershell
+    if args is not None:
+        powershell_with_args = '{} {}'.format(powershell, args)
+
+    wsman = WSMan(hostname, ssl=False, username=username, password=password)
+
+    with WinRS(wsman) as shell:
+        # execute a process with arguments in the background
+        process = Process(shell, powershell_with_args)
+        process.begin_invoke()  # start the invocation and return immediately
+        process.poll_invoke()  # update the output stream
+        process.end_invoke()  # finally wait until the process is finished
+        process.signal(SignalCode.CTRL_C)
+        if process.rc != 0:
+            click.echo(process.stderr)
+        return process.rc, process.stdout, process.stderr
+
+
 def winrm_execute_ps(instance, powershell, args=None):
     '''Run powershell using winrm.
     '''
@@ -1665,7 +1698,7 @@ def ps_with_username_and_password(hostname, username, password, powershell, args
         click.secho("Powershell cannot be blank", fg="red")
         return
 
-    return winrm_execute_ps_with_user_pass(hostname, username, password, powershell, args)
+    return winrm_execute_ps_with_user_pass2(hostname, username, password, powershell, args)
 
 
 def report_provider(provider):
@@ -1886,7 +1919,7 @@ def cloud_run(cloud_name, operations):
                 click.echo(stderr)
             return result.returncode, stdout, stderr
         else:
-            command = ('''cd "{directory}"; '''
+            command = ('''powershell cd "{directory}"; '''
                        '''.\\venv\\Scripts\\activate ; '''
                        '''mech {args_string}''').format(directory=mci.directory,
                                                         args_string=args_string)

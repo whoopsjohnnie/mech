@@ -113,7 +113,10 @@ class VMrun():  # pylint: disable=too-many-public-methods
         startupinfo = None
         if os.name == "nt":
             startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.SW_HIDE | subprocess.STARTF_USESHOWWINDOW
+            startupinfo.dwFlags |= subprocess.SW_HIDE |\
+                subprocess.STARTF_USESHOWWINDOW |\
+                subprocess.DETACHED_PROCESS |\
+                subprocess.CREATE_BREAKAWAY_FROM_JOB
         proc = subprocess.Popen(
             cmds,
             stdout=subprocess.PIPE,
