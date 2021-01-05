@@ -21,12 +21,14 @@ def read(fname):
 
 
 setup(
-    name="mikemech",
+    name="pymech",
     version=__version__,
     author="Kevin Chung, Germán Méndez Bravo, Mike Kinney",
     author_email="kchung@nyu.edu, german.mb@gmail.com, mike.kinney@gmail.com",
-    url="https://github.com/mkinney/mech",
-    download_url="https://github.com/mkinney/mech/tarball/master",
+    # url="https://github.com/mkinney/mech",
+    url="https://github.com/whoopsjohnnie/mech",
+    # download_url="https://github.com/mkinney/mech/tarball/master",
+    download_url="https://github.com/whoopsjohnnie/mech/tarball/master",
     license="MIT",
     description="Tool for command line virtual machines",
     long_description=read("README.md"),
